@@ -1,0 +1,16 @@
+
+
+Name:           Music
+Version:        1
+Cabal-Version:  >= 1.10
+Author:         Hans Höglund
+Category:       Music
+Synopsis:       Private code for music
+Build-Type:     Simple
+
+Executable music 
+    build-depends:      base
+    Default-Language:   Haskell2010
+    Main-Is:            Main.hs
+    Hs-Source-Dirs:     src         
+    
