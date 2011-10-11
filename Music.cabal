@@ -16,4 +16,14 @@ library
         Music
         Music.Model
         Music.Model.MusicXML
+        Music.Model.MusicXML.Base
+        Music.Model.MusicXML.Articulations
+        Music.Model.MusicXML.Harmony
+        Music.Model.MusicXML.Layout
+        Music.Model.MusicXML.Note
+        Music.Model.MusicXML.Opus
+        Music.Model.MusicXML.Score
+        Music.Model.MusicXML.Sound
+        Music.Model.MusicXML.Text
+        Music.Model.MusicXML.Tuplet
         Music.Utilities
