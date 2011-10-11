@@ -21,6 +21,7 @@ TODO
 , Divisions, Tenths, StringNumber, NumberLevel, BeamLevel
 , Percent, RotationDegrees, StaffLine, StaffNumber
 , Midi16, Midi128, Midi16384
+, NumberOrNormal(..)
 
 -- ** Symbolic
 , AboveBelow, OverUnder, TopBottom, UpDown, BackwardForward
@@ -48,12 +49,14 @@ TODO
 
 -- * Attribute groups
 -- , BendSound(..)  
-, Bezier(..)
-, Position(..)
-, Orientation
-, Placement
+, Bezier(..), Position(..)
+, Orientation, Placement
 , PrintObject, PrintSpacing, PrintStyle, PrintOut(..)
-, TrillSound(..)  
+, TrillSound(..)     
+, BendSound(..)
+, MeasureAttributes (..)
+, PartAttributes
+, PartNameText
 
 
 -- * Complex types
@@ -229,9 +232,9 @@ TODO
 , LeftRightMargins
 , Duration
 , FullNote
-, MusicData
+, MusicData(..)
 , PartGroupGroup
-, ScoreHeader
+, ScoreHeader(..)
 , ScorePart
 
 
@@ -299,6 +302,9 @@ type Midi128            = Int
 -- | The midi-16 type is used to express MIDI 1.0 values that range from 1 to 16,384.
 type Midi16384          = Int
 
+-- | The number-or-normal values can be either a decimal number or the string "normal". This is used 
+-- by the line-height and letter-spacing attributes.
+data NumberOrNormal     = Number Double | Normal
 
 -- | The above-below type is used to indicate whether one element appears above or below another
 -- element.
@@ -323,7 +329,7 @@ forward = BackwardForward True ; backward = BackwardForward False
 
 
 -- | The right-left-middle type is used to specify barline location.
-data LeftRightMiddle = LeftPos | RightPos | MiddlePos
+data LeftRightMiddle = LeftPos | RightPos | MiddlePos
     deriving (Show, Eq, Enum)
 
 
@@ -334,7 +340,7 @@ data LeftRightMiddle = LeftPos | RightPos | MiddlePos
 type Fifths = Int
 -- | The mode type is used to specify major/minor and other mode distinctions. Valid mode values
 -- include major, minor, dorian, phrygian, lydian, mixolydian, aeolian, ionian, and locrian.
-data Mode   = Major | Minor | Dorian | Phrygian | Lydian | Mixolydian | Aeolian | Ionian | Locrian
+data Mode   = Major | Minor | Dorian | Phrygian | Lydian | Mixolydian | Aeolian | Ionian | Locrian
     deriving (Show, Eq, Enum)
 
 
@@ -380,7 +386,7 @@ data ClefSign =
   | FClef
   | CClef
   | PercussionClef
-  | TabClef
+  | TabClef
   | NoClef
   deriving (Show, Eq, Enum)
 
@@ -440,14 +446,14 @@ data LineEnd =
 -- no numbers, numbers every measure, or numbers every system.
 data MeasureNumberingValue =
     NoNumbering
-  | EachMeasure
-  | EachSystem
+  | EachMeasure
+  | EachSystem
   deriving (Show, Eq, Enum)
 
 -- | The wedge type is crescendo for the start of a wedge that is closed at the left side,
 -- diminuendo for the start of a wedge that is closed on the right side, and stop for the end of
 -- a wedge.
-data WedgeType = Crescendo | Diminuendo | StopWedge
+data WedgeType = Crescendo | Diminuendo | StopWedge
     deriving (Show, Eq, Enum)
 
 -- | The symbol-size type is used to indicate full vs. cue-sized vs. oversized symbols. The large
@@ -459,7 +465,7 @@ data SymbolSize = FullSize | CueSize | LargeSize
 -- grace type is used for notes of cue size that that include a grace element. The cue type is
 -- used for all other notes with cue size, whether defined explicitly or implicitly via a cue
 -- element. The large type is used for notes of large size.
-data NoteSizeType = CueNoteType | GraceNoteType | LargeNoteType
+data NoteSizeType = CueNoteType | GraceNoteType | LargeNoteType
     deriving (Show, Eq, Enum)
 
 -- | The accidental-value type represents notated accidentals supported by MusicXML. In the
@@ -480,9 +486,9 @@ data AccidentalValue =
   | ThreeQuartersSharp
   deriving (Show, Eq, Enum)
 
-data BeamValue     = BeamBegin | BeamContinue | BeamEnd | ForwardHook | BackwardHook
+data BeamValue     = BeamBegin | BeamContinue | BeamEnd | ForwardHook | BackwardHook
     deriving (Show, Eq, Enum)
-data Fan           = Accel | Rit | NoFan
+data Fan           = Accel | Rit | NoFan
     deriving (Show, Eq, Enum)
 
 -- | The note-type type is used for the MusicXML type element and represents the graphic note
@@ -504,28 +510,28 @@ long    = 4
 -- the tip of the triangle pointing up; the inverted triangle shape has the tip of the triangle
 -- pointing down.
 data NoteHeadValue =
-    Slash
-  | Triangle
-  | Diamond
-  | Square
-  | Cross
-  | X
-  | CircleX
-  | InvertedTriangle
-  | ArrowDown
-  | ArrowUp
-  | Slashed
-  | BackSlashed
-  | Normal
-  | Cluster
-  | NoNoteHead
-  | Do
-  | Re
-  | Mi
-  | Fa
-  | So
-  | La
-  | Ti
+    SlashNoteHead
+  | TriangleNoteHead
+  | DiamondNoteHead
+  | SquareNoteHead
+  | CrossNoteHead
+  | XNoteHead
+  | CircleXNoteHead
+  | InvertedTriangleNoteHead
+  | ArrowDownNoteHead
+  | ArrowUpNoteHead
+  | SlashedNoteHead
+  | BackSlashedNoteHead
+  | NormalNoteHead
+  | ClusterNoteHead
+  | NoNoteHeadNoteHead
+  | DoNoteHead
+  | ReNoteHead
+  | MiNoteHead
+  | FaNoteHead
+  | SoNoteHead
+  | LaNoteHead
+  | TiNoteHead
   deriving (Show, Eq, Enum)
 
 -- | Octaves are represented by the numbers 0 to 9, where 4 indicates the octave started by
@@ -537,16 +543,16 @@ type Octave     = Int
 type Semitones  = Int
 -- | The show-tuplet type indicates whether to show a part of a tuplet relating to the
 -- tuplet-actual element, both the tuplet-actual and tuplet-normal elements, or neither.
-data ShowTuplet = Actual | Both | NeitherTupletPart
+data ShowTuplet = Actual | Both | NeitherTupletPart
     deriving (Show, Eq, Enum)
 
 -- | The stem type represents the notated stem direction.
-data StemValue = StemDown | StemUp | DoubleStem | NoStem
+data StemValue = StemDown | StemUp | DoubleStem | NoStem
     deriving (Show, Eq, Enum)
 
 -- | The step type represents a step of the diatonic scale, represented using the English letters
 -- A through G.
-data Step = A | B | C | D | E | F | G
+data Step = A | B | C | D | E | F | G
     deriving (Show, Eq, Enum)
 
 -- | The number of tremolo marks is represented by a number from 0 to 6: the same as beam-level
@@ -554,12 +560,12 @@ data Step = A | B | C | D | E | F | G
 type TremoloMarks       = Int
 
 -- | The group-barline-value type indicates if the group should have common barlines.
-data GroupBarlineValue = Common | NotCommon | Mensurstrich
+data GroupBarlineValue = Common | NotCommon | Mensurstrich
     deriving (Show, Eq, Enum)
 
 -- | The group-symbol-value type indicates how the symbol for a group is indicated in the score.
 -- The default value is none.
-data GroupSymbolValue  = Brace | Line | Bracket | NoSymbol
+data GroupSymbolValue  = Brace | Line | Bracket | NoSymbol
     deriving (Show, Eq, Enum)
 
 
@@ -569,8 +575,36 @@ data GroupSymbolValue  = Brace | Line | Bracket | NoSymbol
 -- Attribute groups
 -- *****************************************************************************
 
-type Orientation = OverUnder
-type Placement   = AboveBelow
+-- | The bend-sound type is used for bend and slide elements, and is
+-- similar to the trill-sound attribute group. Here the beats element refers to the number of
+-- discrete elements (like MIDI pitch bends) used to represent a continuous bend or slide. The
+-- first-beat indicates the percentage of the direction for starting a bend; the last-beat the
+-- percentage for ending it. The default choices are:
+--
+--      * accelerate = "no"
+--
+--      * beats = "4"
+--
+--      * first-beat = "25"
+--
+--      * last-beat = "75"
+
+data BendSound = BendSound
+    { accelerate    :: Bool
+    , beats         :: TrillBeats
+    , firstBeat     :: Percent
+    , lastBeat      :: Percent }
+    
+data TrillSound = TrillSound
+    { startNote     :: StartNote
+    , trillStep     :: TrillStep
+    , twoNoteTurn   :: TwoNoteTurn
+    -- , accelerate    :: Bool  FIXME
+    -- , beats         :: TrillBeats
+    , secondBeat    :: Percent
+    -- , lastBeat      :: Percent 
+    }
+    deriving (Show, Eq)                    
 
 
 -- | The bezier attribute group is used to indicate the curvature of slurs and ties, representing
@@ -595,6 +629,20 @@ data Bezier = Bezier
         , bezierY2 :: Tenths }
         deriving (Show, Eq)
 
+type Color = TODO
+type Directive = TODO
+type DocumentAttributes = TODO
+type Font = TODO
+type HorizontalAlign = TODO
+type Justify = TODO
+type LetterSpacing = TODO
+type LevelDisplay = TODO
+type LineHeight = TODO
+-- type LineShape = LineShape
+-- type LineType = LineType
+
+type Orientation = OverUnder
+type Placement   = AboveBelow
 
 -- | The position attributes are based on MuseData print suggestions. For most elements, any
 -- program will compute a default x and y position. The position attributes let this be changed
@@ -663,33 +711,24 @@ data PrintOut = PrintStyle
     { position  :: Position
     , font      :: TODO
     , color     :: TODO }
-    deriving (Show, Eq)
+    deriving (Show, Eq) 
+    
+type TextDecoration = TODO
+type TextDirection = TODO
+type TextFormatting = TODO
+type TextRotation = TODO
 
-data TrillSound = TrillSound
-    { startNote     :: StartNote
-    , trillStep     :: TrillStep
-    , twoNoteTurn   :: TwoNoteTurn
-    , accelerate    :: Bool
-    , beats         :: TrillBeats
-    , secondBeat    :: Percent
-    , lastBeat      :: Percent }
-    deriving (Show, Eq)
+-- data TrillSound
 
--- FIXME collision
-
--- -- | The bend-sound type is used for bend and slide elements, and is similar to the trill-sound attribute group. Here the beats element refers to the number of discrete elements (like MIDI pitch bends) used to represent a continuous bend or slide. The first-beat indicates the percentage of the direction for starting a bend; the last-beat the percentage for ending it. The default choices are:
--- --      accelerate = "no"
--- --      beats = "4"
--- --      first-beat = "25"
--- --      last-beat = "75"
--- data BendSound = BendSound
---     { accelerate :: Bool
---     , beats      :: TrillBeats
---     , firstBeat  :: Percent
---     , lastBeat   :: Percent }
-
-
-
+type VerticalAlign = TODO
+type VerticalAlignImage = TODO
+type XPosition = TODO
+type YPosition = TODO
+type ImageAttributes = TODO
+type PrintAttributes = TODO
+type ElementPosition = TODO
+type LinkAttributes = TODO
+type GroupNameText = TODO
 
 -- | The measure-attributes group is used by the measure element.
 --   Measures have a required number attribute (going from partwise to timewise, measures are
@@ -711,55 +750,15 @@ data TrillSound = TrillSound
 --   is typically set to True. Further details about measure numbering can be defined using the
 --   measure-numbering element. Measure width is specified in tenths. These are the global tenths
 --   specified in the scaling element, not local tenths as modified by the staff-size element.
-data MeasureAttribute = MeasureAttribute
+data MeasureAttributes = MeasureAttributes
     { number         :: String
     , implicit       :: Bool
     , nonControlling :: Bool
     , width          :: Tenths }
     deriving (Show, Eq)
 
-
-{-
-    <xs:attributeGroup name="measure-attributes">
-        <xs:annotation>
-            <xs:documentation>The measure-attributes group is used by the measure element. Measures have a required number attribute (going from partwise to timewise, measures are grouped via the number).
-
-The implicit attribute is set to "yes" for measures where the measure number should never appear, such as pickup measures and the last half of mid-measure repeats. The value is "no" if not specified.
-
-The non-controlling attribute is intended for use in multimetric music like the Don Giovanni minuet. If set to "yes", the left barline in this measure does not coincide with the left barline of measures in other parts. The value is "no" if not specified.
-
-In partwise files, the number attribute should be the same for measures in different parts that share the same left barline. While the number attribute is often numeric, it does not have to be. Non-numeric values are typically used together with the implicit or non-controlling attributes being set to "yes". For a pickup measure, the number attribute is typically set to "0" and the implicit attribute is typically set to "yes". Further details about measure numbering can be defined using the measure-numbering element.
-
-Measure width is specified in tenths. These are the global tenths specified in the scaling element, not local tenths as modified by the staff-size element.</xs:documentation>
-        </xs:annotation>
-        <xs:attribute name="number" type="xs:token" use="required"/>
-        <xs:attribute name="implicit" type="yes-no"/>
-        <xs:attribute name="non-controlling" type="yes-no"/>
-        <xs:attribute name="width" type="tenths"/>
-    </xs:attributeGroup>
-
-    <xs:attributeGroup name="part-attributes">
-        <xs:annotation>
-            <xs:documentation>In either partwise or timewise format, the part element has an id attribute that is an IDREF back to a score-part in the part-list.</xs:documentation>
-        </xs:annotation>
-        <xs:attribute name="id" type="xs:IDREF" use="required"/>
-    </xs:attributeGroup>
-
-    <xs:attributeGroup name="part-name-text">
-        <xs:annotation>
-            <xs:documentation>The part-name-text attribute group is used by the part-name and part-abbreviation elements. The print-style and justify attribute groups are deprecated in MusicXML 2.0 in favor of the new part-name-display and part-abbreviation-display elements.</xs:documentation>
-        </xs:annotation>
-        <xs:attributeGroup ref="print-style"/>
-        <xs:attributeGroup ref="print-object"/>
-        <xs:attributeGroup ref="justify"/>
-    </xs:attributeGroup>
-
-
--}
-
-
-
-
+type PartAttributes = TODO
+type PartNameText = TODO
 
 
 
@@ -2597,7 +2596,7 @@ type Arpeggiate = TODO
 
 -}
 
--- | <xs:documentation>Articulations and accents are grouped together here.</xs:documentation>
+-- | <xs:documentation>Articulations and accents are grouped together here.</xs:documentation>
 type Articulations = TODO
 {-
     <xs:complexType name="articulations">
@@ -2690,7 +2689,7 @@ type Articulations = TODO
 -}
 
 
--- | The backup and forward elements are required to coordinate multiple
+-- | The backup and forward elements are required to coordinate multiple
 -- voices in one part, including music on multiple staves. The backup type is generally used to
 -- move between voices and staves. Thus the backup element does not include voice or staff
 -- elements. Duration values should always be positive, and should not cross measure
@@ -2858,7 +2857,7 @@ type FiguredBass = TODO
 
 -}
 
--- | The backup and forward elements are required to coordinate multiple
+-- | The backup and forward elements are required to coordinate multiple
 -- voices in one part, including music on multiple staves. The forward element is generally used
 -- within voices and staves. Duration values should always be positive, and should not cross
 -- measure boundaries.
@@ -4424,14 +4423,12 @@ data ScoreHeader = ScoreHeader
 -- | The score-partwise element is the root element for a partwise MusicXML score. 
 --   It includes a score-header group followed by a series of parts with measures 
 --   inside. The document-attributes attribute group includes the version attribute.
-type ScorePartwise = (ScoreHeader, [[(MeasureAttribute, [MusicData])]])
+type ScorePartwise = (ScoreHeader, [[(MeasureAttributes, [MusicData])]])
 
 -- | The score-timewise element is the root element for a timewise MusicXML score.
 --   It includes a score-header group followed by a series of measures with parts 
 --   inside. The document-attributes attribute group includes the version attribute.
-type ScoreTimewise = (ScoreHeader, [(MeasureAttribute, [[MusicData]])])
+type ScoreTimewise = (ScoreHeader, [(MeasureAttributes, [[MusicData]])])
 
-
-
-
-type TODO = Int
+-- | Placeholder for unimplemented types. Can not be initiated.
+data TODO = Dummy deriving (Show, Eq, Enum)
