@@ -57,7 +57,7 @@ TODO
 -- ** Staves
 , StaffType(..)
 , MeasureNumberingValue(..)
-, GroupBarlineValue(..)
+, BarlineValue(..)
 , GroupSymbolValue(..)
 
 -- ** Measures
@@ -281,7 +281,7 @@ TODO
 , Credit
 , Defaults
 , EmptyFont
-, GroupBarline
+, Barline
 , GroupName
 , GroupSymbol
 , LyricFont
@@ -652,7 +652,7 @@ data Step = A | B | C | D | E | F | G
 type TremoloMarks       = Int
 
 -- | The group-barline-value type indicates if the group should have common barlines.
-data GroupBarlineValue = Common | NotCommon | Mensurstrich
+data BarlineValue = Common | NotCommon | Mensurstrich
     deriving (Show, Eq, Enum)
 
 -- | The group-symbol-value type indicates how the symbol for a group is indicated in the score.
@@ -4070,7 +4070,7 @@ type EmptyFont = TODO
 -}      
 
 -- | The group-barline type indicates if the group should have common barlines.
-type GroupBarline = TODO
+type Barline = TODO
 {-
     <xs:complexType name="group-barline">
         <xs:annotation>
@@ -4697,7 +4697,7 @@ data MusicData =
     | FiguredBass FiguredBass
     | Print Print
     | Sound Sound
-    | Barline GroupBarline
+    | Barline Barline
     | Grouping Grouping
     | Link Link
     | Bookmark Bookmark
