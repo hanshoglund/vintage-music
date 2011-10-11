@@ -33,6 +33,7 @@ TODO
 , Midi16
 , Midi128
 , Midi16384
+, Color
 , NumberOrNormal(..)
 
 -- ** Placement and directions
@@ -42,7 +43,7 @@ TODO
 , UpDown
 , BackwardForward
 , above, below, over, under, top, bottom, up, down, forward, backward
-, RightLeftMiddle(..) 
+, LeftCenterRight(..) 
 
 -- ** Continuity
 
@@ -64,7 +65,7 @@ TODO
 -- ** Measures
 , BarStyle(..)
 
--- ** Global declarations
+-- ** Key, time and clef
 , Fifths, Mode(..)
 , ClefSign(..)
 , TimeSymbol(..)
@@ -91,22 +92,50 @@ TODO
 , WedgeType(..)
 , TrillBeats
 , TrillStep(..)
-, TwoNoteTurn(..)
+, TwoNoteTurn(..) 
+
+-- ** Text
+, FontStyle(..)
+, FontWeight(..)
 
 
 -- ------------------------------------------------------------------------- --
 -- * Attribute groups
 -- ------------------------------------------------------------------------- --
 
--- , BendSound(..)  
-, Bezier(..), Position(..)
-, Orientation, Placement
-, PrintObject, PrintSpacing, PrintStyle, PrintOut(..)
+, BendSound(..)  
+, Bezier(..)
+-- , Color
+, Directive
+, DocumentAttributes(..)
+, Font(..)
+, HorizontalAlign
+, LetterSpacing
+, LevelDisplay
+, LineHeight
+-- , LineShape
+-- , LineType
+    
+, Orientation
+, Placement
+, Position(..)
+, PrintStyle(..) 
+, PrintOut(..)
+, TextDecoration
+, TextDirection
+, TextFormatting
+, TextRotation
 , TrillSound(..)     
-, BendSound(..)
+, VerticalAlign(..)
+, VerticalAlignImage(..)
+, ImageAttributes
+, PrintAttributes(..)
+, ElementPosition
+, LinkAttributes
+, GroupNameText
 , MeasureAttributes (..)
-, PartAttributes
-, PartNameText
+, PartAttributes(..)
+, PartNameText(..)
 
 
 -- ------------------------------------------------------------------------- --
@@ -285,7 +314,7 @@ TODO
 , Layout
 , LeftRightMargins
 , Duration
-, FullNote
+, FullNote(..)
 , MusicData(..)
 , PartGroupGroup
 , ScoreHeader(..)
@@ -295,13 +324,17 @@ TODO
 -- * Root elements
 -- ------------------------------------------------------------------------- --
 
-, ScorePartwise
-, ScoreTimewise
-
+, Part
+, Measure
+-- , ScorePartwise
+-- , ScoreTimewise
+, Score(..)
 
 )
 
 where
+          
+import Data.Word
 
 
 -- *****************************************************************************
@@ -357,6 +390,8 @@ type Midi128            = Int
 -- | The midi-16 type is used to express MIDI 1.0 values that range from 1 to 16,384.
 type Midi16384          = Int
 
+type Color = Word32                                   
+
 -- | The number-or-normal values can be either a decimal number or the string "normal". This is used 
 -- by the line-height and letter-spacing attributes.
 data NumberOrNormal     = Number Double | Normal
@@ -383,10 +418,8 @@ up      = UpDown          True ; down     = UpDown          False
 forward = BackwardForward True ; backward = BackwardForward False
 
 
--- | The right-left-middle type is used to specify barline location.
-data RightLeftMiddle = Left | Right | Middle
+data LeftCenterRight = Left | Center | Right
     deriving (Show, Eq, Enum)
-
 
 
 -- | The fifths type represents the number of flats or sharps in a traditional key signature.
@@ -434,6 +467,11 @@ data TrillStep    = TrillWholeStep | TrillHalfStep | TrillUnison
     deriving (Show, Eq, Enum)
 data TwoNoteTurn  = TrillWholeTurn | TrillHalfTurn | TrillNoTurn
     deriving (Show, Eq, Enum)
+
+data FontStyle = NormalFontStyle | ItalicFontStyle
+    deriving (Show, Eq) 
+data FontWeight = NormalFontWeight | ItalicFontWeight
+    deriving (Show, Eq) 
 
 -- | The clef-sign element represents the different clef symbols.
 data ClefSign =
@@ -684,17 +722,38 @@ data Bezier = Bezier
         , bezierY2 :: Tenths }
         deriving (Show, Eq)
 
-type Color = TODO
-type Directive = TODO
-type DocumentAttributes = TODO
-type Font = TODO
-type HorizontalAlign = TODO
-type Justify = TODO
-type LetterSpacing = TODO
+-- type Color = Color
+
+-- | The directive attribute changes the default-x position of a direction. It indicates that the left-hand side of the direction is aligned with the left-hand side of the time signature. If no time signature is present, it is aligned with the left-hand side of the first music notational element in the measure. If a default-x, justify, or halign attribute is present, it overrides the directive attribute.
+type Directive = Bool
+
+-- | The document-attributes attribute group is used to specify the attributes for an entire MusicXML
+-- document. Currently this is used for the version attribute.
+--
+-- The version attribute was added in Version 1.1 for the score-partwise and score-timewise
+-- documents. It provides an easier way to get version information than through the MusicXML public
+-- ID. The default value is 1.0 to make it possible for programs that handle later versions to
+-- distinguish earlier version files reliably. Programs that write MusicXML 1.1 or 2.0 files should
+-- set this attribute.
+data DocumentAttributes = DocumentAttributes
+    { version :: String }
+
+data Font = Font
+    { family :: [String]
+    , style  :: FontStyle
+    , weight :: FontWeight
+    , size   :: Int }
+    deriving (Show, Eq) 
+
+type HorizontalAlign = LeftCenterRight
+
+type LetterSpacing = NumberOrNormal
 type LevelDisplay = TODO
-type LineHeight = TODO
+type LineHeight = NumberOrNormal
+
 -- type LineShape = LineShape
 -- type LineType = LineType
+
 
 type Orientation = OverUnder
 type Placement   = AboveBelow
@@ -750,11 +809,17 @@ data Position = Position
     , relativeY :: Tenths }
     deriving (Show, Eq)
 
--- | The print-object attribute specifies whether or not to print an object
--- (e.g. a note or a rest). It is yes by default.
-type PrintObject = Bool
-type PrintSpacing = Bool
-type PrintStyle = Bool
+-- | The printout attribute group collects the different controls over printing an object (e.g. a
+-- note or rest) and its parts, including augmentation dots and lyrics. This is especially useful for
+-- notes that overlap in different voices, or for chord sheets that contain lyrics and chords but no
+-- melody. By default, all these attributes are set to yes. If print-object is set to no, the
+-- print-dot and print-lyric attributes are interpreted to also be set to no if they are not
+-- present.
+data PrintStyle = PrintStyle
+    { position :: Position
+    , font     :: Font
+    , color    :: Color }
+    deriving (Show, Eq) 
 
 -- | The printout attribute group collects the different controls over printing an object (e.g. a
 -- note or rest) and its parts, including augmentation dots and lyrics. This is especially useful
@@ -762,10 +827,11 @@ type PrintStyle = Bool
 -- but no melody. By default, all these attributes are set to yes. If print-object is set to no,
 -- the print-dot and print-lyric attributes are interpreted to also be set to no if they are not
 -- present.
-data PrintOut = PrintStyle
-    { position  :: Position
-    , font      :: TODO
-    , color     :: TODO }
+data PrintOut = PrintOut
+    { printObject  :: Bool
+    , printDot     :: Bool
+    , printSpacing :: Bool
+    , printLyric   :: Bool }
     deriving (Show, Eq) 
     
 type TextDecoration = TODO
@@ -775,13 +841,26 @@ type TextRotation = TODO
 
 -- data TrillSound
 
-type VerticalAlign = TODO
-type VerticalAlignImage = TODO
-type XPosition = TODO
-type YPosition = TODO
+data VerticalAlign = Top | Middle | Bottom | Baseline
+    deriving (Show, Eq, Enum)
+
+data VerticalAlignImage = ImageTop | ImageMiddle | ImageBottom
+    deriving (Show, Eq, Enum)
+
+
 type ImageAttributes = TODO
-type PrintAttributes = TODO
+
+data PrintAttributes = PrintAttributes
+    { staffSpacing :: Tenths
+    , newSystem    :: Bool
+    , newPage      :: Bool
+    , blankPage    :: Int
+    , pageNumber   :: String }   
+    deriving (Show, Eq) 
+
+
 type ElementPosition = TODO
+
 type LinkAttributes = TODO
 type GroupNameText = TODO
 
@@ -807,13 +886,22 @@ type GroupNameText = TODO
 --   specified in the scaling element, not local tenths as modified by the staff-size element.
 data MeasureAttributes = MeasureAttributes
     { number         :: String
-    , implicit       :: Bool
-    , nonControlling :: Bool
-    , width          :: Tenths }
+    , implicit       :: Maybe Bool
+    , nonControlling :: Maybe Bool
+    , width          :: Maybe Tenths }
     deriving (Show, Eq)
 
-type PartAttributes = TODO
-type PartNameText = TODO
+-- | In either partwise or timewise format, the part element has an id attribute that is a reference 
+-- back to a score-part in the part-list.
+data PartAttributes = PartAttributes { id :: String }
+
+-- | The part-name-text attribute group is used by the part-name and part-abbreviation elements.
+-- The print-style and justify attribute groups are deprecated in MusicXML 2.0 in favor of the new
+-- part-name-display and part-abbreviation-display elements.
+data PartNameText = PartNameText 
+    { printStyle  :: Bool 
+--    , printObject :: Bool FIXME
+    , justify     :: LeftCenterRight }
 
 
 
@@ -1112,12 +1200,12 @@ type WavyLine = TODO
 
 
 -}
+
+-- | The attributes element contains musical information that typically changes on measure
+-- boundaries. This includes key and time signatures, clefs, transpositions, and staving.
 type Attributes = TODO
 {-
     <xs:complexType name="attributes">
-        <xs:annotation>
-            <xs:documentation>The attributes element contains musical information that typically changes on measure boundaries. This includes key and time signatures, clefs, transpositions, and staving.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:group ref="editorial"/>
 
@@ -1729,7 +1817,15 @@ type DegreeValue = TODO
         </xs:simpleContent>
     </xs:complexType>
 
--}
+-}            
+
+-- | A direction is a musical indication that is not attached to a specific note. Two or more may be
+-- combined to indicate starts and stops of wedges, dashes, etc.
+--	
+-- By default, a series of direction-type elements and a series of child elements of a direction-type
+-- within a single direction element follow one another in sequence visually. For a series of
+-- direction-type children, non-positional formatting attributes are carried over from the previous
+-- element by default.
 type Direction = TODO
 {-
     <xs:complexType name="direction">
@@ -1893,17 +1989,22 @@ This element is flexible to allow for different types of analyses. Future versio
         <xs:attribute name="member-of" type="xs:token"/>
     </xs:complexType>
 
--}
+-}                                 
+-- | The harmony type is based on Humdrum's harm encoding, extended to support chord symbols in
+-- popular music as well as functional harmony analysis in classical music.
+-- 
+-- If there are alternate harmonies possible, this can be specified using multiple harmony elements
+-- differentiated by type. Explicit harmonies have all note present in the music; implied have some
+-- notes missing but implied; alternate represents alternate analyses.
+-- 
+-- The harmony object may be used for analysis or for chord symbols. The print-object attribute
+-- controls whether or not anything is printed due to the harmony element. The print-frame attribute
+-- controls printing of a frame or fretboard diagram. The print-style attribute group sets the
+-- default for the harmony, but individual elements can override this with their own print-style
+-- values.
 type Harmony = TODO
 {-
     <xs:complexType name="harmony">
-        <xs:annotation>
-            <xs:documentation>The harmony type is based on Humdrum's **harm encoding, extended to support chord symbols in popular music as well as functional harmony analysis in classical music.
-
-If there are alternate harmonies possible, this can be specified using multiple harmony elements differentiated by type. Explicit harmonies have all note present in the music; implied have some notes missing but implied; alternate represents alternate analyses.
-
-The harmony object may be used for analysis or for chord symbols. The print-object attribute controls whether or not anything is printed due to the harmony element. The print-frame attribute controls printing of a frame or fretboard diagram. The print-style attribute group sets the default for the harmony, but individual elements can override this with their own print-style values.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:group ref="harmony-chord" maxOccurs="unbounded"/>
             <xs:element name="frame" type="frame" minOccurs="0"/>
@@ -2896,12 +2997,13 @@ type Figure = TODO
     </xs:complexType>
 
 -}
+
+-- | The figured-bass element represents figured bass notation. Figured bass elements take their
+-- position from the first regular note that follows. Figures are ordered from top to bottom. The
+-- value of parentheses is False if not present.
 type FiguredBass = TODO
 {-
     <xs:complexType name="figured-bass">
-        <xs:annotation>
-            <xs:documentation>The figured-bass element represents figured bass notation. Figured bass elements take their position from the first regular note that follows. Figures are ordered from top to bottom. The value of parentheses is "no" if not present.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="figure" type="figure" maxOccurs="unbounded"/>
             <xs:group ref="duration" minOccurs="0"/>
@@ -3175,45 +3277,7 @@ type Notations = TODO
 --   shows which time to play the note. The pizzicato attribute is used when just this note
 --   is sounded pizzicato, vs. the pizzicato element which changes overall playback between
 --   pizzicato and arco.
-data Note = 
-    GraceNote
-      {
-        tie :: [Tie]    
-      }
-  | CueNote
-      {
-        duration :: Duration
-        -- TODO group ref full-note
-      }
-  | FullNote
-      {  
-        duration :: Duration
-  
-      -- TODO group ref full-note
-
-      , instrument        :: Maybe Instrument
-
-      -- TODO group ref editorial-voice
-
-      , noteType          :: Maybe NoteType
-
-      -- One dot element is used for each dot of prolongation. The placement element is 
-      -- used to specify whether the dot should appear above or below the staff line. 
-      -- It is ignored for notes that appear on a staff space.
-      -- , dot            :: Maybe EmptyPlacement
-
-      , accidental        :: Maybe Accidental
-      , timeModification  :: Maybe TimeModification
-      , stem              :: Maybe Stem
-      , noteHead          :: Maybe NoteHead
-  
-      -- TODO group ref staff 
-  
-      , beam              :: [Beam]
-      , notations         :: [Notations]
-      , lyric             :: [Lyric]
-  
-      } 
+type  Note = TODO
 
 {-      
 
@@ -4341,38 +4405,29 @@ type Duration = TODO
         </xs:sequence>
     </xs:group>
 
--}
-type FullNote = TODO
-{-
-    <xs:group name="full-note">
-        <xs:annotation>
-            <xs:documentation>The full-note group is a sequence of the common note elements between cue/grace notes and regular (full) notes: pitch, chord, and rest information, but not duration (cue and grace notes do not have duration encoded). Unpitched elements are used for unpitched percussion, speaking voice, and other musical elements lacking determinate pitch.</xs:documentation>
-        </xs:annotation>
-        <xs:sequence>
-            <xs:element name="chord" type="empty" minOccurs="0">
-                <xs:annotation>
-                    <xs:documentation>The chord element indicates that this note is an additional chord tone with the preceding note. The duration of this note can be no longer than the preceding note. In MuseData, a missing duration indicates the same length as the previous note, but the MusicXML format requires a duration for chord notes too.</xs:documentation>
-                </xs:annotation>
-            </xs:element>
-            <xs:choice>
-                <xs:element name="pitch" type="pitch"/>
-                <xs:element name="unpitched" type="display-step-octave">
-                    <xs:annotation>
-                        <xs:documentation>The unpitched element indicates musical elements that are notated on the staff but lack definite pitch, such as unpitched percussion and speaking voice.</xs:documentation>
-                    </xs:annotation>
-                </xs:element>
-                <xs:element name="rest" type="display-step-octave">
-                    <xs:annotation>
-                        <xs:documentation>The rest element indicates notated rests or silences. Rest are usually empty, but placement on the staff can be specified using display-step and display-octave elements.</xs:documentation>
-                    </xs:annotation>
-                </xs:element>
-            </xs:choice>
-        </xs:sequence>
-    </xs:group>
+-}                                                      
 
-    <!-- Element groups derived from score.mod entities and elements -->
 
--}
+-- | The full-note group is a sequence of the common note elements between cue/grace notes and
+-- regular (full) notes: pitch, chord, and rest information, but not duration (cue and grace notes do
+-- not have duration encoded). Unpitched elements are used for unpitched percussion, speaking voice,
+-- and other musical elements lacking determinate pitch.
+
+
+data FullNote = 
+    -- | The chord element indicates that this note is an additional chord tone with the preceding note.
+    -- The duration of this note can be no longer than the preceding note. In MuseData, a missing
+    -- duration indicates the same length as the previous note, but the MusicXML format requires a
+    -- duration for chord notes too.
+    Chord 
+  | Pitch  
+    -- | The unpitched element indicates musical elements that are notated on the staff but lack definite
+    -- pitch, such as unpitched percussion and speaking voice.
+  | Unpitched DisplayStepOctave 
+    -- | The rest element indicates notated rests or silences. Rest are usually empty, but placement on the
+    -- staff can be specified using display-step and display-octave elements.
+  | Rest      DisplayStepOctave
+
 
 data MusicData =
       Note Note
@@ -4384,35 +4439,12 @@ data MusicData =
     | FiguredBass FiguredBass
     | Print Print
     | Sound Sound
-    -- Barline Barline
+    | Barline GroupBarline
     | Grouping Grouping
     | Link Link
     | Bookmark Bookmark
-{-
-    <xs:group name="music-data">
-        <xs:annotation>
-            <xs:documentation>The music-data group contains the basic musical data that is either associated with a part or a measure, depending on whether the partwise or timewise hierarchy is used.</xs:documentation>
-        </xs:annotation>
-        <xs:sequence>
-            <xs:choice minOccurs="0" maxOccurs="unbounded">
-                <xs:element name="note" type="note"/>
-                <xs:element name="backup" type="backup"/>
-                <xs:element name="forward" type="forward"/>
-                <xs:element name="direction" type="direction"/>
-                <xs:element name="attributes" type="attributes"/>
-                <xs:element name="harmony" type="harmony"/>
-                <xs:element name="figured-bass" type="figured-bass"/>
-                <xs:element name="print" type="print"/>
-                <xs:element name="sound" type="sound"/>
-                <xs:element name="barline" type="barline"/>
-                <xs:element name="grouping" type="grouping"/>
-                <xs:element name="link" type="link"/>
-                <xs:element name="bookmark" type="bookmark"/>
-            </xs:choice>
-        </xs:sequence>
-    </xs:group>
 
--}
+
 type PartGroupGroup = TODO
 {-
     <xs:group name="part-group">
@@ -4475,17 +4507,34 @@ data ScoreHeader = ScoreHeader
 -- *****************************************************************************
 -- Root elements
 -- *****************************************************************************
+          
+type Part    = [(MeasureAttributes, [MusicData])]
+type Measure = (MeasureAttributes, [[MusicData]])
 
-
--- | The score-partwise element is the root element for a partwise MusicXML score. 
---   It includes a score-header group followed by a series of parts with measures 
---   inside. The document-attributes attribute group includes the version attribute.
-type ScorePartwise = (ScoreHeader, [[(MeasureAttributes, [MusicData])]])
-
--- | The score-timewise element is the root element for a timewise MusicXML score.
---   It includes a score-header group followed by a series of measures with parts 
---   inside. The document-attributes attribute group includes the version attribute.
-type ScoreTimewise = (ScoreHeader, [(MeasureAttributes, [[MusicData]])])
+-- -- | The score-partwise element is the root element for a partwise MusicXML score. 
+-- --   It includes a score-header group followed by a series of parts with measures 
+-- --   inside. The document-attributes attribute group includes the version attribute.
+-- type ScorePartwise = (Maybe DocumentAttributes, ScoreHeader, [Part])
+-- 
+-- -- | The score-timewise element is the root element for a timewise MusicXML score.
+-- --   It includes a score-header group followed by a series of measures with parts 
+-- --   inside. The document-attributes attribute group includes the version attribute.
+-- type ScoreTimewise = (Maybe DocumentAttributes, ScoreHeader, [Measure])
+--              
+data Score = 
+  PartwiseScore 
+    { attributes :: Maybe DocumentAttributes
+    , header     :: ScoreHeader
+    , parts      :: [Part] }
+  | TimewiseScore 
+    { attributes :: Maybe DocumentAttributes
+    , header     :: ScoreHeader
+    , measures   :: [Measure] }
 
 -- | Placeholder for unimplemented types. Can not be initiated.
 data TODO = Dummy deriving (Show, Eq, Enum)
+
+
+
+
+
