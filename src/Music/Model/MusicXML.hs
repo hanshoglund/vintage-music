@@ -105,38 +105,39 @@ TODO
 -- ------------------------------------------------------------------------- --
 
 , BendSound(..)  
+, TrillSound(..)     
+
 , Bezier(..)
--- , Color
 , Directive
-, DocumentAttributes(..)
 , Font(..)
+
 , HorizontalAlign
 , LetterSpacing
 , LevelDisplay
 , LineHeight
--- , LineShape
--- , LineType
     
 , Orientation
 , Placement
 , Position(..)
 , PrintStyle(..) 
 , PrintOut(..)
+
 , TextDecoration
 , TextDirection
 , TextFormatting
 , TextRotation
-, TrillSound(..)     
+
 , VerticalAlign(..)
 , VerticalAlignImage(..)
+, ElementPosition
+, GroupNameText
+
+, DocumentAttributes(..)
+, LinkAttributes
 , ImageAttributes
 , PrintAttributes(..)
-, ElementPosition
-, LinkAttributes
-, GroupNameText
 , MeasureAttributes (..)
 , PartAttributes(..)
--- , PartNameText(..)
 
 
 -- ------------------------------------------------------------------------- --
@@ -317,7 +318,6 @@ TODO
 , Duration
 , FullNote(..)
 , MusicData(..)
-, PartGroupGroup
 , ScoreHeader(..)
 
 
@@ -327,8 +327,6 @@ TODO
 
 , Part
 , Measure
--- , ScorePartwise
--- , ScoreTimewise
 , Score(..)
 
 )
@@ -725,7 +723,11 @@ data Bezier = Bezier
 
 -- type Color = Color
 
--- | The directive attribute changes the default-x position of a direction. It indicates that the left-hand side of the direction is aligned with the left-hand side of the time signature. If no time signature is present, it is aligned with the left-hand side of the first music notational element in the measure. If a default-x, justify, or halign attribute is present, it overrides the directive attribute.
+-- | The directive attribute changes the default-x position of a direction. It indicates that the
+-- left-hand side of the direction is aligned with the left-hand side of the time signature. If no
+-- time signature is present, it is aligned with the left-hand side of the first music notational
+-- element in the measure. If a default-x, justify, or halign attribute is present, it overrides the
+-- directive attribute.
 type Directive = Bool
 
 -- | The document-attributes attribute group is used to specify the attributes for an entire MusicXML
@@ -918,13 +920,10 @@ data PartNameText = PartNameText
 {-
     <!-- Complex types derived from common.mod entities and elements -->
 -}
--- | 
+-- | The accidental-text type represents an element with an accidental value and text-formatting attributes.
 type AccidentalText = TODO
 {-
     <xs:complexType name="accidental-text">
-        <xs:annotation>
-            <xs:documentation>The accidental-text type represents an element with an accidental value and text-formatting attributes.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="accidental-value">
                 <xs:attributeGroup ref="text-formatting"/>
@@ -933,15 +932,25 @@ type AccidentalText = TODO
     </xs:complexType>
 
 -}
--- | 
+
+
+-- | Dynamics can be associated either with a note or a general musical direction. To avoid
+-- inconsistencies between and amongst the letter abbreviations for dynamics (what is sf vs. sfz,
+-- standing alone or with a trailing dynamic that is not always piano), we use the actual letters as
+-- the names of these dynamic elements. The other-dynamics element allows other dynamic marks that
+-- are not covered here, but many of those should perhaps be included in a more general musical
+-- direction element. Dynamics elements may also be combined to create marks not covered by a single
+-- element, such as sfmp.
+--
+-- These letter dynamic symbols are separated from crescendo, decrescendo, and wedge indications.
+-- Dynamic representation is inconsistent in scores. Many things are assumed by the composer and left
+-- out, such as returns to original dynamics. Systematic representations are quite complex: for
+-- example, Humdrum has at least 3 representation formats related to dynamics. The MusicXML format
+-- captures what is in the score, but does not try to be optimal for analysis or synthesis of
+-- dynamics.
 type Dynamics = TODO
 {-
     <xs:complexType name="dynamics">
-        <xs:annotation>
-            <xs:documentation>Dynamics can be associated either with a note or a general musical direction. To avoid inconsistencies between and amongst the letter abbreviations for dynamics (what is sf vs. sfz, standing alone or with a trailing dynamic that is not always piano), we use the actual letters as the names of these dynamic elements. The other-dynamics element allows other dynamic marks that are not covered here, but many of those should perhaps be included in a more general musical direction element. Dynamics elements may also be combined to create marks not covered by a single element, such as sfmp.
-
-These letter dynamic symbols are separated from crescendo, decrescendo, and wedge indications. Dynamic representation is inconsistent in scores. Many things are assumed by the composer and left out, such as returns to original dynamics. Systematic representations are quite complex: for example, Humdrum has at least 3 representation formats related to dynamics. The MusicXML format captures what is in the score, but does not try to be optimal for analysis or synthesis of dynamics.</xs:documentation>
-        </xs:annotation>
         <xs:choice minOccurs="0" maxOccurs="unbounded">
             <xs:element name="p" type="empty"/>
             <xs:element name="pp" type="empty"/>
@@ -973,45 +982,33 @@ These letter dynamic symbols are separated from crescendo, decrescendo, and wedg
     </xs:complexType>
 
 -}
--- | 
+-- | The empty type represents an empty element with no attributes.
 type Empty = TODO
 {-
     <xs:complexType name="empty">
-        <xs:annotation>
-            <xs:documentation>The empty type represents an empty element with no attributes.</xs:documentation>
-        </xs:annotation>
     </xs:complexType>
-
 -}
--- | 
+-- | The empty-placement type represents an empty element with print-style and placement attributes.
 type EmptyPlacement = TODO
 {-
     <xs:complexType name="empty-placement">
-        <xs:annotation>
-            <xs:documentation>The empty-placement type represents an empty element with print-style and placement attributes.</xs:documentation>
-        </xs:annotation>
         <xs:attributeGroup ref="print-style"/>
         <xs:attributeGroup ref="placement"/>
     </xs:complexType>
 
 -}
--- | 
+-- | The empty-print-style type represents an empty element with print-style attributes.
 type EmptyPrintStyle = TODO
-{-    <xs:complexType name="empty-print-style">
-        <xs:annotation>
-            <xs:documentation>The empty-print-style type represents an empty element with print-style attributes.</xs:documentation>
-        </xs:annotation>
+{-    
+    <xs:complexType name="empty-print-style">
         <xs:attributeGroup ref="print-style"/>
     </xs:complexType>
-
 -}
--- | 
+-- | The empty-trill-sound type represents an empty element with print-style, placement, and
+-- trill-sound attributes.
 type EmptyTrillSound = TODO
 {-
     <xs:complexType name="empty-trill-sound">
-        <xs:annotation>
-            <xs:documentation>The empty-trill-sound type represents an empty element with print-style, placement, and trill-sound attributes.</xs:documentation>
-        </xs:annotation>
         <xs:attributeGroup ref="print-style"/>
         <xs:attributeGroup ref="placement"/>
         <xs:attributeGroup ref="trill-sound"/>
@@ -1019,13 +1016,11 @@ type EmptyTrillSound = TODO
 
 
 -}
--- | 
+-- | The fermata text content represents the shape of the fermata sign. An empty fermata element
+-- represents a normal fermata. The fermata type is upright if not specified.
 type Fermata = TODO
 {-
     <xs:complexType name="fermata">
-        <xs:annotation>
-            <xs:documentation>The fermata text content represents the shape of the fermata sign. An empty fermata element represents a normal fermata. The fermata type is upright if not specified.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="fermata-shape">
                 <xs:attribute name="type" type="upright-inverted"/>
@@ -1035,13 +1030,13 @@ type Fermata = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | Fingering is typically indicated 1,2,3,4,5. Multiple fingerings may be given, typically to
+-- substitute fingerings in the middle of a note. The substitution and alternate values are "no" if
+-- the attribute is not present. For guitar and other fretted instruments, the fingering element
+-- represents the fretting finger; the pluck element represents the plucking finger.
 type Fingering = TODO
 {-
     <xs:complexType name="fingering">
-        <xs:annotation>
-            <xs:documentation>Fingering is typically indicated 1,2,3,4,5. Multiple fingerings may be given, typically to substitute fingerings in the middle of a note. The substitution and alternate values are "no" if the attribute is not present. For guitar and other fretted instruments, the fingering element represents the fretting finger; the pluck element represents the plucking finger.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
                 <xs:attribute name="substitution" type="yes-no"/>
@@ -1053,13 +1048,10 @@ type Fingering = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The formatted-text type represents a text element with text-formatting attributes.
 type FormattedText = TODO
 {-
     <xs:complexType name="formatted-text">
-        <xs:annotation>
-            <xs:documentation>The formatted-text type represents a text element with text-formatting attributes.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
                 <xs:attributeGroup ref="text-formatting"/>
@@ -1068,13 +1060,11 @@ type FormattedText = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The fret element is used with tablature notation and chord diagrams. Fret numbers start with 0
+-- for an open string and 1 for the first fret.
 type Fret = TODO
 {-
     <xs:complexType name="fret">
-        <xs:annotation>
-            <xs:documentation>The fret element is used with tablature notation and chord diagrams. Fret numbers start with 0 for an open string and 1 for the first fret.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:nonNegativeInteger">
                 <xs:attributeGroup ref="font"/>
@@ -1084,13 +1074,14 @@ type Fret = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The level type is used to specify editorial information for different MusicXML elements. If the
+-- reference attribute for the level element is yes, this indicates editorial information that is for
+-- display only and should not affect playback. For instance, a modern edition of older music may set
+-- reference="yes" on the attributes containing the music's original clef, key, and time signature.
+-- It is no by default.
 type Level = TODO
 {-
     <xs:complexType name="level">
-        <xs:annotation>
-            <xs:documentation>The level type is used to specify editorial information for different MusicXML elements. If the reference attribute for the level element is yes, this indicates editorial information that is for display only and should not affect playback. For instance, a modern edition of older music may set reference="yes" on the attributes containing the music's original clef, key, and time signature. It is no by default.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
                 <xs:attribute name="reference" type="yes-no"/>
@@ -1100,13 +1091,12 @@ type Level = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The midi-instrument type defines MIDI 1.0 instrument playback. The midi-instrument element can
+-- be a part of either the score-instrument element at the start of a part, or the sound element
+-- within a part. The id attribute refers to the score-instrument affected by the change.
 type MidiInstrument = TODO
 {-
     <xs:complexType name="midi-instrument">
-        <xs:annotation>
-            <xs:documentation>The midi-instrument type defines MIDI 1.0 instrument playback. The midi-instrument element can be a part of either the score-instrument element at the start of a part, or the sound element within a part. The id attribute refers to the score-instrument affected by the change.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="midi-channel" type="midi-16" minOccurs="0">
                 <xs:annotation>
@@ -1153,13 +1143,13 @@ type MidiInstrument = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The name-display type is used for exact formatting of multi-font text in part and group names to
+-- the left of the system. The print-object attribute can be used to determine what, if anything, is
+-- printed at the start of each system. Enclosure for the display-text element is none by default.
+-- Language for the display-text element is Italian ("it") by default.
 type NameDisplay = TODO
 {-
     <xs:complexType name="name-display">
-        <xs:annotation>
-            <xs:documentation>The name-display type is used for exact formatting of multi-font text in part and group names to the left of the system. The print-object attribute can be used to determine what, if anything, is printed at the start of each system. Enclosure for the display-text element is none by default. Language for the display-text element is Italian ("it") by default.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:choice minOccurs="0" maxOccurs="unbounded">
                 <xs:element name="display-text" type="formatted-text"/>
@@ -1171,13 +1161,11 @@ type NameDisplay = TODO
 
 
 -}   
--- | 
+-- | The string type is used with tablature notation, regular notation (where it is often circled),
+-- and chord diagrams. String numbers start with 1 for the highest string.
 type StringNumber2 = TODO
 {-
     <xs:complexType name="string">
-        <xs:annotation>
-            <xs:documentation>The string type is used with tablature notation, regular notation (where it is often circled), and chord diagrams. String numbers start with 1 for the highest string.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="string-number">
                 <xs:attributeGroup ref="print-style"/>
@@ -1187,13 +1175,10 @@ type StringNumber2 = TODO
     </xs:complexType>
 
 -}   
--- | 
+-- | The typed-text type represents a text element with a type attributes.
 type TypedText = TODO
 {-
     <xs:complexType name="typed-text">
-        <xs:annotation>
-            <xs:documentation>The typed-text type represents a text element with a type attributes.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
                 <xs:attribute name="type" type="xs:token"/>
@@ -1202,13 +1187,11 @@ type TypedText = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | Wavy lines are one way to indicate trills. When used with a measure element, they should always
+-- have type="continue" set.
 type WavyLine = TODO
 {-
     <xs:complexType name="wavy-line">
-        <xs:annotation>
-            <xs:documentation>Wavy lines are one way to indicate trills. When used with a measure element, they should always have type="continue" set.</xs:documentation>
-        </xs:annotation>
         <xs:attribute name="type" type="start-stop-continue" use="required"/>
         <xs:attribute name="number" type="number-level"/>
         <xs:attributeGroup ref="position"/>
@@ -1216,8 +1199,6 @@ type WavyLine = TODO
         <xs:attributeGroup ref="color"/>
         <xs:attributeGroup ref="trill-sound"/>
     </xs:complexType>
-
-
 -}
 
 -- | The attributes element contains musical information that typically changes on measure
@@ -1306,15 +1287,16 @@ type Attributes = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The beat-repeat type is used to indicate that a single beat (but possibly many
+-- notes) is repeated. Both the start and stop of the beat being repeated should be specified. The
+-- slashes attribute specifies the number of slashes to use in the symbol. The use-dots attribute
+-- indicates whether or not to use dots as well (for instance, with mixed rhythm patterns). By
+-- default, the value for slashes is 1 and the value for use-dots is no. The beat-repeat element
+-- specifies a notation style for repetitions. The actual music being repeated needs to be repeated
+-- within the MusicXML file. This element specifies the notation that indicates the repeat.
 type BeatRepeat = TODO
 {-
     <xs:complexType name="beat-repeat">
-        <xs:annotation>
-            <xs:documentation>The beat-repeat type is used to indicate that a single beat (but possibly many notes) is repeated. Both the start and stop of the beat being repeated should be specified. The slashes attribute specifies the number of slashes to use in the symbol. The use-dots attribute indicates whether or not to use dots as well (for instance, with mixed rhythm patterns). By default, the value for slashes is 1 and the value for use-dots is no.
-
-The beat-repeat element specifies a notation style for repetitions. The actual music being repeated needs to be repeated within the MusicXML file. This element specifies the notation that indicates the repeat.</xs:documentation>
-        </xs:annotation>
         <xs:group ref="slash" minOccurs="0"/>
         <xs:attribute name="type" type="start-stop" use="required"/>
         <xs:attribute name="slashes" type="xs:positiveInteger"/>
@@ -1363,13 +1345,12 @@ Sometimes clefs are added to the staff in non-standard line positions, either to
     </xs:complexType>
 
 -}
--- | 
+-- | The key type represents a key signature. Both traditional and non-traditional key signatures are
+-- supported. The optional number attribute refers to staff numbers. If absent, the key signature
+-- applies to all staves in the part.
 type Key = TODO
 {-
     <xs:complexType name="key">
-        <xs:annotation>
-            <xs:documentation>The key type represents a key signature. Both traditional and non-traditional key signatures are supported. The optional number attribute refers to staff numbers. If absent, the key signature applies to all staves in the part.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:choice>
                 <xs:group ref="traditional-key"/>
@@ -1387,13 +1368,14 @@ type Key = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The key-octave element specifies in which octave an element of a key signature appears. The
+-- content specifies the octave value using the same values as the display-octave element. The number
+-- attribute is a positive integer that refers to the key signature element in left-to-right order.
+-- If the cancel attribute is set to yes, then this number refers to an element specified by the
+-- cancel element. It is no by default.
 type KeyOctave = TODO
 {-
     <xs:complexType name="key-octave">
-        <xs:annotation>
-            <xs:documentation>The key-octave element specifies in which octave an element of a key signature appears. The content specifies the octave value using the same values as the display-octave element. The number attribute is a positive integer that refers to the key signature element in left-to-right order. If the cancel attribute is set to yes, then this number refers to an element specified by the cancel element. It is no by default.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="octave">
                 <xs:attribute name="number" type="xs:positiveInteger" use="required"/>
@@ -1403,15 +1385,16 @@ type KeyOctave = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The measure-repeat type is used for both single and multiple measure repeats. The text of the
+-- element indicates the number of measures to be repeated in a single pattern. The slashes attribute
+-- specifies the number of slashes to use in the repeat sign. It is 1 if not specified. Both the
+-- start and the stop of the measure-repeat must be specified. The text of the element is ignored
+-- when the type is stop. The measure-repeat element specifies a notation style for repetitions. The
+-- actual music being repeated needs to be repeated within the MusicXML file. This element specifies
+-- the notation that indicates the repeat.
 type MeasureRepeat = TODO
 {-
     <xs:complexType name="measure-repeat">
-        <xs:annotation>
-            <xs:documentation>The measure-repeat type is used for both single and multiple measure repeats. The text of the element indicates the number of measures to be repeated in a single pattern. The slashes attribute specifies the number of slashes to use in the repeat sign. It is 1 if not specified. Both the start and the stop of the measure-repeat must be specified. The text of the element is ignored when the type is stop.
-
-The measure-repeat element specifies a notation style for repetitions. The actual music being repeated needs to be repeated within the MusicXML file. This element specifies the notation that indicates the repeat.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="positive-integer-or-empty">
                 <xs:attribute name="type" type="start-stop" use="required"/>
@@ -1421,15 +1404,16 @@ The measure-repeat element specifies a notation style for repetitions. The actua
     </xs:complexType>
 
 -}
--- | 
+-- | A measure-style indicates a special way to print partial to multiple measures within a part.
+-- This includes multiple rests over several measures, repeats of beats, single, or multiple
+-- measures, and use of slash notation. The multiple-rest and measure-repeat symbols indicate the
+-- number of measures covered in the element content. The beat-repeat and slash elements can cover
+-- partial measures. All but the multiple-rest element use a type attribute to indicate starting and
+-- stopping the use of the style. The optional number attribute specifies the staff number from top
+-- to bottom on the system, as with clef.
 type MeasureStyle = TODO
 {-
     <xs:complexType name="measure-style">
-        <xs:annotation>
-            <xs:documentation>A measure-style indicates a special way to print partial to multiple measures within a part. This includes multiple rests over several measures, repeats of beats, single, or multiple measures, and use of slash notation.
-
-The multiple-rest and measure-repeat symbols indicate the number of measures covered in the element content. The beat-repeat and slash elements can cover partial measures. All but the multiple-rest element use a type attribute to indicate starting and stopping the use of the style. The optional number attribute specifies the staff number from top to bottom on the system, as with clef.</xs:documentation>
-        </xs:annotation>
         <xs:choice>
             <xs:element name="multiple-rest" type="multiple-rest"/>
             <xs:element name="measure-repeat" type="measure-repeat"/>
@@ -1442,13 +1426,13 @@ The multiple-rest and measure-repeat symbols indicate the number of measures cov
     </xs:complexType>
 
 -}
--- | 
+-- | The text of the multiple-rest type indicates the number of measures in the multiple rest.
+-- Multiple rests may use the 1-bar / 2-bar / 4-bar rest symbols, or a single shape. The use-symbols
+-- attribute indicates which to use; it is no if not specified. The element text is ignored when the
+-- type is stop.
 type MultipleRest = TODO
 {-
     <xs:complexType name="multiple-rest">
-        <xs:annotation>
-            <xs:documentation>The text of the multiple-rest type indicates the number of measures in the multiple rest. Multiple rests may use the 1-bar / 2-bar / 4-bar rest symbols, or a single shape. The use-symbols attribute indicates which to use; it is no if not specified. The element text is ignored when the type is stop.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="positive-integer-or-empty">
                 <xs:attribute name="use-symbols" type="yes-no"/>
@@ -1471,13 +1455,13 @@ type MultipleRest = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The slash type is used to indicate that slash notation is to be used. If the slash is on every
+-- beat, use-stems is no (the default). To indicate rhythms but not pitches, use-stems is set to yes.
+-- The type attribute indicates whether this is the start or stop of a slash notation style. The
+-- use-dots attribute works as for the beat-repeat element, and only has effect if use-stems is no.
 type Slash = TODO
 {-
     <xs:complexType name="slash">
-        <xs:annotation>
-            <xs:documentation>The slash type is used to indicate that slash notation is to be used. If the slash is on every beat, use-stems is no (the default). To indicate rhythms but not pitches, use-stems is set to yes. The type attribute indicates whether this is the start or stop of a slash notation style. The use-dots attribute works as for the beat-repeat element, and only has effect if use-stems is no.</xs:documentation>
-        </xs:annotation>
         <xs:group ref="slash" minOccurs="0"/>
         <xs:attribute name="type" type="start-stop" use="required"/>
         <xs:attribute name="use-dots" type="yes-no"/>
@@ -1514,27 +1498,28 @@ type Slash = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The staff-tuning type specifies the open, non-capo tuning of the lines on a tablature staff.
 type StaffTuning = TODO
 {-
     <xs:complexType name="staff-tuning">
         <xs:annotation>
-            <xs:documentation>The staff-tuning type specifies the open, non-capo tuning of the lines on a tablature staff.</xs:documentation>
         </xs:annotation>
         <xs:group ref="tuning"/>
         <xs:attribute name="line" type="staff-line"/>
     </xs:complexType>
 
 -}
--- | 
+-- | Time signatures are represented by the beats element for the numerator and the beat-type element
+-- for the denominator. The symbol attribute is used indicate common and cut time symbols as well as
+-- a single number display. Multiple pairs of beat and beat-type elements are used for composite time
+-- signatures with multiple denominators, such as 2/4 + 3/8. A composite such as 3+2/8 requires only
+-- one beat/beat-type pair. The print-object attribute allows a time signature to be specified but
+-- not printed, as is the case for excerpts from the middle of a score. The value is "yes" if not
+-- present. The optional number attribute refers to staff numbers within the part. If absent, the
+-- time signature applies to all staves in the part.
 type Time = TODO
 {-
     <xs:complexType name="time">
-        <xs:annotation>
-            <xs:documentation>Time signatures are represented by the beats element for the numerator and the beat-type element for the denominator. The symbol attribute is used indicate common and cut time symbols as well as a single number display. Multiple pairs of beat and beat-type elements are used for composite time signatures with multiple denominators, such as 2/4 + 3/8. A composite such as 3+2/8 requires only one beat/beat-type pair.
-
-The print-object attribute allows a time signature to be specified but not printed, as is the case for excerpts from the middle of a score. The value is "yes" if not present. The optional number attribute refers to staff numbers within the part. If absent, the time signature applies to all staves in the part.</xs:documentation>
-        </xs:annotation>
         <xs:choice>
             <xs:sequence maxOccurs="unbounded">
                 <xs:element name="beats" type="xs:string">
@@ -1561,13 +1546,11 @@ The print-object attribute allows a time signature to be specified but not print
     </xs:complexType>
 
 -}
--- | 
+-- | The transpose type represents what must be added to a written pitch to get a correct sounding
+-- pitch.
 type Transpose = TODO
 {-
     <xs:complexType name="transpose">
-        <xs:annotation>
-            <xs:documentation>The transpose type represents what must be added to a written pitch to get a correct sounding pitch.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="diatonic" type="xs:integer" minOccurs="0">
                 <xs:annotation>
@@ -1595,13 +1578,10 @@ type Transpose = TODO
     <!-- Complex types derived from barline.mod elements -->
 
 -}
--- | 
+-- | The bar-style-color type contains barline style and color information.
 type BarStyleColor = TODO
 {-
     <xs:complexType name="bar-style-color">
-        <xs:annotation>
-            <xs:documentation>The bar-style-color type contains barline style and color information.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="bar-style">
                 <xs:attributeGroup ref="color"/>
@@ -1632,15 +1612,21 @@ Barlines have a location attribute to make it easier to process barlines indepen
     </xs:complexType>
 
 -}
--- | 
+-- | The ending type represents multiple (e.g. first and second) endings. Typically, the start type
+-- is associated with the left barline of the first measure in an ending. The stop and discontinue
+-- types are associated with the right barline of the last measure in an ending. Stop is used when
+-- the ending mark concludes with a downward jog, as is typical for first endings. Discontinue is
+-- used when there is no downward jog, as is typical for second endings that do not conclude a piece.
+-- The length of the jog can be specified using the end-length attribute. The text-x and text-y
+-- attributes are offsets that specify where the baseline of the start of the ending text appears,
+-- relative to the start of the ending line. The number attribute reflects the numeric values of what
+-- is under the ending line. Single endings such as "1" or comma-separated multiple endings such as
+-- "1,2" may be used. The ending element text is used when the text displayed in the ending is
+-- different than what appears in the number attribute. The print-object element is used to indicate
+-- when an ending is present but not printed, as is often the case for many parts in a full score.
 type Ending = TODO
 {-
     <xs:complexType name="ending">
-        <xs:annotation>
-            <xs:documentation>The ending type represents multiple (e.g. first and second) endings. Typically, the start type is associated with the left barline of the first measure in an ending. The stop and discontinue types are associated with the right barline of the last measure in an ending. Stop is used when the ending mark concludes with a downward jog, as is typical for first endings. Discontinue is used when there is no downward jog, as is typical for second endings that do not conclude a piece. The length of the jog can be specified using the end-length attribute. The text-x and text-y attributes are offsets that specify where the baseline of the start of the ending text appears, relative to the start of the ending line.
-
-The number attribute reflects the numeric values of what is under the ending line. Single endings such as "1" or comma-separated multiple endings such as "1,2" may be used. The ending element text is used when the text displayed in the ending is different than what appears in the number attribute. The print-object element is used to indicate when an ending is present but not printed, as is often the case for many parts in a full score.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
                 <xs:attribute name="number" type="ending-number" use="required"/>
@@ -1655,13 +1641,12 @@ The number attribute reflects the numeric values of what is under the ending lin
     </xs:complexType>
 
 -}
--- | 
+-- | The repeat type represents repeat marks. The start of the repeat has a forward direction while
+-- the end of the repeat has a backward direction. Backward repeats that are not part of an ending
+-- can use the times attribute to indicate the number of times the repeated section is played.
 type Repeat = TODO
 {-
     <xs:complexType name="repeat">
-        <xs:annotation>
-            <xs:documentation>The repeat type represents repeat marks. The start of the repeat has a forward direction while the end of the repeat has a backward direction. Backward repeats that are not part of an ending can use the times attribute to indicate the number of times the repeated section is played.</xs:documentation>
-        </xs:annotation>
         <xs:attribute name="direction" type="backward-forward" use="required"/>
         <xs:attribute name="times" type="xs:nonNegativeInteger"/>
     </xs:complexType>
@@ -1669,25 +1654,24 @@ type Repeat = TODO
     <!-- Complex types derived from direction.mod elements -->
 
 -}
--- | 
+-- | The accord type represents the tuning of a single string in the scordatura element. It uses the
+-- same group of elements as the staff-tuning element. Strings are numbered from high to low.
 type Accord = TODO
 {-
     <xs:complexType name="accord">
-        <xs:annotation>
-            <xs:documentation>The accord type represents the tuning of a single string in the scordatura element. It uses the same group of elements as the staff-tuning element. Strings are numbered from high to low.</xs:documentation>
-        </xs:annotation>
         <xs:group ref="tuning"/>
         <xs:attribute name="string" type="string-number"/>
     </xs:complexType>
 
 -}
--- | 
+-- | The accordion-registration type is use for accordion registration symbols. These are circular
+-- symbols divided horizontally into high, middle, and low sections that correspond to 4', 8', and
+-- 16' pipes. Each accordion-high, accordion-middle, and accordion-low element represents the
+-- presence of one or more dots in the registration diagram. An accordion-registration element needs
+-- to have at least one of the child elements present.
 type AccordionRegistration = TODO
 {-
     <xs:complexType name="accordion-registration">
-        <xs:annotation>
-            <xs:documentation>The accordion-registration type is use for accordion registration symbols. These are circular symbols divided horizontally into high, middle, and low sections that correspond to 4', 8', and 16' pipes. Each accordion-high, accordion-middle, and accordion-low element represents the presence of one or more dots in the registration diagram. An accordion-registration element needs to have at least one of the child elements present.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="accordion-high" type="empty" minOccurs="0">
                 <xs:annotation>
@@ -1709,25 +1693,23 @@ type AccordionRegistration = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The barre element indicates placing a finger over multiple strings on a single fret. The type is
+-- "start" for the lowest pitched string (e.g., the string with the highest MusicXML number) and is
+-- "stop" for the highest pitched string.
 type Barre = TODO
 {-
     <xs:complexType name="barre">
-        <xs:annotation>
-            <xs:documentation>The barre element indicates placing a finger over multiple strings on a single fret. The type is "start" for the lowest pitched string (e.g., the string with the highest MusicXML number) and is "stop" for the highest pitched string.</xs:documentation>
-        </xs:annotation>
         <xs:attribute name="type" type="start-stop" use="required"/>
         <xs:attributeGroup ref="color"/>
     </xs:complexType>
 
 -}
--- | 
+-- | The bass type is used to indicate a bass note in popular music chord symbols, e.g. G/C. It is
+-- generally not used in functional harmony, as inversion is generally not used in pop chord symbols.
+-- As with root, it is divided into step and alter elements, similar to pitches.
 type Bass = TODO
 {-
     <xs:complexType name="bass">
-        <xs:annotation>
-            <xs:documentation>The bass type is used to indicate a bass note in popular music chord symbols, e.g. G/C. It is generally not used in functional harmony, as inversion is generally not used in pop chord symbols. As with root, it is divided into step and alter elements, similar to pitches.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="bass-step" type="bass-step"/>
             <xs:element name="bass-alter" type="bass-alter" minOccurs="0"/>
@@ -1748,13 +1730,12 @@ type Bass = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The bass-step type represents the pitch step of the bass of the current chord within the harmony
+-- element. The text attribute indicates how the bass should appear on the page if not using the
+-- element contents.
 type BassStep = TODO
 {-
     <xs:complexType name="bass-step">
-        <xs:annotation>
-            <xs:documentation>The bass-step type represents the pitch step of the bass of the current chord within the harmony element. The text attribute indicates how the bass should appear on the page if not using the element contents.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="step">
                 <xs:attribute name="text" type="xs:token"/>
@@ -1764,13 +1745,13 @@ type BassStep = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | Brackets are combined with words in a variety of modern directions. The line-end attribute
+-- specifies if there is a jog up or down (or both), an arrow, or nothing at the start or end of the
+-- bracket. If the line-end is up or down, the length of the jog can be specified using the
+-- end-length attribute. The line-type is solid by default.
 type Bracket = TODO
 {-
     <xs:complexType name="bracket">
-        <xs:annotation>
-            <xs:documentation>Brackets are combined with words in a variety of modern directions. The line-end attribute specifies if there is a jog up or down (or both), an arrow, or nothing at the start or end of the bracket. If the line-end is up or down, the length of the jog can be specified using the end-length attribute. The line-type is solid by default.</xs:documentation>
-        </xs:annotation>
         <xs:attribute name="type" type="start-stop" use="required"/>
         <xs:attribute name="number" type="number-level"/>
         <xs:attribute name="line-end" type="line-end" use="required"/>
@@ -1781,13 +1762,10 @@ type Bracket = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The dashes type represents dashes, used for instance with cresc. and dim. marks.
 type Dashes = TODO
 {-
     <xs:complexType name="dashes">
-        <xs:annotation>
-            <xs:documentation>The dashes type represents dashes, used for instance with cresc. and dim. marks.</xs:documentation>
-        </xs:annotation>
         <xs:attribute name="type" type="start-stop" use="required"/>
         <xs:attribute name="number" type="number-level"/>
         <xs:attributeGroup ref="position"/>
@@ -1795,15 +1773,14 @@ type Dashes = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The degree type is used to add, alter, or subtract individual notes in the chord. The
+-- print-object attribute can be used to keep the degree from printing separately when it has already
+-- taken into account in the text attribute of the kind element. The degree-value and degree-type
+-- text attributes specify how the value and type of the degree should be displayed. A harmony of
+-- kind "other" can be spelled explicitly by using a series of degree elements together with a root.
 type Degree = TODO
 {-
     <xs:complexType name="degree">
-        <xs:annotation>
-            <xs:documentation>The degree type is used to add, alter, or subtract individual notes in the chord. The print-object attribute can be used to keep the degree from printing separately when it has already taken into account in the text attribute of the kind element. The degree-value and degree-type text attributes specify how the value and type of the degree should be displayed.
-
-A harmony of kind "other" can be spelled explicitly by using a series of degree elements together with a root.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="degree-value" type="degree-value"/>
             <xs:element name="degree-alter" type="degree-alter"/>
@@ -1813,13 +1790,15 @@ A harmony of kind "other" can be spelled explicitly by using a series of degree 
     </xs:complexType>
 
 -}
--- | 
+-- | The degree-alter type represents the chromatic alteration for the current degree. If the
+-- degree-type value is alter or subtract, the degree-alter value is relative to the degree already
+-- in the chord based on its kind element. If the degree-type value is add, the degree-alter is
+-- relative to a dominant chord (major and perfect intervals except for a minor seventh). The
+-- plus-minus attribute is used to indicate if plus and minus symbols should be used instead of sharp
+-- and flat symbols to display the degree alteration; it is no by default.
 type DegreeAlter = TODO
 {-
     <xs:complexType name="degree-alter">
-        <xs:annotation>
-            <xs:documentation>The degree-alter type represents the chromatic alteration for the current degree. If the degree-type value is alter or subtract, the degree-alter value is relative to the degree already in the chord based on its kind element. If the degree-type value is add, the degree-alter is relative to a dominant chord (major and perfect intervals except for a minor seventh). The plus-minus attribute is used to indicate if plus and minus symbols should be used instead of sharp and flat symbols to display the degree alteration; it is no by default.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="semitones">
                 <xs:attributeGroup ref="print-style"/>
@@ -1829,13 +1808,13 @@ type DegreeAlter = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The degree-type type indicates if this degree is an addition, alteration, or subtraction
+-- relative to the kind of the current chord. The value of the degree-type element affects the
+-- interpretation of the value of the degree-alter element. The text attribute specifies how the type
+-- of the degree should be displayed.
 type DegreeType = TODO
 {-
     <xs:complexType name="degree-type">
-        <xs:annotation>
-            <xs:documentation>The degree-type type indicates if this degree is an addition, alteration, or subtraction relative to the kind of the current chord. The value of the degree-type element affects the interpretation of the value of the degree-alter element. The text attribute specifies how the type of the degree should be displayed.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="degree-type-value">
                 <xs:attribute name="text" type="xs:token"/>
@@ -1845,13 +1824,12 @@ type DegreeType = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The content of the degree-value type is a number indicating the degree of the chord (1 for the
+-- root, 3 for third, etc). The text attribute specifies how the type of the degree should be
+-- displayed.
 type DegreeValue = TODO
 {-
     <xs:complexType name="degree-value">
-        <xs:annotation>
-            <xs:documentation>The content of the degree-value type is a number indicating the degree of the chord (1 for the root, 3 for third, etc). The text attribute specifies how the type of the degree should be displayed.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:positiveInteger">
                 <xs:attribute name="text" type="xs:token"/>
@@ -1872,11 +1850,6 @@ type DegreeValue = TODO
 type Direction = TODO
 {-
     <xs:complexType name="direction">
-        <xs:annotation>
-            <xs:documentation>A direction is a musical indication that is not attached to a specific note. Two or more may be combined to indicate starts and stops of wedges, dashes, etc.
-
-By default, a series of direction-type elements and a series of child elements of a direction-type within a single direction element follow one another in sequence visually. For a series of direction-type children, non-positional formatting attributes are carried over from the previous element by default.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="direction-type" type="direction-type" maxOccurs="unbounded"/>
             <xs:element name="offset" type="offset" minOccurs="0"/>
@@ -1889,13 +1862,12 @@ By default, a series of direction-type elements and a series of child elements o
     </xs:complexType>
 
 -}
--- | 
+-- | Textual direction types may have more than 1 component due to multiple fonts. The dynamics
+-- element may also be used in the notations element. Attribute groups related to print suggestions
+-- apply to the individual direction-type, not to the overall direction.
 type DirectionType = TODO
 {-
     <xs:complexType name="direction-type">
-        <xs:annotation>
-            <xs:documentation>Textual direction types may have more than 1 component due to multiple fonts. The dynamics element may also be used in the notations element. Attribute groups related to print suggestions apply to the individual direction-type, not to the overall direction.</xs:documentation>
-        </xs:annotation>
         <xs:choice>
             <xs:element name="rehearsal" type="rehearsal" maxOccurs="unbounded"/>
             <xs:element name="segno" type="empty-print-style" maxOccurs="unbounded">
@@ -1944,13 +1916,12 @@ type DirectionType = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The feature type is a part of the grouping element used for musical analysis. The type attribute
+-- represents the type of the feature and the element content represents its value. This type is
+-- flexible to allow for different analyses.
 type Feature = TODO
 {-
     <xs:complexType name="feature">
-        <xs:annotation>
-            <xs:documentation>The feature type is a part of the grouping element used for musical analysis. The type attribute represents the type of the feature and the element content represents its value. This type is flexible to allow for different analyses.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
                 <xs:attribute name="type" type="xs:token"/>
@@ -1959,13 +1930,13 @@ type Feature = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The first-fret type indicates which fret is shown in the top space of the frame; it is fret 1 if
+-- the element is not present. The optional text attribute indicates how this is represented in the
+-- fret diagram, while the location attribute indicates whether the text appears to the left or right
+-- of the frame.
 type FirstFret = TODO
 {-
     <xs:complexType name="first-fret">
-        <xs:annotation>
-            <xs:documentation>The first-fret type indicates which fret is shown in the top space of the frame; it is fret 1 if the element is not present. The optional text attribute indicates how this is represented in the fret diagram, while the location attribute indicates whether the text appears to the left or right of the frame.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:positiveInteger">
                 <xs:attribute name="text" type="xs:token"/>
@@ -1975,13 +1946,11 @@ type FirstFret = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The frame type represents a frame or fretboard diagram used together with a chord symbol. The
+-- representation is based on the NIFF guitar grid with additional information.
 type Frame = TODO
 {-
     <xs:complexType name="frame">
-        <xs:annotation>
-            <xs:documentation>The frame type represents a frame or fretboard diagram used together with a chord symbol. The representation is based on the NIFF guitar grid with additional information.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="frame-strings" type="xs:positiveInteger">
                 <xs:annotation>
@@ -2005,13 +1974,11 @@ type Frame = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The frame-note type represents each note included in the frame. An open string will have a fret
+-- value of 0, while a muted string will not be associated with a frame-note element.
 type FrameNote = TODO
 {-
     <xs:complexType name="frame-note">
-        <xs:annotation>
-            <xs:documentation>The frame-note type represents each note included in the frame. An open string will have a fret value of 0, while a muted string will not be associated with a frame-note element.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="string" type="string"/>
             <xs:element name="fret" type="fret"/>
@@ -2021,15 +1988,16 @@ type FrameNote = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The grouping type is used for musical analysis. When the type attribute is "start" or "single",
+-- it usually contains one or more feature elements. The number attribute is used for distinguishing
+-- between overlapping and hierarchical groupings. The member-of attribute allows for easy
+-- distinguishing of what grouping elements are in what hierarchy. Feature elements contained within
+-- a "stop" type of grouping may be ignored. This element is flexible to allow for different types of
+-- analyses. Future versions of the MusicXML format may add elements that can represent more
+-- standardized categories of analysis data, allowing for easier data sharing.
 type Grouping = TODO
 {-
     <xs:complexType name="grouping">
-        <xs:annotation>
-            <xs:documentation>The grouping type is used for musical analysis. When the type attribute is "start" or "single", it usually contains one or more feature elements. The number attribute is used for distinguishing between overlapping and hierarchical groupings. The member-of attribute allows for easy distinguishing of what grouping elements are in what hierarchy. Feature elements contained within a "stop" type of grouping may be ignored.
-
-This element is flexible to allow for different types of analyses. Future versions of the MusicXML format may add elements that can represent more standardized categories of analysis data, allowing for easier data sharing.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="feature" type="feature" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
@@ -2069,13 +2037,13 @@ type Harmony = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The harp-pedals type is used to create harp pedal diagrams. The pedal-step and pedal-alter
+-- elements use the same values as the step and alter elements. For easiest reading, the pedal-tuning
+-- elements should follow standard harp pedal order, with pedal-step values of D, C, B, E, F, G, and
+-- A.
 type HarpPedals = TODO
 {-
     <xs:complexType name="harp-pedals">
-        <xs:annotation>
-            <xs:documentation>The harp-pedals type is used to create harp pedal diagrams. The pedal-step and pedal-alter elements use the same values as the step and alter elements. For easiest reading, the pedal-tuning elements should follow standard harp pedal order, with pedal-step values of D, C, B, E, F, G, and A.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="pedal-tuning" type="pedal-tuning" maxOccurs="unbounded"/>
         </xs:sequence>
@@ -2083,13 +2051,10 @@ type HarpPedals = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The image type is used to include graphical images in a score.
 type Image = TODO
 {-
     <xs:complexType name="image">
-        <xs:annotation>
-            <xs:documentation>The image type is used to include graphical images in a score.</xs:documentation>
-        </xs:annotation>
         <xs:attributeGroup ref="image-attributes"/>
     </xs:complexType>
 
@@ -2105,25 +2070,31 @@ type Image = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | Kind indicates the type of chord. Degree elements can then add, subtract, or alter from these
+-- starting points
+-- 
+-- The attributes are used to indicate the formatting of the symbol. Since the kind element is the
+-- constant in all the harmony-chord groups that can make up a polychord, many formatting attributes
+-- are here.
+-- 
+-- The use-symbols attribute is yes if the kind should be represented when possible with harmony
+-- symbols rather than letters and numbers. These symbols include:
+-- 
+--     major: a triangle, like Unicode 25B3
+--     minor: -, like Unicode 002D
+--     augmented: +, like Unicode 002B
+--     diminished: °, like Unicode 00B0
+--     half-diminished: ø, like Unicode 00F8
+-- 
+-- The text attribute describes how the kind should be spelled if not using symbols; it is ignored if
+-- use-symbols is yes. The stack-degrees attribute is yes if the degree elements should be stacked
+-- above each other. The parentheses-degrees attribute is yes if all the degrees should be in
+-- parentheses. The bracket-degrees attribute is yes if all the degrees should be in a bracket. If
+-- not specified, these values are implementation-specific. The alignment attributes are for the
+-- entire harmony-chord group of which this kind element is a part.
 type Kind = TODO
 {-
     <xs:complexType name="kind">
-        <xs:annotation>
-            <xs:documentation>Kind indicates the type of chord. Degree elements can then add, subtract, or alter from these starting points
-
-The attributes are used to indicate the formatting of the symbol. Since the kind element is the constant in all the harmony-chord groups that can make up a polychord, many formatting attributes are here.
-
-The use-symbols attribute is yes if the kind should be represented when possible with harmony symbols rather than letters and numbers. These symbols include:
-
-    major: a triangle, like Unicode 25B3
-    minor: -, like Unicode 002D
-    augmented: +, like Unicode 002B
-    diminished: °, like Unicode 00B0
-    half-diminished: ø, like Unicode 00F8
-
-The text attribute describes how the kind should be spelled if not using symbols; it is ignored if use-symbols is yes. The stack-degrees attribute is yes if the degree elements should be stacked above each other. The parentheses-degrees attribute is yes if all the degrees should be in parentheses. The bracket-degrees attribute is yes if all the degrees should be in a bracket. If not specified, these values are implementation-specific. The alignment attributes are for the entire harmony-chord group of which this kind element is a part.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="kind-value">
                 <xs:attribute name="use-symbols" type="yes-no"/>
@@ -2139,13 +2110,13 @@ The text attribute describes how the kind should be spelled if not using symbols
     </xs:complexType>
 
 -}
--- | 
+-- | The measure-numbering type describes how frequently measure numbers are displayed on this part.
+-- The number attribute from the measure element is used for printing. Measures with an implicit
+-- attribute set to "yes" never display a measure number, regardless of the measure-numbering
+-- setting.
 type MeasureNumbering = TODO
 {-
     <xs:complexType name="measure-numbering">
-        <xs:annotation>
-            <xs:documentation>The measure-numbering type describes how frequently measure numbers are displayed on this part. The number attribute from the measure element is used for printing. Measures with an implicit attribute set to "yes" never display a measure number, regardless of the measure-numbering setting.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="measure-numbering-value">
                 <xs:attributeGroup ref="print-style"/>
@@ -2154,13 +2125,15 @@ type MeasureNumbering = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The metronome type represents metronome marks and other metric relationships. The beat-unit
+-- group and per-minute element specify regular metronome marks. The metronome-note and
+-- metronome-relation elements allow for the specification of more complicated metric relationships,
+-- such as swing tempo marks where two eighths are equated to a quarter note / eighth note triplet.
+-- The parentheses attribute indicates whether or not to put the metronome mark in parentheses; its
+-- value is no if not specified.
 type Metronome = TODO
 {-
     <xs:complexType name="metronome">
-        <xs:annotation>
-            <xs:documentation>The metronome type represents metronome marks and other metric relationships. The beat-unit group and per-minute element specify regular metronome marks. The metronome-note and metronome-relation elements allow for the specification of more complicated metric relationships, such as swing tempo marks where two eighths are equated to a quarter note / eighth note triplet. The parentheses attribute indicates whether or not to put the metronome mark in parentheses; its value is no if not specified.</xs:documentation>
-        </xs:annotation>
         <xs:choice>
             <xs:sequence>
                 <xs:group ref="beat-unit"/>
@@ -2186,13 +2159,11 @@ type Metronome = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The metronome-beam type works like the beam type in defining metric relationships, but does not
+-- include all the attributes available in the beam type.
 type MetronomeBeam = TODO
 {-
     <xs:complexType name="metronome-beam">
-        <xs:annotation>
-            <xs:documentation>The metronome-beam type works like the beam type in defining metric relationships, but does not include all the attributes available in the beam type.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="beam-value">
                 <xs:attribute name="number" type="beam-level" default="1"/>
@@ -2201,13 +2172,10 @@ type MetronomeBeam = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The metronome-note type defines the appearance of a note within a metric relationship mark.
 type MetronomeNote = TODO
 {-
     <xs:complexType name="metronome-note">
-        <xs:annotation>
-            <xs:documentation>The metronome-note type defines the appearance of a note within a metric relationship mark.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="metronome-type" type="note-type-value">
                 <xs:annotation>
@@ -2225,13 +2193,11 @@ type MetronomeNote = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The metronome-tuplet type uses the same element structure as the time-modification element along
+-- with some attributes from the tuplet element.
 type MetronomeTuplet = TODO
 {-
     <xs:complexType name="metronome-tuplet">
-        <xs:annotation>
-            <xs:documentation>The metronome-tuplet type uses the same element structure as the time-modification element along with some attributes from the tuplet element.</xs:documentation>
-        </xs:annotation>
         <xs:complexContent>
             <xs:extension base="time-modification">
                 <xs:attribute name="type" type="start-stop" use="required"/>
@@ -2242,13 +2208,13 @@ type MetronomeTuplet = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The octave shift type indicates where notes are shifted up or down from their true pitched
+-- values because of printing difficulty. Thus a treble clef line noted with 8va will be indicated
+-- with an octave-shift down from the pitch data indicated in the notes. A size of 8 indicates one
+-- octave; a size of 15 indicates two octaves.
 type OctaveShift = TODO
 {-
     <xs:complexType name="octave-shift">
-        <xs:annotation>
-            <xs:documentation>The octave shift type indicates where notes are shifted up or down from their true pitched values because of printing difficulty. Thus a treble clef line noted with 8va will be indicated with an octave-shift down from the pitch data indicated in the notes. A size of 8 indicates one octave; a size of 15 indicates two octaves.</xs:documentation>
-        </xs:annotation>
         <xs:attribute name="type" type="up-down-stop" use="required"/>
         <xs:attribute name="number" type="number-level"/>
         <xs:attribute name="size" type="xs:positiveInteger" default="8"/>
@@ -2256,13 +2222,16 @@ type OctaveShift = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | An offset is represented in terms of divisions, and indicates where the direction will appear
+-- relative to the current musical location. This affects the visual appearance of the direction. If
+-- the sound attribute is "yes", then the offset affects playback too. If the sound attribute is
+-- "no", then any sound associated with the direction takes effect at the current location. The sound
+-- attribute is "no" by default for compatibility with earlier versions of the MusicXML format. If an
+-- element within a direction includes a default-x attribute, the offset value will be ignored when
+-- determining the appearance of that element.
 type Offset = TODO
 {-
     <xs:complexType name="offset">
-        <xs:annotation>
-            <xs:documentation>An offset is represented in terms of divisions, and indicates where the direction will appear relative to the current musical location. This affects the visual appearance of the direction. If the sound attribute is "yes", then the offset affects playback too. If the sound attribute is "no", then any sound associated with the direction takes effect at the current location. The sound attribute is "no" by default for compatibility with earlier versions of the MusicXML format. If an element within a direction includes a default-x attribute, the offset value will be ignored when determining the appearance of that element.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="divisions">
                 <xs:attribute name="sound" type="yes-no"/>
@@ -2271,13 +2240,12 @@ type Offset = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The other-direction type is used to define any direction symbols not yet in the current version
+-- of the MusicXML format. This allows extended representation, though without application
+-- interoperability.
 type OtherDirection = TODO
 {-
     <xs:complexType name="other-direction">
-        <xs:annotation>
-            <xs:documentation>The other-direction type is used to define any direction symbols not yet in the current version of the MusicXML format. This allows extended representation, though without application interoperability.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
                 <xs:attributeGroup ref="print-object"/>
@@ -2287,25 +2255,22 @@ type OtherDirection = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The pedal type represents piano pedal marks. The line attribute is yes if pedal lines are used,
+-- no if Ped and * signs are used. The change type is used with line set to yes.
 type Pedal = TODO
 {-
     <xs:complexType name="pedal">
-        <xs:annotation>
-            <xs:documentation>The pedal type represents piano pedal marks. The line attribute is yes if pedal lines are used, no if Ped and * signs are used. The change type is used with line set to yes.</xs:documentation>
-        </xs:annotation>
         <xs:attribute name="type" type="start-stop-change" use="required"/>
         <xs:attribute name="line" type="yes-no"/>
         <xs:attributeGroup ref="print-style"/>
     </xs:complexType>
 
 -}
--- | 
+-- | The pedal-tuning type specifies the tuning of a single harp pedal.
 type PedalTuning = TODO
 {-
     <xs:complexType name="pedal-tuning">
         <xs:annotation>
-            <xs:documentation>The pedal-tuning type specifies the tuning of a single harp pedal.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="pedal-step" type="step">
@@ -2322,13 +2287,13 @@ type PedalTuning = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The per-minute type can be a number, or a text description including numbers. If a font is
+-- specified, it overrides the font specified for the overall metronome element. This allows separate
+-- specification of a music font for the beat-unit and a text font for the numeric value, in cases
+-- where a single metronome font is not used.
 type PerMinute = TODO
 {-
     <xs:complexType name="per-minute">
-        <xs:annotation>
-            <xs:documentation>The per-minute type can be a number, or a text description including numbers. If a font is specified, it overrides the font specified for the overall metronome element. This allows separate specification of a music font for the beat-unit and a text font for the numeric value, in cases where a single metronome font is not used.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
                 <xs:attributeGroup ref="font"/>
@@ -2337,14 +2302,20 @@ type PerMinute = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The print type contains general printing parameters, including the layout elements defined in
+-- the layout.mod file. The part-name-display and part-abbreviation-display elements used in the
+-- score.mod file may also be used here to change how a part name or abbreviation is displayed over
+-- the course of a piece. They take effect when the current measure or a succeeding measure starts a
+-- new system.
+--
+-- Layout elements in a print statement only apply to the current page, system, staff, or measure.
+-- Music that follows continues to take the default values from the layout included in the defaults
+-- element.
+
 type Print = TODO
 {-
     <xs:complexType name="print">
         <xs:annotation>
-            <xs:documentation>The print type contains general printing parameters, including the layout elements defined in the layout.mod file. The part-name-display and part-abbreviation-display elements used in the score.mod file may also be used here to change how a part name or abbreviation is displayed over the course of a piece. They take effect when the current measure or a succeeding measure starts a new system.
-
-Layout elements in a print statement only apply to the current page, system, staff, or measure. Music that follows continues to take the default values from the layout included in the defaults element.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:group ref="layout"/>
@@ -2357,12 +2328,12 @@ Layout elements in a print statement only apply to the current page, system, sta
     </xs:complexType>
 
 -}
--- | 
+-- | The rehearsal type specifies a rehearsal mark. Language is Italian ("it") by default. Enclosure
+-- is square by default.
 type Rehearsal = TODO
 {-
     <xs:complexType name="rehearsal">
         <xs:annotation>
-            <xs:documentation>The rehearsal type specifies a rehearsal mark. Language is Italian ("it") by default. Enclosure is square by default.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
@@ -2377,12 +2348,14 @@ type Rehearsal = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The root type indicates a pitch like C, D, E vs. a function indication like I, II, III. It is
+-- used with chord symbols in popular music. The root element has a root-step and optional root-alter
+-- element similar to the step and alter elements, but renamed to distinguish the different musical
+-- meanings.
 type Root = TODO
 {-
     <xs:complexType name="root">
         <xs:annotation>
-            <xs:documentation>The root type indicates a pitch like C, D, E vs. a function indication like I, II, III. It is used with chord symbols in popular music. The root element has a root-step and optional root-alter element similar to the step and alter elements, but renamed to distinguish the different musical meanings.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="root-step" type="root-step"/>
@@ -2404,12 +2377,13 @@ type Root = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The root-step type represents the pitch step of the root of the current chord within the harmony
+-- element. The text attribute indicates how the root should appear on the page if not using the
+-- element contents.
 type RootStep = TODO
 {-
     <xs:complexType name="root-step">
         <xs:annotation>
-            <xs:documentation>The root-step type represents the pitch step of the root of the current chord within the harmony element. The text attribute indicates how the root should appear on the page if not using the element contents.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="step">
@@ -2420,52 +2394,76 @@ type RootStep = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | Scordatura string tunings are represented by a series of accord elements, similar to the
+-- staff-tuning elements. Strings are numbered from high to low.
 type Scordatura = TODO
 {-
     <xs:complexType name="scordatura">
-        <xs:annotation>
-            <xs:documentation>Scordatura string tunings are represented by a series of accord elements, similar to the staff-tuning elements. Strings are numbered from high to low.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="accord" type="accord" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
 
 -}
--- | 
+
+
+-- |             The sound element contains general playback parameters. They can stand alone within
+-- a part/measure, or be a component element within a direction.
+-- 
+-- Tempo is expressed in quarter notes per minute. If 0, the sound-generating program should prompt
+-- the user at the time of compiling a sound (MIDI) file.
+-- 
+-- Dynamics (or MIDI velocity) are expressed as a percentage of the default forte value (90 for MIDI
+-- 1.0).
+-- 
+-- Dacapo indicates to go back to the beginning of the movement. When used it always has the value
+-- "yes".
+-- 
+-- Segno and dalsegno are used for backwards jumps to a segno sign; coda and tocoda are used for
+-- forward jumps to a coda sign. If there are multiple jumps, the value of these parameters can be
+-- used to name and distinguish them. If segno or coda is used, the divisions attribute can also be
+-- used to indicate the number of divisions per quarter note. Otherwise sound and MIDI generating
+-- programs may have to recompute this.
+-- 
+-- By default, a dalsegno or dacapo attribute indicates that the jump should occur the first time
+-- through, while a tocoda attribute indicates the jump should occur the second time through. The
+-- time that jumps occur can be changed by using the time-only attribute.
+-- 
+-- Forward-repeat is used when a forward repeat sign is implied, and usually follows a bar line. When
+-- used it always has the value of "yes".
+-- 
+-- The fine attribute follows the final note or rest in a movement with a da capo or dal segno
+-- direction. If numeric, the value represents the actual duration of the final note or rest, which
+-- can be ambiguous in written notation and different among parts and voices. The value may also be
+-- "yes" to indicate no change to the final duration.
+-- 
+-- If the sound element applies only one time through a repeat, the time-only attribute indicates
+-- which time to apply the sound element.
+-- 
+-- Pizzicato in a sound element effects all following notes. Yes indicates pizzicato, no indicates
+-- arco.
+-- 
+-- The pan and elevation attributes are deprecated in Version 2.0. The pan and elevation elements in
+-- the midi-instrument element should be used instead. The meaning of the pan and elevation
+-- attributes is the same as for the pan and elevation elements. If both are present, the
+-- mid-instrument elements take priority.
+-- 
+-- The damper-pedal, soft-pedal, and sostenuto-pedal attributes effect playback of the three common
+-- piano pedals and their MIDI controller equivalents. The yes value indicates the pedal is
+-- depressed; no indicates the pedal is released. A numeric value from 0 to 100 may also be used for
+-- half pedaling. This value is the percentage that the pedal is depressed. A value of 0 is
+-- equivalent to no, and a value of 100 is equivalent to yes.
+-- 
+-- MIDI instruments are changed using the midi-instrument element.
+-- 
+-- The offset element is used to indicate that the sound takes place offset from the current score
+-- position. If the sound element is a child of a direction element, the sound offset element
+-- overrides the direction offset element if both elements are present. Note that the offset reflects
+-- the intended musical position for the change in sound. It should not be used to compensate for
+-- latency issues in particular hardware configurations.
 type Sound = TODO
 {-
     <xs:complexType name="sound">
-        <xs:annotation>
-            <xs:documentation>The sound element contains general playback parameters. They can stand alone within a part/measure, or be a component element within a direction.
-
-Tempo is expressed in quarter notes per minute. If 0, the sound-generating program should prompt the user at the time of compiling a sound (MIDI) file.
-
-Dynamics (or MIDI velocity) are expressed as a percentage of the default forte value (90 for MIDI 1.0).
-
-Dacapo indicates to go back to the beginning of the movement. When used it always has the value "yes".
-
-Segno and dalsegno are used for backwards jumps to a segno sign; coda and tocoda are used for forward jumps to a coda sign. If there are multiple jumps, the value of these parameters can be used to name and distinguish them. If segno or coda is used, the divisions attribute can also be used to indicate the number of divisions per quarter note. Otherwise sound and MIDI generating programs may have to recompute this.
-
-By default, a dalsegno or dacapo attribute indicates that the jump should occur the first time through, while a tocoda attribute indicates the jump should occur the second time through. The time that jumps occur can be changed by using the time-only attribute.
-
-Forward-repeat is used when a forward repeat sign is implied, and usually follows a bar line. When used it always has the value of "yes".
-
-The fine attribute follows the final note or rest in a movement with a da capo or dal segno direction. If numeric, the value represents the actual duration of the final note or rest, which can be ambiguous in written notation and different among parts and voices. The value may also be "yes" to indicate no change to the final duration.
-
-If the sound element applies only one time through a repeat, the time-only attribute indicates which time to apply the sound element.
-
-Pizzicato in a sound element effects all following notes. Yes indicates pizzicato, no indicates arco.
-
-The pan and elevation attributes are deprecated in Version 2.0. The pan and elevation elements in the midi-instrument element should be used instead. The meaning of the pan and elevation attributes is the same as for the pan and elevation elements. If both are present, the mid-instrument elements take priority.
-
-The damper-pedal, soft-pedal, and sostenuto-pedal attributes effect playback of the three common piano pedals and their MIDI controller equivalents. The yes value indicates the pedal is depressed; no indicates the pedal is released. A numeric value from 0 to 100 may also be used for half pedaling. This value is the percentage that the pedal is depressed. A value of 0 is equivalent to no, and a value of 100 is equivalent to yes.
-
-MIDI instruments are changed using the midi-instrument element.
-
-The offset element is used to indicate that the sound takes place offset from the current score position. If the sound element is a child of a direction element, the sound offset element overrides the direction offset element if both elements are present. Note that the offset reflects the intended musical position for the change in sound. It should not be used to compensate for latency issues in particular hardware configurations.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="midi-instrument" type="midi-instrument" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="offset" type="offset" minOccurs="0"/>
@@ -2490,12 +2488,15 @@ The offset element is used to indicate that the sound takes place offset from th
     </xs:complexType>
 
 -}
--- | 
+-- | The wedge type represents crescendo and diminuendo wedge symbols. The type attribute is
+-- crescendo for the start of a wedge that is closed at the left side, and diminuendo for the start
+-- of a wedge that is closed on the right side. Spread values are measured in tenths; those at the
+-- start of a crescendo wedge or end of a diminuendo wedge are ignored.
+
 type Wedge = TODO
 {-
     <xs:complexType name="wedge">
         <xs:annotation>
-            <xs:documentation>The wedge type represents crescendo and diminuendo wedge symbols. The type attribute is crescendo for the start of a wedge that is closed at the left side, and diminuendo for the start of a wedge that is closed on the right side. Spread values are measured in tenths; those at the start of a crescendo wedge or end of a diminuendo wedge are ignored.</xs:documentation>
         </xs:annotation>
         <xs:attribute name="type" type="wedge-type" use="required"/>
         <xs:attribute name="number" type="number-level"/>
@@ -2507,12 +2508,15 @@ type Wedge = TODO
     <!-- Complex types derived from identity.mod elements -->
 
 -}
--- | 
+-- | The encoding element contains information about who did the digital encoding, when, with what
+-- software, and in what aspects. Standard type values for the encoder element are music, words, and
+-- arrangement, but other types may be used. The type attribute is only needed when there are
+-- multiple encoder elements.
+
 type Encoding = TODO
 {-
     <xs:complexType name="encoding">
         <xs:annotation>
-            <xs:documentation>The encoding element contains information about who did the digital encoding, when, with what software, and in what aspects. Standard type values for the encoder element are music, words, and arrangement, but other types may be used. The type attribute is only needed when there are multiple encoder elements.</xs:documentation>
         </xs:annotation>
         <xs:choice minOccurs="0" maxOccurs="unbounded">
             <xs:element name="encoding-date" type="yyyy-mm-dd"/>
@@ -2524,12 +2528,13 @@ type Encoding = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | Identification contains basic metadata about the score. It includes the information in MuseData
+-- headers that may apply at a score-wide, movement-wide, or part-wide level. The creator, rights,
+-- source, and relation elements are based on Dublin Core.
 type Identification = TODO
 {-
     <xs:complexType name="identification">
         <xs:annotation>
-            <xs:documentation>Identification contains basic metadata about the score. It includes the information in MuseData headers that may apply at a score-wide, movement-wide, or part-wide level. The creator, rights, source, and relation elements are based on Dublin Core.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="creator" type="typed-text" minOccurs="0" maxOccurs="unbounded">
@@ -2558,26 +2563,24 @@ type Identification = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | If a program has other metadata not yet supported in the MusicXML format, it can go in the
+-- miscellaneous element. The miscellaneous type puts each separate part of metadata into its own
+-- miscellaneous-field type.
 type Miscellaneous = TODO
 {-
     <xs:complexType name="miscellaneous">
-        <xs:annotation>
-            <xs:documentation>If a program has other metadata not yet supported in the MusicXML format, it can go in the miscellaneous element. The miscellaneous type puts each separate part of metadata into its own miscellaneous-field type.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="miscellaneous-field" type="miscellaneous-field" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
 
 -}
--- | 
+-- | If a program has other metadata not yet supported in the MusicXML format, each type of metadata
+-- can go in a miscellaneous-field element. The required name attribute indicates the type of
+-- metadata the element content represents.
 type MiscellaneousFields = TODO
 {-
     <xs:complexType name="miscellaneous-field">
-        <xs:annotation>
-            <xs:documentation>If a program has other metadata not yet supported in the MusicXML format, each type of metadata can go in a miscellaneous-field element. The required name attribute indicates the type of metadata the element content represents.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
                 <xs:attribute name="name" type="xs:token" use="required"/>
@@ -2586,13 +2589,15 @@ type MiscellaneousFields = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The supports type indicates if a MusicXML encoding supports a particular MusicXML element. This
+-- is recommended for elements like beam, stem, and accidental, where the absence of an element is
+-- ambiguous if you do not know if the encoding supports that element. For Version 2.0, the supports
+-- element is expanded to allow programs to indicate support for particular attributes or particular
+-- values. This lets applications communicate, for example, that all system and/or page breaks are
+-- contained in the MusicXML file.
 type Supports = TODO
 {-
     <xs:complexType name="supports">
-        <xs:annotation>
-            <xs:documentation>The supports type indicates if a MusicXML encoding supports a particular MusicXML element. This is recommended for elements like beam, stem, and accidental, where the absence of an element is ambiguous if you do not know if the encoding supports that element. For Version 2.0, the supports element is expanded to allow programs to indicate support for particular attributes or particular values. This lets applications communicate, for example, that all system and/or page breaks are contained in the MusicXML file.</xs:documentation>
-        </xs:annotation>
         <xs:attribute name="type" type="yes-no" use="required"/>
         <xs:attribute name="element" type="xs:NMTOKEN" use="required"/>
         <xs:attribute name="attribute" type="xs:NMTOKEN"/>
@@ -2602,12 +2607,13 @@ type Supports = TODO
     <!-- Complex types derived from layout.mod elements -->
 
 -}
--- | 
+-- | The appearance type controls general graphical settings for the music's final form appearance on
+-- a printed page of display. Currently this includes support for line widths and definitions for
+-- note sizes, plus an extension element for other aspects of appearance.
 type Appearance = TODO
 {-
     <xs:complexType name="appearance">
         <xs:annotation>
-            <xs:documentation>The appearance type controls general graphical settings for the music's final form appearance on a printed page of display. Currently this includes support for line widths and definitions for note sizes, plus an extension element for other aspects of appearance.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="line-width" type="line-width" minOccurs="0" maxOccurs="unbounded"/>
@@ -2617,13 +2623,13 @@ type Appearance = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The line-width type indicates the width of a line type in tenths. The type attribute defines
+-- what type of line is being defined. Values include beam, bracket, dashes, enclosure, ending,
+-- extend, heavy barline, leger, light barline, octave shift, pedal, slur middle, slur tip, staff,
+-- stem, tie middle, tie tip, tuplet bracket, and wedge. The text content is expressed in tenths.
 type LineWidth = TODO
 {-
     <xs:complexType name="line-width">
-        <xs:annotation>
-            <xs:documentation>The line-width type indicates the width of a line type in tenths. The type attribute defines what type of line is being defined. Values include beam, bracket, dashes, enclosure, ending, extend, heavy barline, leger, light barline, octave shift, pedal, slur middle, slur tip, staff, stem, tie middle, tie tip, tuplet bracket, and wedge. The text content is expressed in tenths.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="tenths">
                 <xs:attribute name="type" type="line-width-type" use="required"/>
@@ -2632,13 +2638,10 @@ type LineWidth = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The measure-layout type includes the horizontal distance from the previous measure.
 type MeasureLayout = TODO
 {-
     <xs:complexType name="measure-layout">
-        <xs:annotation>
-            <xs:documentation>The measure-layout type includes the horizontal distance from the previous measure.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="measure-distance" type="tenths" minOccurs="0">
                 <xs:annotation>
@@ -2649,13 +2652,15 @@ type MeasureLayout = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The note-size type indicates the percentage of the regular note size to use for notes with a cue
+-- and large size as defined in the type element. The grace type is used for notes of cue size that
+-- that include a grace element. The cue type is used for all other notes with cue size, whether
+-- defined explicitly or implicitly via a cue element. The large type is used for notes of large
+-- size. The text content represent the numeric percentage. A value of 100 would be identical to the
+-- size of a regular note as defined by the music font.
 type NoteSize = TODO
 {-
     <xs:complexType name="note-size">
-        <xs:annotation>
-            <xs:documentation>The note-size type indicates the percentage of the regular note size to use for notes with a cue and large size as defined in the type element. The grace type is used for notes of cue size that that include a grace element. The cue type is used for all other notes with cue size, whether defined explicitly or implicitly via a cue element. The large type is used for notes of large size. The text content represent the numeric percentage. A value of 100 would be identical to the size of a regular note as defined by the music font.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="non-negative-decimal">
                 <xs:attribute name="type" type="note-size-type" use="required"/>
@@ -2664,13 +2669,12 @@ type NoteSize = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The other-appearance type is used to define any graphical settings not yet in the current
+-- version of the MusicXML format. This allows extended representation, though without application
+-- interoperability.
 type OtherAppearance = TODO
 {-
     <xs:complexType name="other-appearance">
-        <xs:annotation>
-            <xs:documentation>The other-appearance type is used to define any graphical settings not yet in the current version of the MusicXML format. This allows extended representation, though without application interoperability.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
                 <xs:attribute name="type" type="xs:token" use="required"/>
@@ -2679,13 +2683,13 @@ type OtherAppearance = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | Page layout can be defined both in score-wide defaults and in the print element. Page margins
+-- are specified either for both even and odd pages, or via separate odd and even page number values.
+-- The type is not needed when used as part of a print element. If omitted when used in the defaults
+-- element, "both" is the default.
 type PageLayout = TODO
 {-
     <xs:complexType name="page-layout">
-        <xs:annotation>
-            <xs:documentation>Page layout can be defined both in score-wide defaults and in the print element. Page margins are specified either for both even and odd pages, or via separate odd and even page number values. The type is not needed when used as part of a print element. If omitted when used in the defaults element, "both" is the default.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:sequence minOccurs="0">
                 <xs:element name="page-height" type="tenths"/>
@@ -2696,25 +2700,27 @@ type PageLayout = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | Page margins are specified either for both even and odd pages, or via separate odd and even page
+-- number values. The type attribute is not needed when used as part of a print element. If omitted
+-- when the page-margins type is used in the defaults element, "both" is the default value.
 type PageMarigins = TODO
 {-
     <xs:complexType name="page-margins">
         <xs:annotation>
-            <xs:documentation>Page margins are specified either for both even and odd pages, or via separate odd and even page number values. The type attribute is not needed when used as part of a print element. If omitted when the page-margins type is used in the defaults element, "both" is the default value.</xs:documentation>
         </xs:annotation>
         <xs:group ref="all-margins"/>
         <xs:attribute name="type" type="margin-type"/>
     </xs:complexType>
 
 -}
--- | 
+-- | Margins, page sizes, and distances are all measured in tenths to keep MusicXML data in a
+-- consistent coordinate system as much as possible. The translation to absolute units is done with
+-- the scaling type, which specifies how many millimeters are equal to how many tenths. For a staff
+-- height of 7 mm, millimeters would be set to 7 while tenths is set to 40. The ability to set a
+-- formula rather than a single scaling factor helps avoid roundoff errors.
 type Scaling = TODO
 {-
     <xs:complexType name="scaling">
-        <xs:annotation>
-            <xs:documentation>Margins, page sizes, and distances are all measured in tenths to keep MusicXML data in a consistent coordinate system as much as possible. The translation to absolute units is done with the scaling type, which specifies how many millimeters are equal to how many tenths. For a staff height of 7 mm, millimeters would be set to 7 while tenths is set to 40. The ability to set a formula rather than a single scaling factor helps avoid roundoff errors.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="millimeters" type="millimeters"/>
             <xs:element name="tenths" type="tenths"/>
@@ -2722,13 +2728,14 @@ type Scaling = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | Staff layout includes the vertical distance from the bottom line of the previous staff in this
+-- system to the top line of the staff specified by the number attribute. The optional number
+-- attribute refers to staff numbers within the part, from top to bottom on the system. A value of 1
+-- is assumed if not present. When used in the defaults element, the values apply to all parts. This
+-- value is ignored for the first staff in a system.
 type StaffLayout = TODO
 {-
     <xs:complexType name="staff-layout">
-        <xs:annotation>
-            <xs:documentation>Staff layout includes the vertical distance from the bottom line of the previous staff in this system to the top line of the staff specified by the number attribute. The optional number attribute refers to staff numbers within the part, from top to bottom on the system. A value of 1 is assumed if not present. When used in the defaults element, the values apply to all parts. This value is ignored for the first staff in a system.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="staff-distance" type="tenths" minOccurs="0"/>
         </xs:sequence>
@@ -2736,15 +2743,20 @@ type StaffLayout = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | System layout includes left and right margins and the vertical distance from the previous
+-- system. The system distance is measured from the bottom line of the previous system to the top
+-- line of the current system. It is ignored for the first system on a page. The top system distance
+-- is measured from the page's top margin to the top line of the first system. It is ignored for all
+-- but the first system on a page.
+-- 
+-- Sometimes the sum of measure widths in a system may not equal the system width specified by the
+-- layout elements due to roundoff or other errors. The behavior when reading MusicXML files in these
+-- cases is application-dependent. For instance, applications may find that the system layout data is
+-- more reliable than the sum of the measure widths, and adjust the measure widths accordingly.
+
 type SystemLayout = TODO
 {-
     <xs:complexType name="system-layout">
-        <xs:annotation>
-            <xs:documentation>System layout includes left and right margins and the vertical distance from the previous system. The system distance is measured from the bottom line of the previous system to the top line of the current system. It is ignored for the first system on a page. The top system distance is measured from the page's top margin to the top line of the first system. It is ignored for all but the first system on a page.
-
-Sometimes the sum of measure widths in a system may not equal the system width specified by the layout elements due to roundoff or other errors. The behavior when reading MusicXML files in these cases is application-dependent. For instance, applications may find that the system layout data is more reliable than the sum of the measure widths, and adjust the measure widths accordingly.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="system-margins" type="system-margins" minOccurs="0"/>
             <xs:element name="system-distance" type="tenths" minOccurs="0"/>
@@ -2753,12 +2765,12 @@ Sometimes the sum of measure widths in a system may not equal the system width s
     </xs:complexType>
 
 -}
--- | 
+-- | System margins are relative to the page margins. Positive values indent and negative values
+-- reduce the margin size.
 type SystemMargins = TODO
 {-
     <xs:complexType name="system-margins">
         <xs:annotation>
-            <xs:documentation>System margins are relative to the page margins. Positive values indent and negative values reduce the margin size.</xs:documentation>
         </xs:annotation>
         <xs:group ref="left-right-margins"/>
     </xs:complexType>
@@ -2766,12 +2778,11 @@ type SystemMargins = TODO
     <!-- Complex types derived from link.mod elements -->
 
 -}
--- | 
+-- | The bookmark type serves as a well-defined target for an incoming simple XLink.
 type Bookmark = TODO
 {-
     <xs:complexType name="bookmark">
         <xs:annotation>
-            <xs:documentation>The bookmark type serves as a well-defined target for an incoming simple XLink.</xs:documentation>
         </xs:annotation>
         <xs:attribute name="id" type="xs:ID" use="required"/>
         <xs:attribute name="name" type="xs:token"/>
@@ -2779,12 +2790,12 @@ type Bookmark = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The link type serves as an outgoing simple XLink. It is also used to connect a MusicXML score
+-- with a MusicXML opus.
 type Link = TODO
 {-
     <xs:complexType name="link">
         <xs:annotation>
-            <xs:documentation>The link type serves as an outgoing simple XLink. It is also used to connect a MusicXML score with a MusicXML opus.</xs:documentation>
         </xs:annotation>
         <xs:attributeGroup ref="link-attributes"/>
         <xs:attribute name="name" type="xs:token"/>
@@ -2795,12 +2806,14 @@ type Link = TODO
     <!-- Complex types derived from note.mod elements -->
 
 -}
--- | 
+-- | The accidental type represents actual notated accidentals. Editorial and cautionary indications
+-- are indicated by attributes. Values for these attributes are "no" if not present. Specific graphic
+-- display such as parentheses, brackets, and size are controlled by the level-display attribute
+-- group.
 type Accidental = TODO
 {-
     <xs:complexType name="accidental">
         <xs:annotation>
-            <xs:documentation>The accidental type represents actual notated accidentals. Editorial and cautionary indications are indicated by attributes. Values for these attributes are "no" if not present. Specific graphic display such as parentheses, brackets, and size are controlled by the level-display attribute group.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="accidental-value">
@@ -2813,12 +2826,12 @@ type Accidental = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | An accidental-mark can be used as a separate notation or as part of an ornament. When used in an
+-- ornament, position and placement are relative to the ornament, not relative to the note.
 type AccidentalMark = TODO
 {-
     <xs:complexType name="accidental-mark">
         <xs:annotation>
-            <xs:documentation>An accidental-mark can be used as a separate notation or as part of an ornament. When used in an ornament, position and placement are relative to the ornament, not relative to the note.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="accidental-value">
@@ -2829,13 +2842,13 @@ type AccidentalMark = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The arpeggiate type indicates that this note is part of an arpeggiated chord. The number
+-- attribute can be used to distinguish between two simultaneous chords arpeggiated separately
+-- (different numbers) or together (same number). The up-down attribute is used if there is an arrow
+-- on the arpeggio sign. By default, arpeggios go from the lowest to highest note.
 type Arpeggiate = TODO
 {-
     <xs:complexType name="arpeggiate">
-        <xs:annotation>
-            <xs:documentation>The arpeggiate type indicates that this note is part of an arpeggiated chord. The number attribute can be used to distinguish between two simultaneous chords arpeggiated separately (different numbers) or together (same number). The up-down attribute is used if there is an arrow on the arpeggio sign. By default, arpeggios go from the lowest to highest note.</xs:documentation>
-        </xs:annotation>
         <xs:attribute name="number" type="number-level"/>
         <xs:attribute name="direction" type="up-down"/>
         <xs:attributeGroup ref="position"/>
@@ -2845,7 +2858,7 @@ type Arpeggiate = TODO
 
 -}
 
--- | <xs:documentation>Articulations and accents are grouped together here.</xs:documentation>
+-- | Articulations and accents are grouped together here.
 type Articulations = TODO
 {-
     <xs:complexType name="articulations">
@@ -2955,15 +2968,20 @@ type Backup = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | Beam values include begin, continue, end, forward hook, and backward hook. Up to six concurrent
+-- beam levels are available to cover up to 256th notes. The repeater attribute, used for tremolos,
+-- needs to be specified with a "yes" value for each beam using it. Beams that have a begin value can
+-- also have a fan attribute to indicate accelerandos and ritardandos using fanned beams. The fan
+-- attribute may also be used with a continue value if the fanning direction changes on that note.
+-- The value is "none" if not specified.
+-- 
+-- Note that the beam number does not distinguish sets of beams that overlap, as it does for slur and
+-- other elements. Beaming groups are distinguished by being in different voices and/or the presence
+-- or absence of grace and cue elements.
+
 type Beam = TODO
 {-
     <xs:complexType name="beam">
-        <xs:annotation>
-            <xs:documentation>Beam values include begin, continue, end, forward hook, and backward hook. Up to six concurrent beam levels are available to cover up to 256th notes. The repeater attribute, used for tremolos, needs to be specified with a "yes" value for each beam using it. Beams that have a begin value can also have a fan attribute to indicate accelerandos and ritardandos using fanned beams. The fan attribute may also be used with a continue value if the fanning direction changes on that note. The value is "none" if not specified.
-
-Note that the beam number does not distinguish sets of beams that overlap, as it does for slur and other elements. Beaming groups are distinguished by being in different voices and/or the presence or absence of grace and cue elements.</xs:documentation>
-        </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="beam-value">
                 <xs:attribute name="number" type="beam-level" default="1"/>
@@ -2975,13 +2993,15 @@ Note that the beam number does not distinguish sets of beams that overlap, as it
     </xs:complexType>
 
 -}
--- | 
+-- | The bend type is used in guitar and tablature. The bend-alter element indicates the number of
+-- steps in the bend, similar to the alter element. As with the alter element, numbers like 0.5 can
+-- be used to indicate microtones. Negative numbers indicate pre-bends or releases; the pre-bend and
+-- release elements are used to distinguish what is intended. A with-bar element indicates that the
+-- bend is to be done at the bridge with a whammy or vibrato bar. The content of the element
+-- indicates how this should be notated.
 type Bend = TODO
 {-
     <xs:complexType name="bend">
-        <xs:annotation>
-            <xs:documentation>The bend type is used in guitar and tablature. The bend-alter element indicates the number of steps in the bend, similar to the alter element. As with the alter element, numbers like 0.5 can be used to indicate microtones. Negative numbers indicate pre-bends or releases; the pre-bend and release elements are used to distinguish what is intended. A with-bar element indicates that the bend is to be done at the bridge with a whammy or vibrato bar. The content of the element indicates how this should be notated.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="bend-alter" type="semitones">
                 <xs:annotation>
@@ -3011,12 +3031,16 @@ type Bend = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The display-step-octave type contains the sequence of elements used by both the rest and
+-- unpitched elements. This group is used to place rests and unpitched elements on the staff without
+-- implying that these elements have pitch. Positioning follows the current clef. If percussion clef
+-- is used, the display-step and display-octave elements are interpreted as if in treble clef, with a
+-- G in octave 4 on line 2. If not present, the note is placed on the middle line of the staff,
+-- generally used for one-line staffs.
 type DisplayStepOctave = TODO
 {-
     <xs:complexType name="display-step-octave">
         <xs:annotation>
-            <xs:documentation>The display-step-octave type contains the sequence of elements used by both the rest and unpitched elements. This group is used to place rests and unpitched elements on the staff without implying that these elements have pitch. Positioning follows the current clef. If percussion clef is used, the display-step and display-octave elements are interpreted as if in treble clef, with a G in octave 4 on line 2. If not present, the note is placed on the middle line of the staff, generally used for one-line staffs.</xs:documentation>
         </xs:annotation>
         <xs:sequence minOccurs="0">
             <xs:element name="display-step" type="step"/>
@@ -3025,12 +3049,13 @@ type DisplayStepOctave = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | In Version 2.0, the content of the elision type is used to specify the symbol used to display
+-- the elision. Common values are a no-break space (Unicode 00A0), an underscore (Unicode 005F), or
+-- an undertie (Unicode 203F).
 type Elision = TODO
 {-
     <xs:complexType name="elision">
         <xs:annotation>
-            <xs:documentation>In Version 2.0, the content of the elision type is used to specify the symbol used to display the elision. Common values are a no-break space (Unicode 00A0), an underscore (Unicode 005F), or an undertie (Unicode 203F).</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
@@ -3041,13 +3066,11 @@ type Elision = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The empty-line type represents an empty element with line-shape, line-type, print-style and
+-- placement attributes.
 type EmptyLine = TODO
 {-
     <xs:complexType name="empty-line">
-        <xs:annotation>
-            <xs:documentation>The empty-line type represents an empty element with line-shape, line-type, print-style and placement attributes.</xs:documentation>
-        </xs:annotation>
         <xs:attributeGroup ref="line-shape"/>
         <xs:attributeGroup ref="line-type"/>
         <xs:attributeGroup ref="print-style"/>
@@ -3055,25 +3078,19 @@ type EmptyLine = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The extend type represents word extensions for lyrics.
 type Extend = TODO
 {-
     <xs:complexType name="extend">
-        <xs:annotation>
-            <xs:documentation>The extend type represents word extensions for lyrics.</xs:documentation>
-        </xs:annotation>
         <xs:attributeGroup ref="font"/>
         <xs:attributeGroup ref="color"/>
     </xs:complexType>
 
 -}
--- | 
+-- | The figure type represents a single figure within a figured-bass element.
 type Figure = TODO
 {-
     <xs:complexType name="figure">
-        <xs:annotation>
-            <xs:documentation>The figure type represents a single figure within a figured-bass element.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="prefix" type="style-text" minOccurs="0">
                 <xs:annotation>
@@ -3131,12 +3148,14 @@ type Forward = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | Glissando and slide types both indicate rapidly moving from one pitch to the other so that
+-- individual notes are not discerned. The distinction is similar to that between NIFF's glissando
+-- and portamento elements. A glissando sounds the half notes in between the slide and defaults to a
+-- wavy line. The optional text is printed alongside the line.
 type Glissando = TODO
 {-
     <xs:complexType name="glissando">
         <xs:annotation>
-            <xs:documentation>Glissando and slide types both indicate rapidly moving from one pitch to the other so that individual notes are not discerned. The distinction is similar to that between NIFF's glissando and portamento elements. A glissando sounds the half notes in between the slide and defaults to a wavy line. The optional text is printed alongside the line.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
@@ -3149,12 +3168,16 @@ type Glissando = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The grace type indicates the presence of a grace note. The slash attribute for a grace note is
+-- yes for slashed eighth notes. The other grace note attributes come from MuseData sound
+-- suggestions. Steal-time-previous indicates the percentage of time to steal from the previous note
+-- for the grace note. Steal-time-following indicates the percentage of time to steal from the
+-- following note for the grace note. Make-time indicates to make time, not steal time; the units are
+-- in real-time divisions for the grace note.
 type Grace = TODO
 {-
     <xs:complexType name="grace">
         <xs:annotation>
-            <xs:documentation>The grace type indicates the presence of a grace note. The slash attribute for a grace note is yes for slashed eighth notes. The other grace note attributes come from MuseData sound suggestions. Steal-time-previous indicates the percentage of time to steal from the previous note for the grace note. Steal-time-following indicates the percentage of time to steal from the following note for the grace note. Make-time indicates to make time, not steal time; the units are in real-time divisions for the grace note.</xs:documentation>
         </xs:annotation>
         <xs:attribute name="steal-time-previous" type="percent"/>
         <xs:attribute name="steal-time-following" type="percent"/>
@@ -3163,12 +3186,15 @@ type Grace = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The hammer-on and pull-off elements are used in guitar and fretted instrument notation. Since a
+-- single slur can be marked over many notes, the hammer-on and pull-off elements are separate so the
+-- individual pair of notes can be specified. The element content can be used to specify how the
+-- hammer-on or pull-off should be notated. An empty element leaves this choice up to the
+-- application.
 type HammerOnPulloff = TODO
 {-
     <xs:complexType name="hammer-on-pull-off">
         <xs:annotation>
-            <xs:documentation>The hammer-on and pull-off elements are used in guitar and fretted instrument notation. Since a single slur can be marked over many notes, the hammer-on and pull-off elements are separate so the individual pair of notes can be specified. The element content can be used to specify how the hammer-on or pull-off should be notated. An empty element leaves this choice up to the application.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
@@ -3181,12 +3207,16 @@ type HammerOnPulloff = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The harmonic type indicates natural and artificial harmonics. Allowing the type of pitch to be
+-- specified, combined with controls for appearance/playback differences, allows both the notation
+-- and the sound to be represented. Artificial harmonics can add a notated touching-pitch; artificial
+-- pinch harmonics will usually not notate a touching pitch. The attributes for the harmonic element
+-- refer to the use of the circular harmonic symbol, typically but not always used with natural
+-- harmonics.
 type Harmonic = TODO
 {-
     <xs:complexType name="harmonic">
         <xs:annotation>
-            <xs:documentation>The harmonic type indicates natural and artificial harmonics. Allowing the type of pitch to be specified, combined with controls for appearance/playback differences, allows both the notation and the sound to be represented. Artificial harmonics can add a notated touching-pitch; artificial pinch harmonics will usually not notate a touching pitch. The attributes for the harmonic element refer to the use of the circular harmonic symbol, typically but not always used with natural harmonics.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:choice minOccurs="0">
@@ -3225,13 +3255,11 @@ type Harmonic = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The heel and toe elements are used with organ pedals. The substitution value is "no" if the
+-- attribute is not present.
 type HeelToe = TODO
 {-
     <xs:complexType name="heel-toe">
-        <xs:annotation>
-            <xs:documentation>The heel and toe elements are used with organ pedals. The substitution value is "no" if the attribute is not present.</xs:documentation>
-        </xs:annotation>
         <xs:complexContent>
             <xs:extension base="empty-placement">
                 <xs:attribute name="substitution" type="yes-no"/>
@@ -3240,12 +3268,13 @@ type HeelToe = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The instrument type distinguishes between score-instrument elements in a score-part. The id
+-- attribute is an IDREF back to the score-instrument ID. If multiple score-instruments are specified
+-- on a score-part, there should be an instrument element for each note in the part.
 type Instrument = TODO
 {-
     <xs:complexType name="instrument">
         <xs:annotation>
-            <xs:documentation>The instrument type distinguishes between score-instrument elements in a score-part. The id attribute is an IDREF back to the score-instrument ID. If multiple score-instruments are specified on a score-part, there should be an instrument element for each note in the part.</xs:documentation>
         </xs:annotation>
         <xs:attribute name="id" type="xs:IDREF" use="required"/>
     </xs:complexType>
@@ -3305,12 +3334,12 @@ type Lyric = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The mordent type is used for both represents the mordent sign with the vertical line and the
+-- inverted-mordent sign without the line. The long attribute is "no" by default.
 type Mordent = TODO
 {-
     <xs:complexType name="mordent">
         <xs:annotation>
-            <xs:documentation>The mordent type is used for both represents the mordent sign with the vertical line and the inverted-mordent sign without the line. The long attribute is "no" by default.</xs:documentation>
         </xs:annotation>
         <xs:complexContent>
             <xs:extension base="empty-trill-sound">
@@ -3320,12 +3349,13 @@ type Mordent = TODO
     </xs:complexType>
 
 -}
--- | 
+-- | The non-arpeggiate type indicates that this note is at the top or bottom of a bracket indicating
+-- to not arpeggiate these notes. Since this does not involve playback, it is only used on the top or
+-- bottom notes, not on each note as for the arpeggiate type.
 type NonArpeggiate = TODO
 {-
     <xs:complexType name="non-arpeggiate">
         <xs:annotation>
-            <xs:documentation>The non-arpeggiate type indicates that this note is at the top or bottom of a bracket indicating to not arpeggiate these notes. Since this does not involve playback, it is only used on the top or bottom notes, not on each note as for the arpeggiate type.</xs:documentation>
     </xs:annotation>
         <xs:attribute name="type" type="top-bottom" use="required"/>
         <xs:attribute name="number" type="number-level"/>
@@ -3336,7 +3366,9 @@ type NonArpeggiate = TODO
 
 -}
 
--- | <xs:documentation>Notations refer to musical notations, not XML notations. Multiple notations are allowed in order to represent multiple editorial levels. The set of notations may be refined and expanded over time, especially to handle more instrument-specific technical notations.</xs:documentation>
+-- | Notations refer to musical notations, not XML notations. Multiple notations are allowed in order
+-- to represent multiple editorial levels. The set of notations may be refined and expanded over
+-- time, especially to handle more instrument-specific technical notations.
 type Notations = TODO
 {-
     <xs:complexType name="notations">
@@ -3564,12 +3596,12 @@ type Pitch = TODO
 
 -}
 
--- | 
+-- | The placement-text type represents a text element with print-style and placement attribute
+-- groups.
 type PlacementText = TODO
 {-
     <xs:complexType name="placement-text">
         <xs:annotation>
-            <xs:documentation>The placement-text type represents a text element with print-style and placement attribute groups.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
@@ -3581,12 +3613,14 @@ type PlacementText = TODO
 
 -}        
 
--- | 
+-- | Glissando and slide types both indicate rapidly moving from one pitch to the other so that
+-- individual notes are not discerned. The distinction is similar to that between NIFF's glissando
+-- and portamento elements. A slide is continuous between two notes and defaults to a solid line. The
+-- optional text for a is printed alongside the line.
 type Slide = TODO
 {-
     <xs:complexType name="slide">
         <xs:annotation>
-            <xs:documentation>Glissando and slide types both indicate rapidly moving from one pitch to the other so that individual notes are not discerned. The distinction is similar to that between NIFF's glissando and portamento elements. A slide is continuous between two notes and defaults to a solid line. The optional text for a is printed alongside the line.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
@@ -3601,12 +3635,13 @@ type Slide = TODO
 
 -}  
 
--- | 
+-- | Slur types are empty. Most slurs are represented with two elements: one with a start type, and
+-- one with a stop type. Slurs can add more elements using a continue type. This is typically used to
+-- specify the formatting of cross-system slurs, or to specify the shape of very complex slurs.
 type Slur = TODO
 {-
     <xs:complexType name="slur">
         <xs:annotation>
-            <xs:documentation>Slur types are empty. Most slurs are represented with two elements: one with a start type, and one with a stop type. Slurs can add more elements using a continue type. This is typically used to specify the formatting of cross-system slurs, or to specify the shape of very complex slurs.</xs:documentation>
         </xs:annotation>
         <xs:attribute name="type" type="start-stop-continue" use="required"/>
         <xs:attribute name="number" type="number-level" default="1"/>
@@ -3620,12 +3655,14 @@ type Slur = TODO
 
 -}     
 
--- | 
+-- | Stems can be down, up, none, or double. For down and up stems, the position attributes can be
+-- used to specify stem length. The relative values specify the end of the stem relative to the
+-- program default. Default values specify an absolute end stem position. Negative values of
+-- relative-y that would flip a stem instead of shortening it are ignored.
 type Stem = TODO
 {-
     <xs:complexType name="stem">
         <xs:annotation>
-            <xs:documentation>Stems can be down, up, none, or double. For down and up stems, the position attributes can be used to specify stem length. The relative values specify the end of the stem relative to the program default. Default values specify an absolute end stem position. Negative values of relative-y that would flip a stem instead of shortening it are ignored.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="stem-value">
@@ -3637,12 +3674,12 @@ type Stem = TODO
 
 -}      
 
--- | 
+-- | The strong-accent type indicates a vertical accent mark. The type attribute indicates if the
+-- point of the accent is down or up.
 type StrongAccent = TODO
 {-
     <xs:complexType name="strong-accent">
         <xs:annotation>
-            <xs:documentation>The strong-accent type indicates a vertical accent mark. The type attribute indicates if the point of the accent is down or up.</xs:documentation>
         </xs:annotation>
         <xs:complexContent>
             <xs:extension base="empty-placement">
@@ -3653,12 +3690,11 @@ type StrongAccent = TODO
 
 -}    
 
--- | 
+-- | The style-text type represents a text element with a print-style attribute group.
 type StyleText = TODO
 {-
     <xs:complexType name="style-text">
         <xs:annotation>
-            <xs:documentation>The style-text type represents a text element with a print-style attribute group.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
@@ -3669,12 +3705,11 @@ type StyleText = TODO
 
 -}     
 
--- | 
+-- | Technical indications give performance information for individual instruments.
 type Technical = TODO
 {-
     <xs:complexType name="technical">
         <xs:annotation>
-            <xs:documentation>Technical indications give performance information for individual instruments.</xs:documentation>
         </xs:annotation>
         <xs:choice minOccurs="0" maxOccurs="unbounded">
             <xs:element name="up-bow" type="empty-placement">
@@ -3751,12 +3786,13 @@ type Technical = TODO
 
 -}      
 
--- | 
+-- | The text-element-data type represents a syllable or portion of a syllable for lyric text
+-- underlay. A hyphen in the string content should only be used for an actual hyphenated word.
+-- Language names for text elements come from ISO 639, with optional country subcodes from ISO 3166.
 type TextElementData = TODO
 {-
     <xs:complexType name="text-element-data">
         <xs:annotation>
-            <xs:documentation>The text-element-data type represents a syllable or portion of a syllable for lyric text underlay. A hyphen in the string content should only be used for an actual hyphenated word. Language names for text elements come from ISO 639, with optional country subcodes from ISO 3166.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
@@ -3773,24 +3809,23 @@ type TextElementData = TODO
 
 -}      
 
--- | 
+-- | The tie element indicates that a tie begins or ends with this note. The tie element indicates
+-- sound; the tied element indicates notation.
 type Tie = TODO
 {-
     <xs:complexType name="tie">
         <xs:annotation>
-            <xs:documentation>The tie element indicates that a tie begins or ends with this note. The tie element indicates sound; the tied element indicates notation.</xs:documentation>
         </xs:annotation>
         <xs:attribute name="type" type="start-stop" use="required"/>
     </xs:complexType>
 
 -} 
 
--- | 
+-- | The tied type represents the notated tie. The tie element represents the tie sound.
 type Tied = TODO
 {-
     <xs:complexType name="tied">
         <xs:annotation>
-            <xs:documentation>The tied type represents the notated tie. The tie element represents the tie sound.</xs:documentation>
         </xs:annotation>
         <xs:attribute name="type" type="start-stop" use="required"/>
         <xs:attribute name="number" type="number-level"/>
@@ -3804,12 +3839,11 @@ type Tied = TODO
 
 -}       
 
--- | 
+-- | The time-modification type represents tuplets and other durational changes.
 type TimeModification = TODO
 {-
     <xs:complexType name="time-modification">
         <xs:annotation>
-            <xs:documentation>The time-modification type represents tuplets and other durational changes.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="actual-notes" type="xs:nonNegativeInteger">
@@ -3839,12 +3873,17 @@ type TimeModification = TODO
 
 -}   
 
--- | 
+-- | While using repeater beams was the original method for indicating tremolos, often playback and
+-- display are not well-enough integrated in an application to make that feasible. The tremolo
+-- ornament can be used to indicate either single-note or double-note tremolos. Single-note tremolos
+-- use the single type, while double-note tremolos use the start and stop types. The default is
+-- "single" for compatibility with Version 1.1. The text of the element indicates the number of
+-- tremolo marks and is an integer from 0 to 6. Note that the number of attached beams is not
+-- included in this value, but is represented separately using the beam element.
 type Tremolo = TODO
 {-
     <xs:complexType name="tremolo">
         <xs:annotation>
-            <xs:documentation>While using repeater beams was the original method for indicating tremolos, often playback and display are not well-enough integrated in an application to make that feasible. The tremolo ornament can be used to indicate either single-note or double-note tremolos. Single-note tremolos use the single type, while double-note tremolos use the start and stop types. The default is "single" for compatibility with Version 1.1. The text of the element indicates the number of tremolo marks and is an integer from 0 to 6. Note that the number of attached beams is not included in this value, but is represented separately using the beam element.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="tremolo-marks">
@@ -3857,17 +3896,23 @@ type Tremolo = TODO
 
 -}        
 
--- | 
+-- | A tuplet element is present when a tuplet is to be displayed graphically, in addition to the
+-- sound data provided by the time-modification elements. The number attribute is used to distinguish
+-- nested tuplets. The bracket attribute is used to indicate the presence of a bracket. If
+-- unspecified, the results are implementation-dependent. The line-shape attribute is used to specify
+-- whether the bracket is straight or in the older curved or slurred style. It is straight by
+-- default.
+-- 
+-- Whereas a time-modification element shows how the cumulative, sounding effect of tuplets compare
+-- to the written note type, the tuplet element describes how each tuplet is displayed.
+-- 
+-- The show-number attribute is used to display either the number of actual notes, the number of both
+-- actual and normal notes, or neither. It is actual by default. The show-type attribute is used to
+-- display either the actual type, both the actual and normal types, or neither. It is none by
+-- default.
 type Tuplet = TODO
 {-
     <xs:complexType name="tuplet">
-        <xs:annotation>
-            <xs:documentation>A tuplet element is present when a tuplet is to be displayed graphically, in addition to the sound data provided by the time-modification elements. The number attribute is used to distinguish nested tuplets. The bracket attribute is used to indicate the presence of a bracket. If unspecified, the results are implementation-dependent. The line-shape attribute is used to specify whether the bracket is straight or in the older curved or slurred style. It is straight by default.
-
-Whereas a time-modification element shows how the cumulative, sounding effect of tuplets compare to the written note type, the tuplet element describes how each tuplet is displayed.
-
-The show-number attribute is used to display either the number of actual notes, the number of both actual and normal notes, or neither. It is actual by default. The show-type attribute is used to display either the actual type, both the actual and normal types, or neither. It is none by default.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="tuplet-actual" type="tuplet-portion" minOccurs="0">
                 <xs:annotation>
@@ -3892,12 +3937,11 @@ The show-number attribute is used to display either the number of actual notes, 
 
 -}    
 
--- | 
+-- | The tuplet-dot type is used to specify dotted normal tuplet types.
 type TupletDot = TODO
 {-
     <xs:complexType name="tuplet-dot">
         <xs:annotation>
-            <xs:documentation>The tuplet-dot type is used to specify dotted normal tuplet types.</xs:documentation>
         </xs:annotation>
         <xs:attributeGroup ref="font"/>
         <xs:attributeGroup ref="color"/>
@@ -3917,12 +3961,14 @@ type TupletDot = TODO
 
 -}        
 
--- | 
+-- | The tuplet-portion type provides optional full control over tuplet specifications. It allows the
+-- number and note type (including dots) to be set for the actual and normal portions of a single
+-- tuplet. If any of these elements are absent, their values are based on the time-modification
+-- element.
 type TupletPortion = TODO
 {-
     <xs:complexType name="tuplet-portion">
         <xs:annotation>
-            <xs:documentation>The tuplet-portion type provides optional full control over tuplet specifications. It allows the number and note type (including dots) to be set for the actual and normal portions of a single tuplet. If any of these elements are absent, their values are based on the time-modification element.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="tuplet-number" type="tuplet-number" minOccurs="0"/>
@@ -3933,12 +3979,12 @@ type TupletPortion = TODO
 
 -}         
 
--- | 
+-- | The tuplet-type type indicates the graphical note type of the notes for this portion of the
+-- tuplet.
 type TupletType = TODO
 {-
     <xs:complexType name="tuplet-type">
         <xs:annotation>
-            <xs:documentation>The tuplet-type type indicates the graphical note type of the notes for this portion of the tuplet.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="note-type-value">
@@ -3952,16 +3998,26 @@ type TupletType = TODO
 
 -}         
 
--- | 
+-- | The credit type represents the appearance of the title, composer, arranger, lyricist, copyright,
+-- dedication, and other text and graphics that commonly appears on the first page of a score. The
+-- credit-words and credit-image elements are similar to the words and image elements for directions.
+-- However, since the credit is not part of a measure, the default-x and default-y attributes adjust
+-- the origin relative to the bottom left-hand corner of the first page. The enclosure for
+-- credit-words is none by default.
+-- 
+-- By default, a series of credit-words elements within a single credit element follow one another in
+-- sequence visually. Non-positional formatting attributes are carried over from the previous element
+-- by default.
+-- 
+-- The page attribute for the credit element, new in Version 2.0, specifies the page number where the
+-- credit should appear. This is an integer value that starts with 1 for the first page. Its value is
+-- 1 by default. Since credits occur before the music, these page numbers do not refer to the page
+-- numbering specified by the print element's page-number attribute.
+
 type Credit = TODO
 {-
     <xs:complexType name="credit">
         <xs:annotation>
-            <xs:documentation>The credit type represents the appearance of the title, composer, arranger, lyricist, copyright, dedication, and other text and graphics that commonly appears on the first page of a score. The credit-words and credit-image elements are similar to the words and image elements for directions. However, since the credit is not part of a measure, the default-x and default-y attributes adjust the origin relative to the bottom left-hand corner of the first page. The enclosure for credit-words is none by default.
-
-By default, a series of credit-words elements within a single credit element follow one another in sequence visually. Non-positional formatting attributes are carried over from the previous element by default.
-
-The page attribute for the credit element, new in Version 2.0, specifies the page number where the credit should appear. This is an integer value that starts with 1 for the first page. Its value is 1 by default. Since credits occur before the music, these page numbers do not refer to the page numbering specified by the print element's page-number attribute.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="link" type="link" minOccurs="0" maxOccurs="unbounded"/>
@@ -3983,12 +4039,11 @@ The page attribute for the credit element, new in Version 2.0, specifies the pag
 
 -}      
 
--- | 
+-- | The defaults type specifies score-wide defaults for scaling, layout, and appearance.
 type Defaults = TODO
 {-
     <xs:complexType name="defaults">
         <xs:annotation>
-            <xs:documentation>The defaults type specifies score-wide defaults for scaling, layout, and appearance.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="scaling" type="scaling" minOccurs="0"/>
@@ -4003,24 +4058,22 @@ type Defaults = TODO
 
 -}      
 
--- | 
+-- | The empty-font type represents an empty element with font attributes.
 type EmptyFont = TODO
 {-
     <xs:complexType name="empty-font">
         <xs:annotation>
-            <xs:documentation>The empty-font type represents an empty element with font attributes.</xs:documentation>
         </xs:annotation>
         <xs:attributeGroup ref="font"/>
     </xs:complexType>
 
 -}      
 
--- | 
+-- | The group-barline type indicates if the group should have common barlines.
 type GroupBarline = TODO
 {-
     <xs:complexType name="group-barline">
         <xs:annotation>
-            <xs:documentation>The group-barline type indicates if the group should have common barlines.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="group-barline-value">
@@ -4031,12 +4084,13 @@ type GroupBarline = TODO
 
 -}    
 
--- | 
+-- | The group-name type describes the name or abbreviation of a part-group element. Formatting
+-- attributes in the group-name type are deprecated in Version 2.0 in favor of the new
+-- group-name-display and group-abbreviation-display elements.
 type GroupName = TODO
 {-
     <xs:complexType name="group-name">
         <xs:annotation>
-            <xs:documentation>The group-name type describes the name or abbreviation of a part-group element. Formatting attributes in the group-name type are deprecated in Version 2.0 in favor of the new group-name-display and group-abbreviation-display elements.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
@@ -4047,12 +4101,11 @@ type GroupName = TODO
 
 -}      
 
--- | 
+-- | The group-symbol type indicates how the symbol for a group is indicated in the score.
 type GroupSymbol = TODO
 {-
     <xs:complexType name="group-symbol">
         <xs:annotation>
-            <xs:documentation>The group-symbol type indicates how the symbol for a group is indicated in the score.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="group-symbol-value">
@@ -4064,12 +4117,11 @@ type GroupSymbol = TODO
 
 -}     
 
--- | 
+-- | The lyric-font type specifies the default font for a particular name and number of lyric.
 type LyricFont = TODO
 {-
     <xs:complexType name="lyric-font">
         <xs:annotation>
-            <xs:documentation>The lyric-font type specifies the default font for a particular name and number of lyric.</xs:documentation>
         </xs:annotation>
         <xs:attribute name="number" type="xs:NMTOKEN"/>
         <xs:attribute name="name" type="xs:token"/>
@@ -4078,12 +4130,12 @@ type LyricFont = TODO
 
 -}       
 
--- | 
+-- | The lyric-language type specifies the default language for a particular name and number of
+-- lyric.
 type LyricLanguage = TODO
 {-
     <xs:complexType name="lyric-language">
         <xs:annotation>
-            <xs:documentation>The lyric-language type specifies the default language for a particular name and number of lyric.</xs:documentation>
         </xs:annotation>
         <xs:attribute name="number" type="xs:NMTOKEN"/>
         <xs:attribute name="name" type="xs:token"/>
@@ -4092,12 +4144,13 @@ type LyricLanguage = TODO
 
 -}     
 
--- | 
+-- | The midi-device type corresponds to the DeviceName meta event in Standard MIDI Files. The
+-- optional port attribute is a number from 1 to 16 that can be used with the unofficial MIDI port
+-- (or cable) meta event.
 type MidiDevice = TODO
 {-
     <xs:complexType name="midi-device">
         <xs:annotation>
-            <xs:documentation>The midi-device type corresponds to the DeviceName meta event in Standard MIDI Files. The optional port attribute is a number from 1 to 16 that can be used with the unofficial MIDI port (or cable) meta event.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
@@ -4108,12 +4161,12 @@ type MidiDevice = TODO
 
 -}  
 
--- | 
+-- | The opus type represents a link to a MusicXML opus document that composes multiple MusicXML
+-- scores into a collection.
 type Opus = TODO
 {-
     <xs:complexType name="opus">
         <xs:annotation>
-            <xs:documentation>The opus type represents a link to a MusicXML opus document that composes multiple MusicXML scores into a collection.</xs:documentation>
         </xs:annotation>
         <xs:attributeGroup ref="link-attributes"/>
     </xs:complexType>
@@ -4187,12 +4240,13 @@ data PartList = PartList
 
 -}   
 
--- | 
+-- | The part-name type describes the name or abbreviation of a score-part element. Formatting
+-- attributes for the part-name element are deprecated in Version 2.0 in favor of the new
+-- part-name-display and part-abbreviation-display elements.
 type PartName = TODO
 {-
     <xs:complexType name="part-name">
         <xs:annotation>
-            <xs:documentation>The part-name type describes the name or abbreviation of a score-part element. Formatting attributes for the part-name element are deprecated in Version 2.0 in favor of the new part-name-display and part-abbreviation-display elements.</xs:documentation>
         </xs:annotation>
         <xs:simpleContent>
             <xs:extension base="xs:string">
@@ -4203,14 +4257,19 @@ type PartName = TODO
 
 -}     
 
--- | 
+-- | The score-instrument type represents a single instrument within a score-part. As with the
+-- score-part type, each score-instrument has a required ID attribute, a name, and an optional
+-- abbreviation.
+-- 
+-- A score-instrument type is also required if the score specifies MIDI 1.0 channels, banks, or
+-- programs. An initial midi-instrument assignment can also be made here. MusicXML software should be
+-- able to automatically assign reasonable channels and instruments without these elements in simple
+-- cases, such as where part names match General MIDI instrument names.
+
 type ScoreInstrument = TODO
 {-
     <xs:complexType name="score-instrument">
         <xs:annotation>
-            <xs:documentation>The score-instrument type represents a single instrument within a score-part. As with the score-part type, each score-instrument has a required ID attribute, a name, and an optional abbreviation.
-
-A score-instrument type is also required if the score specifies MIDI 1.0 channels, banks, or programs. An initial midi-instrument assignment can also be made here. MusicXML software should be able to automatically assign reasonable channels and instruments without these elements in simple cases, such as where part names match General MIDI instrument names.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="instrument-name" type="xs:string">
@@ -4301,12 +4360,11 @@ data Work = Work
 -- Element groups
 -- *****************************************************************************
          
--- | 
+-- | The editorial group specifies editorial information for a musical element.
 type Editorial = TODO
 {-
     <xs:group name="editorial">
         <xs:annotation>
-            <xs:documentation>The editorial group specifies editorial information for a musical element.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:group ref="footnote" minOccurs="0"/>
@@ -4316,12 +4374,12 @@ type Editorial = TODO
 
 -}
 
--- | 
+-- | The editorial-voice group supports the common combination of editorial and voice information for
+-- a musical element.
 type EditorialVoice = TODO
 {-
     <xs:group name="editorial-voice">
         <xs:annotation>
-            <xs:documentation>The editorial-voice group supports the common combination of editorial and voice information for a musical element.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:group ref="footnote" minOccurs="0"/>
@@ -4332,12 +4390,15 @@ type EditorialVoice = TODO
 
 -}
 
--- | 
+-- | The editorial-voice-direction group supports the common combination of editorial and voice
+-- information for a direction element. It is separate from the editorial-voice element because
+-- extensions and restrictions might be different for directions than for the note and forward
+-- elements.
+
 type EditorialVoiceDirection = TODO
 {-
     <xs:group name="editorial-voice-direction">
         <xs:annotation>
-            <xs:documentation>The editorial-voice-direction group supports the common combination of editorial and voice information for a direction element. It is separate from the editorial-voice element because extensions and restrictions might be different for directions than for the note and forward elements.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:group ref="footnote" minOccurs="0"/>
@@ -4360,11 +4421,13 @@ type Footnote = TODO
     </xs:group>
 
 -}
+
+-- | The level element specifies editorial information for different MusicXML elements. It is defined
+-- within a group due to its multiple uses within the MusicXML schema.
 type LevelGroup = TODO
 {-
     <xs:group name="level">
         <xs:annotation>
-            <xs:documentation>The level element specifies editorial information for different MusicXML elements. It is defined within a group due to its multiple uses within the MusicXML schema.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="level" type="level"/>
@@ -4372,12 +4435,11 @@ type LevelGroup = TODO
     </xs:group>
 
 -}
--- | 
+-- | The staff element is defined within a group due to its use by both notes and direction elements.
 type Staff = TODO
 {-
     <xs:group name="staff">
         <xs:annotation>
-            <xs:documentation>The staff element is defined within a group due to its use by both notes and direction elements.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="staff" type="xs:positiveInteger">
@@ -4389,12 +4451,11 @@ type Staff = TODO
     </xs:group>
 
 -}
--- | 
+-- | The staff element is defined within a group due to its use by both notes and direction elements.
 type Tuning = TODO
 {-
     <xs:group name="tuning">
         <xs:annotation>
-            <xs:documentation>The tuning group contains the sequence of elements common to the staff-tuning and accord elements.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="tuning-step" type="step">
@@ -4416,12 +4477,13 @@ type Tuning = TODO
     </xs:group>
 
 -}
--- | 
+-- | The voice is used to distinguish between multiple voices (what MuseData calls tracks) in
+-- individual parts. It is defined within a group due to its multiple uses within the MusicXML
+-- schema.
 type Voice = TODO
 {-
     <xs:group name="voice">
         <xs:annotation>
-            <xs:documentation>The voice is used to distinguish between multiple voices (what MuseData calls tracks) in individual parts. It is defined within a group due to its multiple uses within the MusicXML schema.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="voice" type="xs:string"/>
@@ -4431,12 +4493,12 @@ type Voice = TODO
     <!-- Element groups derived from attributes.mod elements -->
 
 -}
--- | 
+-- | The non-traditional-key group represents a single alteration within a non-traditional key
+-- signature. A sequence of these groups makes up a non-traditional key signature
 type NonTraditionalKey = TODO
 {-
     <xs:group name="non-traditional-key">
         <xs:annotation>
-            <xs:documentation>The non-traditional-key group represents a single alteration within a non-traditional key signature. A sequence of these groups makes up a non-traditional key signature</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="key-step" type="step">
@@ -4453,12 +4515,14 @@ type NonTraditionalKey = TODO
     </xs:group>
 
 -}
--- | 
+-- | The slash group combines elements used for more complete specification of the slash and
+-- beat-repeat measure-style elements. They have the same values as the type and dot elements, and
+-- define what the beat is for the display of repetition marks. If not present, the beat is based on
+-- the current time signature.
 type SlashGroup = TODO
 {-
     <xs:group name="slash">
         <xs:annotation>
-            <xs:documentation>The slash group combines elements used for more complete specification of the slash and beat-repeat measure-style elements. They have the same values as the type and dot elements, and define what the beat is for the display of repetition marks. If not present, the beat is based on the current time signature.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="slash-type" type="note-type-value">
@@ -4475,12 +4539,11 @@ type SlashGroup = TODO
     </xs:group>
 
 -}
--- | 
+-- | The traditional-key group represents a traditional key signature using the cycle of fifths.
 type TraditionalKey = TODO
 {-
     <xs:group name="traditional-key">
         <xs:annotation>
-            <xs:documentation>The traditional-key group represents a traditional key signature using the cycle of fifths.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="cancel" type="cancel" minOccurs="0"/>
@@ -4492,12 +4555,12 @@ type TraditionalKey = TODO
     <!-- Element groups derived from direction.mod entities and elements -->
 
 -}
--- | 
+-- | The beat-unit group combines elements used repeatedly in the metronome element to specify a note
+-- within a metronome mark.
 type BeatUnit = TODO
 {-
     <xs:group name="beat-unit">
         <xs:annotation>
-            <xs:documentation>The beat-unit group combines elements used repeatedly in the metronome element to specify a note within a metronome mark.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="beat-unit" type="note-type-value">
@@ -4514,14 +4577,16 @@ type BeatUnit = TODO
     </xs:group>
 
 -}
--- | 
+-- | A harmony element can contain many stacked chords (e.g. V of II). A sequence of harmony-chord
+-- groups is used for this type of secondary function, where V of II would be represented by a
+-- harmony-chord with a V function followed by a harmony-chord with a II function.
+-- 
+-- A root is a pitch name like C, D, E, where a function is an indication like I, II, III. It is an
+-- either/or choice to avoid data inconsistency.
 type HarmonyChord = TODO
 {-
     <xs:group name="harmony-chord">
         <xs:annotation>
-            <xs:documentation>A harmony element can contain many stacked chords (e.g. V of II). A sequence of harmony-chord groups is used for this type of secondary function, where V of II would be represented by a harmony-chord with a V function followed by a harmony-chord with a II function.
-
-A root is a pitch name like C, D, E, where a function is an indication like I, II, III. It is an either/or choice to avoid data inconsistency.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:choice>
@@ -4542,12 +4607,11 @@ A root is a pitch name like C, D, E, where a function is an indication like I, I
     <!-- Element groups derived from layout.mod entities and elements -->
 
 -}
--- | 
+-- | The all-margins group specifies both horizontal and vertical margins in tenths.
 type AllMargins = TODO
 {-
     <xs:group name="all-margins">
         <xs:annotation>
-            <xs:documentation>The all-margins group specifies both horizontal and vertical margins in tenths.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:group ref="left-right-margins"/>
@@ -4557,12 +4621,12 @@ type AllMargins = TODO
     </xs:group>
 
 -}
--- | 
+-- | The layout group specifies the sequence of page, system, and staff layout elements that is
+-- common to both the defaults and print elements.
 type Layout = TODO
 {-
     <xs:group name="layout">
         <xs:annotation>
-            <xs:documentation>The layout group specifies the sequence of page, system, and staff layout elements that is common to both the defaults and print elements.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="page-layout" type="page-layout" minOccurs="0"/>
@@ -4572,12 +4636,11 @@ type Layout = TODO
     </xs:group>
 
 -}
--- | 
+-- | The left-right-margins group specifies horizontal margins in tenths.
 type LeftRightMargins = TODO
 {-
     <xs:group name="left-right-margins">
         <xs:annotation>
-            <xs:documentation>The left-right-margins group specifies horizontal margins in tenths.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:element name="left-margin" type="tenths"/>
@@ -4588,13 +4651,11 @@ type LeftRightMargins = TODO
     <!-- Element groups derived from note.mod entities and elements -->
 
 -}
--- | 
+-- | The duration element is defined within a group due to its uses within the note, figure-bass,
+-- backup, and forward elements.
 type Duration = TODO
 {-
     <xs:group name="duration">
-        <xs:annotation>
-            <xs:documentation>The duration element is defined within a group due to its uses within the note, figure-bass, backup, and forward elements.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="duration" type="positive-divisions">
                 <xs:annotation>
@@ -4641,22 +4702,6 @@ data MusicData =
     | Link Link
     | Bookmark Bookmark
 
-
--- | 
-type PartGroupGroup = TODO
-{-
-    <xs:group name="part-group">
-        <xs:annotation>
-            <xs:documentation>The part-group element is defined within a group due to its multiple uses within the part-list element.</xs:documentation>
-        </xs:annotation>
-        <xs:sequence>
-            <xs:element name="part-group" type="part-group">
-            </xs:element>
-        </xs:sequence>
-    </xs:group>
-
--}
-
 -- | The ScoreHeader group contains basic score metadata about the work and movement,
 --   score-wide defaults for layout and fonts, credits that appear on the first or
 --   following pages, and the part list.
@@ -4682,23 +4727,6 @@ data ScoreHeader = ScoreHeader
             <xs:element name="part-list" type="part-list"/>
         </xs:sequence>
     </xs:group>
-
-    <xs:group name="score-part">
-        <xs:annotation>
-            <xs:documentation>The score-part element is defined within a group due to its multiple uses within the part-list element.</xs:documentation>
-        </xs:annotation>
-        <xs:sequence>
-            <xs:element name="score-part" type="score-part">
-                <xs:annotation>
-                    <xs:documentation>Each MusicXML part corresponds to a track in a Standard MIDI Format 1 file. The score-instrument elements are used when there are multiple instruments per track. The midi-device element is used to make a MIDI device or port assignment for the given track. Initial midi-instrument assignments may be made here as well.</xs:documentation>
-                </xs:annotation>
-            </xs:element>
-        </xs:sequence>
-    </xs:group>
-
-    <xs:annotation>
-        <xs:documentation>The score is the root element for the schema. It includes the score-header group, followed either by a series of parts with measures inside (score-partwise) or a series of measures with parts inside (score-timewise). Having distinct top-level elements for partwise and timewise scores makes it easy to ensure that an XSLT stylesheet does not try to transform a document already in the desired format.</xs:documentation>
-    </xs:annotation>
 -}
 
 
@@ -4708,11 +4736,13 @@ data ScoreHeader = ScoreHeader
           
 type Part    = [(MeasureAttributes, [MusicData])]
 type Measure = (MeasureAttributes, [[MusicData]])
-
--- | The Score type is the root element for a MusicXML score.
---   It includes a score-header group followed by either a series of parts with measures 
---   inside, or a series of measures with parts inside. 
---   The document-attributes attribute group includes the version attribute.
+                                                            
+-- | The score is the root element for the schema. It includes the score-header
+-- group, followed either by a series of parts with measures inside (PartwiseScore) or a series of
+-- measures with parts inside (TimewiseScore). Having distinct top-level elements for partwise and
+-- timewise scores makes it easy to ensure that an XSLT stylesheet does not try to transform a
+-- document already in the desired format.
+-- The document-attributes attribute group includes the version attribute.
 data Score = 
   PartwiseScore 
     { attributes :: Maybe DocumentAttributes
