@@ -1,4 +1,3 @@
+    
+module Music () where
 
-module Music.Main (main) where
-
-main = putStrLn "Hello!"
