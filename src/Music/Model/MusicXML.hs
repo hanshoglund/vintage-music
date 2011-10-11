@@ -16,38 +16,88 @@ module Music.Model.MusicXML
 (  
 TODO
 
+-- ------------------------------------------------------------------------- --
 -- * Simple types
+-- ------------------------------------------------------------------------- --
+
 -- ** Numeric
-, Divisions, Tenths, StringNumber, NumberLevel, BeamLevel
-, Percent, RotationDegrees, StaffLine, StaffNumber
-, Midi16, Midi128, Midi16384
+, Divisions
+, Tenths
+, StringNumber
+, NumberLevel
+, BeamLevel
+, Percent
+, RotationDegrees
+, StaffLine
+, StaffNumber
+, Midi16
+, Midi128
+, Midi16384
 , NumberOrNormal(..)
 
--- ** Symbolic
-, AboveBelow, OverUnder, TopBottom, UpDown, BackwardForward
+-- ** Placement and directions
+, AboveBelow
+, OverUnder
+, TopBottom
+, UpDown
+, BackwardForward
 , above, below, over, under, top, bottom, up, down, forward, backward
-, LeftRightMiddle(..)
-, Fifths, Mode(..)
-, StartNote, StartStop, StartStopContinue, StartStopSingle, StartStopDiscontinoue, SSCDS(..)
-, TrillBeats, TrillStep(..), TwoNoteTurn(..)
-, ClefSign, StaffType, TimeSymbol
-, BarStyle
-, LineShape(..), LineType(..), LineEnd(..)
+, RightLeftMiddle(..) 
+
+-- ** Continuity
+
+, StartNote
+, StartStop
+, StartStopContinue
+, StartStopSingle
+, StartStopDiscontinoue
+, SSCDS(..)
+
+
+-- ** Staves
+, StaffType(..)
+, LineEnd(..)
 , MeasureNumberingValue(..)
-, WedgeType(..), SymbolSize(..), NoteSizeType(..), AccidentalValue(..), BeamValue(..)
-, Fan(..)
+, GroupBarlineValue(..)
+, GroupSymbolValue(..)
+
+-- ** Measures
+, BarStyle(..)
+
+-- ** Global declarations
+, Fifths, Mode(..)
+, ClefSign(..)
+, TimeSymbol(..)
+
+-- ** Notes
 , NoteTypeValue
 , eighth, quarter, half, whole, breve, long
+, Octave
+, Semitones
+, AccidentalValue(..)
 , NoteHeadValue(..)
-, Octave, Semitones
-, ShowTuplet(..)
+, SymbolSize(..)
+, NoteSizeType(..)
+, BeamValue(..)
+, Fan(..)   
 , StemValue(..)
 , Step(..)
 , TremoloMarks
-, GroupBarlineValue(..), GroupSymbolValue(..)
+, ShowTuplet(..)
+
+-- ** Lines
+, LineShape(..)
+, LineType(..)
+, WedgeType(..)
+, TrillBeats
+, TrillStep(..)
+, TwoNoteTurn(..)
 
 
+-- ------------------------------------------------------------------------- --
 -- * Attribute groups
+-- ------------------------------------------------------------------------- --
+
 -- , BendSound(..)  
 , Bezier(..), Position(..)
 , Orientation, Placement
@@ -59,7 +109,9 @@ TODO
 , PartNameText
 
 
+-- ------------------------------------------------------------------------- --
 -- * Complex types
+-- ------------------------------------------------------------------------- --
 
 , AccidentalText
 , Dynamics
@@ -212,7 +264,9 @@ TODO
 , ScorePart
 , Work
 
+-- ------------------------------------------------------------------------- --
 -- * Element groups
+-- ------------------------------------------------------------------------- --
 
 , Editorial
 , EditorialVoice
@@ -235,11 +289,12 @@ TODO
 , MusicData(..)
 , PartGroupGroup
 , ScoreHeader(..)
-, ScorePart
 
 
-
+-- ------------------------------------------------------------------------- --
 -- * Root elements
+-- ------------------------------------------------------------------------- --
+
 , ScorePartwise
 , ScoreTimewise
 
@@ -329,7 +384,7 @@ forward = BackwardForward True ; backward = BackwardForward False
 
 
 -- | The right-left-middle type is used to specify barline location.
-data LeftRightMiddle = LeftPos | RightPos | MiddlePos
+data RightLeftMiddle = Left | Right | Middle
     deriving (Show, Eq, Enum)
 
 
@@ -759,6 +814,8 @@ data MeasureAttributes = MeasureAttributes
 
 type PartAttributes = TODO
 type PartNameText = TODO
+
+
 
 
 
