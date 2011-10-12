@@ -135,11 +135,6 @@ data PrintOut = PrintOut
     , printLyric   :: Bool }
     deriving (Show, Eq)     
     
--- | The group-name-text attribute group is used by the group-name and group-abbreviation elements.
--- The print-style and justify attribute groups are deprecated in MusicXML 2.0 in favor of the new
--- group-name-display and group-abbreviation-display elements.</xs:documentation>
-type GroupNameText = TODO
-
 data VerticalAlign = Top | Middle | Bottom | Baseline
     deriving (Show, Eq, Enum)
 
@@ -190,17 +185,132 @@ type NameDisplay = TODO
 -- Complex types
 -- *****************************************************************************
 
+-- | The empty-placement type represents an empty element with print-style and placement attributes.
+type EmptyPlacement = TODO
+{-
+    <xs:complexType name="empty-placement">
+        <xs:attributeGroup ref="print-style"/>
+        <xs:attributeGroup ref="placement"/>
+    </xs:complexType>
+
+-}
+
 -- | The empty-print-style type represents an empty element with print-style attributes.
 type EmptyPrintStyle = TODO
 {-    
     <xs:complexType name="empty-print-style">
         <xs:attributeGroup ref="print-style"/>
     </xs:complexType>
+-}       
+
+-- | The other-appearance type is used to define any graphical settings not yet in the current
+-- version of the MusicXML format. This allows extended representation, though without application
+-- interoperability.
+type OtherAppearance = TODO
+{-
+    <xs:complexType name="other-appearance">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="type" type="xs:token" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
 -}
+-- | Page layout can be defined both in score-wide defaults and in the print element. Page margins
+-- are specified either for both even and odd pages, or via separate odd and even page number values.
+-- The type is not needed when used as part of a print element. If omitted when used in the defaults
+-- element, "both" is the default.
+type PageLayout = TODO
+{-
+    <xs:complexType name="page-layout">
+        <xs:sequence>
+            <xs:sequence minOccurs="0">
+                <xs:element name="page-height" type="tenths"/>
+                <xs:element name="page-width" type="tenths"/>
+            </xs:sequence>
+            <xs:element name="page-margins" type="page-margins" minOccurs="0" maxOccurs="2"/>
+        </xs:sequence>
+    </xs:complexType>
+
+-}
+-- | Page margins are specified either for both even and odd pages, or via separate odd and even page
+-- number values. The type attribute is not needed when used as part of a print element. If omitted
+-- when the page-margins type is used in the defaults element, "both" is the default value.
+type PageMarigins = TODO
+{-
+    <xs:complexType name="page-margins">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:group ref="all-margins"/>
+        <xs:attribute name="type" type="margin-type"/>
+    </xs:complexType>
+
+-}
+-- | Margins, page sizes, and distances are all measured in tenths to keep MusicXML data in a
+-- consistent coordinate system as much as possible. The translation to absolute units is done with
+-- the scaling type, which specifies how many millimeters are equal to how many tenths. For a staff
+-- height of 7 mm, millimeters would be set to 7 while tenths is set to 40. The ability to set a
+-- formula rather than a single scaling factor helps avoid roundoff errors.
+type Scaling = TODO
+{-
+    <xs:complexType name="scaling">
+        <xs:sequence>
+            <xs:element name="millimeters" type="millimeters"/>
+            <xs:element name="tenths" type="tenths"/>
+        </xs:sequence>
+    </xs:complexType>
+
+-}
+
 
 -- *****************************************************************************
 -- Element groups
 -- *****************************************************************************
+
+-- | The all-margins group specifies both horizontal and vertical margins in tenths.
+type AllMargins = TODO
+{-
+    <xs:group name="all-margins">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:group ref="left-right-margins"/>
+            <xs:element name="top-margin" type="tenths"/>
+            <xs:element name="bottom-margin" type="tenths"/>
+        </xs:sequence>
+    </xs:group>
+
+-}
+-- | The layout group specifies the sequence of page, system, and staff layout elements that is
+-- common to both the defaults and print elements.
+type Layout = TODO
+{-
+    <xs:group name="layout">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="page-layout" type="page-layout" minOccurs="0"/>
+            <xs:element name="system-layout" type="system-layout" minOccurs="0"/>
+            <xs:element name="staff-layout" type="staff-layout" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:group>
+
+-}
+-- | The left-right-margins group specifies horizontal margins in tenths.
+type LeftRightMargins = TODO
+{-
+    <xs:group name="left-right-margins">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="left-margin" type="tenths"/>
+            <xs:element name="right-margin" type="tenths"/>
+        </xs:sequence>
+    </xs:group>
+
+    <!-- Element groups derived from note.mod entities and elements -->
+-}
 
 -- *****************************************************************************
 -- Root elements

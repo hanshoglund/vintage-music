@@ -10,6 +10,7 @@ module Music.Model.MusicXML.Text
 , TextDirection
 , TextFormatting
 , TextRotation
+, GroupNameText
 
 , AccidentalText
 , FormattedText
@@ -44,6 +45,11 @@ type TextDecoration = TODO
 type TextDirection = TODO
 type TextFormatting = TODO
 type TextRotation = TODO
+
+-- | The group-name-text attribute group is used by the group-name and group-abbreviation elements.
+-- The print-style and justify attribute groups are deprecated in MusicXML 2.0 in favor of the new
+-- group-name-display and group-abbreviation-display elements.
+type GroupNameText = TODO
 
                   
 

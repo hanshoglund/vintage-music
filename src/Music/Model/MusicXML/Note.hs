@@ -4,6 +4,8 @@ module Music.Model.MusicXML.Note
 where
 
 import Music.Model.MusicXML.Base
+import Music.Model.MusicXML.Layout
+import Music.Model.MusicXML.Articulations
 
 
 -- *****************************************************************************
@@ -14,36 +16,47 @@ import Music.Model.MusicXML.Base
 -- Attribute groups
 -- *****************************************************************************
 
--- | The measure-attributes group is used by the measure element.
---   Measures have a required number attribute (going from partwise to timewise, measures are
---   grouped via the number).
---
---   The implicit attribute is set to True for measures where the measure number should never appear,
---   such as pickup measures and the last half of mid-measure repeats. The value is False if not
---   specified.
---
---   The non-controlling attribute is intended for use in multimetric music. 
---   If set to True, the left barline in this measure does not coincide with
---   the left barline of measures in other parts. The value is False if not specified. In partwise
---   files, the number attribute should be the same for measures in different parts that share the
---   same left barline.
---
---   While the number attribute is often numeric, it does not have to be. Non-numeric values are
---   typically used together with the implicit or non-controlling attributes being set to True.
---   For a pickup measure, the number attribute is typically set to 0 and the implicit attribute
---   is typically set to True. Further details about measure numbering can be defined using the
---   measure-numbering element. Measure width is specified in tenths. These are the global tenths
---   specified in the scaling element, not local tenths as modified by the staff-size element.
-data MeasureAttributes = MeasureAttributes
-    { number         :: String
-    , implicit       :: Maybe Bool
-    , nonControlling :: Maybe Bool
-    , width          :: Maybe Tenths }
-    deriving (Show, Eq)
+
 
 -- *****************************************************************************
 -- Complex types
 -- *****************************************************************************
+
+
+-- | Notations refer to musical notations, not XML notations. Multiple notations are allowed in order
+-- to represent multiple editorial levels. The set of notations may be refined and expanded over
+-- time, especially to handle more instrument-specific technical notations.
+type Notations = [Notation]
+data Notation =
+    TiedNotation            Tied
+  | SlurNotation            Slur
+  | TupletNotation          Tuplet
+  | GlissandoNotation       Glissando
+  | SlideNotation           Slide
+  | OrnamentsNotation       Ornaments
+  | TechnicalNotation       Technical
+  | ArticulationsNotation   Articulations
+  | DynamicsNotation        Dynamics
+  | FermataNotation         Fermata
+  | ArpeggiateNotation      Arpeggiate
+  | NonArpeggiateNotation   NonArpeggiate
+  | AccidentalMarkNotation  AccidentalMark
+  | OtherNotationNotation   OtherNotation
+
+-- | The tie element indicates that a tie begins or ends with this note. The tie element indicates
+-- sound; the tied element indicates notation.
+data Tie = Tie StartStop
+
+-- | The tied type represents the notated tie. The tie element represents the tie sound.
+data Tied = Tied
+    { startStop :: StartStop
+    , numberLevel :: NumberLevel
+    , lineType :: LineType
+    , position :: Position
+    , placement :: Placement
+    , orientation :: Orientation
+    , bezier :: Bezier
+    , color :: Color }
 
 -- | The display-step-octave type contains the sequence of elements used by both the rest and
 -- unpitched elements. This group is used to place rests and unpitched elements on the staff without
@@ -51,18 +64,7 @@ data MeasureAttributes = MeasureAttributes
 -- is used, the display-step and display-octave elements are interpreted as if in treble clef, with a
 -- G in octave 4 on line 2. If not present, the note is placed on the middle line of the staff,
 -- generally used for one-line staffs.
-type DisplayStepOctave = TODO
-{-
-    <xs:complexType name="display-step-octave">
-        <xs:annotation>
-        </xs:annotation>
-        <xs:sequence minOccurs="0">
-            <xs:element name="display-step" type="step"/>
-            <xs:element name="display-octave" type="octave"/>
-        </xs:sequence>
-    </xs:complexType>
-
--}
+type DisplayStepOctave = [(Either Step Octave)]
 
 
 -- | The full-note group is a sequence of the common note elements between cue/grace notes and
@@ -107,55 +109,55 @@ data FullNote =
 --   notes that appear on a staff space.
 data  Note = 
     GraceNote 
-  --   {
-  --     fullNote          :: FullNote
-  --   , ties              :: [Tie]          
-  --   , instrument        :: Maybe Instrument 
-  --   , noteType          :: Maybe NoteType 
-  --   , dots              :: [EmptyPlacement] 
-  --   , accidental        :: Maybe Accidental
-  --   , timeModification  :: Maybe TimeModification
-  --   , stem              :: Maybe Stem
-  --   , noteHead          :: Maybe NoteHead
-  --   , staff             :: Maybe Staff
-  --   , beam              :: Maybe Beam
-  --   , notations         :: [Notations]
-  --   , lyric             :: [Lyric]    
-  --   }
-  --   
-  -- | CueNote 
-  --   {
-  --     fullNote          :: FullNote
-  --   , duration          :: Duration 
-  --   , instrument        :: Maybe Instrument 
-  --   , noteType          :: Maybe NoteType 
-  --   , dots              :: [EmptyPlacement] 
-  --   , accidental        :: Maybe Accidental
-  --   , timeModification  :: Maybe TimeModification
-  --   , stem              :: Maybe Stem
-  --   , noteHead          :: Maybe NoteHead
-  --   , staff             :: Maybe Staff
-  --   , beam              :: Maybe Beam
-  --   , notations         :: [Notations]
-  --   , lyric             :: [Lyric]    
-  --   }
-  -- | NormalNote
-  --   {
-  --     fullNote          :: FullNote
-  --   , duration          :: Duration 
-  --   , ties              :: [Tie]         
-  --   , instrument        :: Maybe Instrument 
-  --   , noteType          :: Maybe NoteType 
-  --   , dots              :: [EmptyPlacement] 
-  --   , accidental        :: Maybe Accidental
-  --   , timeModification  :: Maybe TimeModification
-  --   , stem              :: Maybe Stem
-  --   , noteHead          :: Maybe NoteHead
-  --   , staff             :: Maybe Staff
-  --   , beam              :: Maybe Beam
-  --   , notations         :: [Notations]
-  --   , lyric             :: [Lyric]    
-  --   }                                
+    {
+      fullNote          :: FullNote
+    , ties              :: [Tie]          
+    , instrument        :: Maybe Instrument 
+    , noteType          :: Maybe NoteType 
+    , dots              :: [EmptyPlacement] 
+    , accidental        :: Maybe Accidental
+    , timeModification  :: Maybe TimeModification
+    , stem              :: Maybe Stem
+    , noteHead          :: Maybe NoteHead
+    , staff             :: Maybe Staff
+    , beam              :: Maybe Beam
+    , notations         :: [Notations]
+    , lyric             :: [Lyric]    
+    }
+  | CueNote 
+    {
+      fullNote          :: FullNote
+    , duration          :: Duration 
+    , instrument        :: Maybe Instrument 
+    , noteType          :: Maybe NoteType 
+    , dots              :: [EmptyPlacement] 
+    , accidental        :: Maybe Accidental
+    , timeModification  :: Maybe TimeModification
+    , stem              :: Maybe Stem
+    , noteHead          :: Maybe NoteHead
+    , staff             :: Maybe Staff
+    , beam              :: Maybe Beam
+    , notations         :: [Notations]
+    , lyric             :: [Lyric]    
+    }
+  | NormalNote
+    {
+      fullNote          :: FullNote
+    , duration          :: Duration 
+    , ties              :: [Tie]         
+    , instrument        :: Maybe Instrument 
+    , noteType          :: Maybe NoteType 
+    , dots              :: [EmptyPlacement] 
+    , accidental        :: Maybe Accidental
+    , timeModification  :: Maybe TimeModification
+    , stem              :: Maybe Stem
+    , noteHead          :: Maybe NoteHead
+    , staff             :: Maybe Staff
+    , beam              :: Maybe Beam
+    , notations         :: [Notations]
+    , lyric             :: [Lyric]    
+    }        
+                        
 
 -- | The note-type type indicates the graphic note type. Values range from 256th to long. The
 -- size attribute indicates full, cue, or large size, with full the default for regular notes and

@@ -3,27 +3,29 @@
 module Music.Model.MusicXML.Score 
 where
 
-import Music.Model.MusicXML.Articulations
-import Music.Model.MusicXML.Layout
 import Music.Model.MusicXML.Base
+import Music.Model.MusicXML.Layout
+import Music.Model.MusicXML.Articulations
+import Music.Model.MusicXML.Harmony
+import Music.Model.MusicXML.Sound
 import Music.Model.MusicXML.Note
 import Music.Model.MusicXML.Opus
 
 
 data MusicData =
       Note Note
-    -- | Backup Backup
-    -- | Forward Forward
-    -- | Direction Direction
-    -- | Attributes Attributes
-    -- | Harmony Harmony
-    -- | FiguredBass FiguredBass
-    -- | Print Print
-    -- | Sound Sound
-    -- | Barline Barline
-    -- | Grouping Grouping
-    -- | Link Link
-    -- | Bookmark Bookmark 
+    | Backup Backup
+    | Forward Forward
+    | Direction Direction
+    | Attributes Attributes
+    | Harmony Harmony
+    | FiguredBass FiguredBass
+    | Print Print
+    | Sound Sound
+    | Barline Barline
+    | Grouping Grouping
+    | Link Link
+    | Bookmark Bookmark 
 
 
 -- *****************************************************************************
@@ -33,6 +35,33 @@ data MusicData =
 -- *****************************************************************************
 -- Attribute groups
 -- *****************************************************************************
+
+-- | The measure-attributes group is used by the measure element.
+--   Measures have a required number attribute (going from partwise to timewise, measures are
+--   grouped via the number).
+--
+--   The implicit attribute is set to True for measures where the measure number should never appear,
+--   such as pickup measures and the last half of mid-measure repeats. The value is False if not
+--   specified.
+--
+--   The non-controlling attribute is intended for use in multimetric music. 
+--   If set to True, the left barline in this measure does not coincide with
+--   the left barline of measures in other parts. The value is False if not specified. In partwise
+--   files, the number attribute should be the same for measures in different parts that share the
+--   same left barline.
+--
+--   While the number attribute is often numeric, it does not have to be. Non-numeric values are
+--   typically used together with the implicit or non-controlling attributes being set to True.
+--   For a pickup measure, the number attribute is typically set to 0 and the implicit attribute
+--   is typically set to True. Further details about measure numbering can be defined using the
+--   measure-numbering element. Measure width is specified in tenths. These are the global tenths
+--   specified in the scaling element, not local tenths as modified by the staff-size element.
+data MeasureAttributes = MeasureAttributes
+    { number         :: String
+    , implicit       :: Maybe Bool
+    , nonControlling :: Maybe Bool
+    , width          :: Maybe Tenths }
+    deriving (Show, Eq)
 
 -- | In either partwise or timewise format, the part element has an id attribute that is a reference 
 -- back to a score-part in the part-list.
