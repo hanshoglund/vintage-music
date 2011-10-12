@@ -329,4 +329,4 @@ import Music.Model.MusicXML.Score
 import Music.Model.MusicXML.Sound
 import Music.Model.MusicXML.Text
 import Music.Model.MusicXML.Tuplet
-
+import Music.Model.MusicXML.Write

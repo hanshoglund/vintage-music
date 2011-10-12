@@ -1,4 +1,4 @@
-
+{-# LANGUAGE RankNTypes #-}
 
 module Music.Model.MusicXML.Base
 where
@@ -117,6 +117,8 @@ data Mode   = Major | Minor | Dorian | Phrygian | Lydian | Mixolydian | Aeolian 
 -- relative to the current note.
 data StartNote              = StartNoteUpper | StartNoteMain | StartNoteBelow
     deriving (Show, Eq, Enum)
+
+
 -- | The start-stop type is used for an attribute of musical elements that can either start or
 -- stop, such as tuplets, wedges, and lines.
 type StartStop              = SSCDS
@@ -124,9 +126,6 @@ type StartStop              = SSCDS
 -- start or stop, but also need to refer to an intermediate point in the symbol, as for complex
 -- slurs.
 type StartStopContinue      = SSCDS
--- | The start-stop-single type is used for an attribute of musical elements that can be used for
--- either multi-note or single-note musical elements, as for tremolos.
-type StartStopSingle        = SSCDS
 -- | The start-stop-discontinue type is used to specify ending types. Typically, the start type
 -- is associated with the left barline of the first measure in an ending. The stop and
 -- discontinue types are associated with the right barline of the last measure in an ending. Stop
@@ -134,8 +133,43 @@ type StartStopSingle        = SSCDS
 -- Discontinue is used when there is no downward jog, as is typical for second endings that do
 -- not conclude a piece.
 type StartStopDiscontinoue  = SSCDS
+-- | The start-stop-single type is used for an attribute of musical elements that can be used for
+-- either multi-note or single-note musical elements, as for tremolos.
+type StartStopSingle        = SSCDS   
+
+
 data SSCDS = Start | Stop | Continue | Discontinue | Single
-    deriving (Show, Eq, Enum)
+    deriving (Show, Eq, Enum) 
+
+-- class (Show a, Eq a, Enum a) => StartStop' a where
+--     start       :: a
+--     stop        :: a
+-- class StartStop' a => StartStopContinue' a where
+--     continue    :: a
+-- class StartStop' a => StartStopDiscontinue' a where
+--     discontinue :: a
+-- class StartStop' a => StartStopSingle' a where
+--     single      :: a
+-- 
+-- instance StartStop' SSCDS where
+--     start = Start
+--     stop  = Stop
+-- instance StartStopContinue' SSCDS where
+--     continue = Continue
+-- instance StartStopDiscontinue' SSCDS where
+--     discontinue = Discontinue
+-- instance StartStopSingle' SSCDS where
+--     single = Single
+-- 
+-- type SS  = forall a. StartStop' a => a
+-- type SSC = forall a. StartStopContinue' a => a
+-- type SSD = forall a. StartStopDiscontinue' a => a
+-- type SSS = forall a. StartStopSingle' a => a
+--     
+-- _ss  :: SS  -> SS
+-- _ssc :: SSC -> SSC
+-- _ssd :: SSD -> SSD
+-- _sss :: SSS -> SSS
 
 
 -- | The trill-beats type specifies the beats used in a trill-sound or bend-sound attribute

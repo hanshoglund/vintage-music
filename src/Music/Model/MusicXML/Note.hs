@@ -30,28 +30,29 @@ import Music.Model.MusicXML.Tuplet
 -- time, especially to handle more instrument-specific technical notations.
 type Notations = [Notation]
 
-data Notation =
-    TiedNotation            Tied
-  | SlurNotation            Slur
-  | TupletNotation          Tuplet
-  | GlissandoNotation       Glissando
-  | SlideNotation           Slide
-  | OrnamentsNotation       Ornaments
-  | TechnicalNotation       Technical
-  | ArticulationsNotation   Articulations
-  | DynamicsNotation        Dynamics
-  | FermataNotation         Fermata
-  | ArpeggiateNotation      Arpeggiate
-  | NonArpeggiateNotation   NonArpeggiate
-  | AccidentalMarkNotation  AccidentalMark
-  | OtherNotationNotation   OtherNotation
+data Notation 
+    = TiedNotation            Tied
+    | SlurNotation            Slur
+    | TupletNotation          Tuplet
+    | GlissandoNotation       Glissando
+    | SlideNotation           Slide
+    | OrnamentsNotation       Ornaments
+    | TechnicalNotation       Technical
+    | ArticulationsNotation   Articulations
+    | DynamicsNotation        Dynamics
+    | FermataNotation         Fermata
+    | ArpeggiateNotation      Arpeggiate
+    | NonArpeggiateNotation   NonArpeggiate
+    | AccidentalMarkNotation  AccidentalMark
+    | OtherNotationNotation   OtherNotation
 
 -- | The tie element indicates that a tie begins or ends with this note. The tie element
 -- indicates sound; the tied element indicates notation.
-data Tie = Tie StartStop
+data Tie = TODO
 
 -- | The tied type represents the notated tie. The tie element represents the tie sound.
-data Tied = Tied
+data Tied 
+    = Tied
     { startStop :: StartStop
     , numberLevel :: NumberLevel
     , lineType :: LineType

@@ -23,23 +23,23 @@ import Music.Model.MusicXML.Sound
   
 
 -- | Articulations and accents are grouped together here.
-data Articulations =
-    Accent              EmptyPlacement
-  | StrongAccent        EmptyPlacement
-  | Staccato            EmptyPlacement
-  | Tenumto             EmptyPlacement
-  | DetachedLegato      EmptyPlacement
-  | Staccatisimo        EmptyPlacement
-  | Spiccato            EmptyPlacement
-  | Scoop               EmptyLine
-  | Plop                EmptyLine
-  | Doit                EmptyLine
-  | Falloff             EmptyLine
-  | BreathMark          EmptyPlacement
-  | Caesura             EmptyPlacement
-  | Stress              EmptyPlacement
-  | Unstress            EmptyPlacement
-  | OtherArticulation   PlacementText
+data Articulations 
+    = Accent              EmptyPlacement
+    | StrongAccent        EmptyPlacement
+    | Staccato            EmptyPlacement
+    | Tenumto             EmptyPlacement
+    | DetachedLegato      EmptyPlacement
+    | Staccatisimo        EmptyPlacement
+    | Spiccato            EmptyPlacement
+    | Scoop               EmptyLine
+    | Plop                EmptyLine
+    | Doit                EmptyLine
+    | Falloff             EmptyLine
+    | BreathMark          EmptyPlacement
+    | Caesura             EmptyPlacement
+    | Stress              EmptyPlacement
+    | Unstress            EmptyPlacement
+    | OtherArticulation   PlacementText
 
 
 -- | Dynamics can be associated either with a note or a general musical direction. To avoid
@@ -56,51 +56,58 @@ data Articulations =
 -- example, Humdrum has at least 3 representation formats related to dynamics. The MusicXML format
 -- captures what is in the score, but does not try to be optimal for analysis or synthesis of
 -- dynamics.
-data Dynamics = Dynamics
+data Dynamics 
+    = Dynamics
     { dynamicsType       :: DynamicsType
     , dynamicsPrintStyle :: Maybe PrintStyle
     , dynamicsPlacement  :: Maybe Placement }
 
-data DynamicsType =
-    P
-  | PP
-  | PPP
-  | PPPP
-  | PPPPP
-  | PPPPPP
-  | F
-  | FF
-  | FFF
-  | FFFF
-  | FFFFF
-  | FFFFFF
-  | MP
-  | MF
-  | SF
-  | SFP
-  | SFPP
-  | FP
-  | RF
-  | RFZ
-  | SFZ
-  | SFFZ
-  | FZ
-  | OtherDynamics String
+data DynamicsType 
+    = P
+    | PP
+    | PPP
+    | PPPP
+    | PPPPP
+    | PPPPPP
+    | F
+    | FF
+    | FFF
+    | FFFF
+    | FFFFF
+    | FFFFFF
+    | MP
+    | MF
+    | SF
+    | SFP
+    | SFPP
+    | FP
+    | RF
+    | RFZ
+    | SFZ
+    | SFFZ
+    | FZ
+    | OtherDynamics String
     
 
 
-data FermataShape = NormalFermata | AngledFermata | SquaredFermata
+data FermataShape 
+    = NormalFermata 
+    | AngledFermata 
+    | SquaredFermata
+
 -- | The fermata text content represents the shape of the fermata sign. An empty fermata element
 -- represents a normal fermata. The fermata type is upright if not specified.
-data Fermata = Fermata
+data Fermata 
+    = Fermata
     { fermataShape      :: Maybe FermataShape
     , fermataType       :: Maybe UprightInverted
     , fermataPrintStyle :: Maybe PrintStyle }
     
 -- | Wavy lines are one way to indicate trills. When used with a measure element, they should always
 -- have type="continue" set.
-data WavyLine = WavyLine
-    { wavyLineType       :: StartStopContinue
+data WavyLine ssc 
+    = WavyLine
+    { wavyLineType       :: StartStop
     , wavyLineNumber     :: Maybe NumberLevel
     , wavyLinePosition   :: Maybe Position
     , wavyLinePlacement  :: Maybe Placement
