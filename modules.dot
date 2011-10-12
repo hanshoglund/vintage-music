@@ -1,0 +1,42 @@
+
+
+digraph Music { 
+  
+    Utilities;
+    Music;
+    Model;
+    MusicXML; 
+    MusicXML -> Base;
+    MusicXML -> Layout;
+    MusicXML -> Articulations;
+    MusicXML -> Attributes;
+    MusicXML -> Harmony;
+    MusicXML -> Sound;
+    MusicXML -> Note;
+    MusicXML -> Opus;
+    MusicXML -> Score;
+    
+    Text -> Base;
+    
+    Layout -> Text;
+    Layout -> Base;
+                   
+    Articulations -> Base;
+    Attributes -> Base;
+    
+    Harmony -> Base;      
+    
+    Note -> Layout; 
+    Note -> Base;
+    Note -> Articulations;
+    
+    Score -> Base;
+    Score -> Layout;
+    Score -> Articulations;
+    Score -> Attributes;
+    Score -> Harmony;
+    Score -> Sound;
+    Score -> Note;
+    Score -> Opus;
+
+}

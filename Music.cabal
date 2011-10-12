@@ -18,6 +18,7 @@ library
         Music.Model.MusicXML
         Music.Model.MusicXML.Base
         Music.Model.MusicXML.Articulations
+        Music.Model.MusicXML.Attributes
         Music.Model.MusicXML.Harmony
         Music.Model.MusicXML.Layout
         Music.Model.MusicXML.Note

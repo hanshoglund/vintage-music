@@ -186,37 +186,29 @@ type NameDisplay = TODO
 -- *****************************************************************************
 
 -- | The empty-placement type represents an empty element with print-style and placement attributes.
-type EmptyPlacement = TODO
-{-
-    <xs:complexType name="empty-placement">
-        <xs:attributeGroup ref="print-style"/>
-        <xs:attributeGroup ref="placement"/>
-    </xs:complexType>
+data EmptyPlacement = EmptyPlacement
+    { emptyPlacementPrintStyle  :: PrintStyle
+    , emptyPlacementPlacement   :: Placement }
 
--}
+-- | The empty-line type represents an empty element with line-shape, line-type, print-style and
+-- placement attributes.
+data EmptyLine = EmptyLine
+    { emptyLineLineShape    :: LineShape
+    , emptyLineLineType     :: LineType
+    , emptyLinePrintStyle   :: PrintStyle
+    , emptyLinePlacement    :: Placement }
+
 
 -- | The empty-print-style type represents an empty element with print-style attributes.
-type EmptyPrintStyle = TODO
-{-    
-    <xs:complexType name="empty-print-style">
-        <xs:attributeGroup ref="print-style"/>
-    </xs:complexType>
--}       
+data EmptyPrintStyle = EmptyPrintStyle
+    { emptyPrintStylePrintStyle :: PrintStyle }
 
 -- | The other-appearance type is used to define any graphical settings not yet in the current
 -- version of the MusicXML format. This allows extended representation, though without application
 -- interoperability.
 type OtherAppearance = TODO
-{-
-    <xs:complexType name="other-appearance">
-        <xs:simpleContent>
-            <xs:extension base="xs:string">
-                <xs:attribute name="type" type="xs:token" use="required"/>
-            </xs:extension>
-        </xs:simpleContent>
-    </xs:complexType>
 
--}
+
 -- | Page layout can be defined both in score-wide defaults and in the print element. Page margins
 -- are specified either for both even and odd pages, or via separate odd and even page number values.
 -- The type is not needed when used as part of a print element. If omitted when used in the defaults

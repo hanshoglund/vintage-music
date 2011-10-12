@@ -4,6 +4,8 @@ module Music.Model.MusicXML.Articulations
 where
 
 import Music.Model.MusicXML.Base
+import Music.Model.MusicXML.Layout
+import Music.Model.MusicXML.Sound
 
 
 
@@ -18,6 +20,27 @@ import Music.Model.MusicXML.Base
 -- *****************************************************************************
 -- Complex types
 -- *****************************************************************************
+  
+
+-- | Articulations and accents are grouped together here.
+data Articulations =
+    Accent              EmptyPlacement
+  | StrongAccent        EmptyPlacement
+  | Staccato            EmptyPlacement
+  | Tenumto             EmptyPlacement
+  | DetachedLegato      EmptyPlacement
+  | Staccatisimo        EmptyPlacement
+  | Spiccato            EmptyPlacement
+  | Scoop               EmptyLine
+  | Plop                EmptyLine
+  | Doit                EmptyLine
+  | Falloff             EmptyLine
+  | BreathMark          EmptyPlacement
+  | Caesura             EmptyPlacement
+  | Stress              EmptyPlacement
+  | Unstress            EmptyPlacement
+  | OtherArticulation   PlacementText
+
 
 -- | Dynamics can be associated either with a note or a general musical direction. To avoid
 -- inconsistencies between and amongst the letter abbreviations for dynamics (what is sf vs. sfz,
@@ -33,40 +56,58 @@ import Music.Model.MusicXML.Base
 -- example, Humdrum has at least 3 representation formats related to dynamics. The MusicXML format
 -- captures what is in the score, but does not try to be optimal for analysis or synthesis of
 -- dynamics.
-type Dynamics = TODO
-{-
-    <xs:complexType name="dynamics">
-        <xs:choice minOccurs="0" maxOccurs="unbounded">
-            <xs:element name="p" type="empty"/>
-            <xs:element name="pp" type="empty"/>
-            <xs:element name="ppp" type="empty"/>
-            <xs:element name="pppp" type="empty"/>
-            <xs:element name="ppppp" type="empty"/>
-            <xs:element name="pppppp" type="empty"/>
-            <xs:element name="f" type="empty"/>
-            <xs:element name="ff" type="empty"/>
-            <xs:element name="fff" type="empty"/>
-            <xs:element name="ffff" type="empty"/>
-            <xs:element name="fffff" type="empty"/>
-            <xs:element name="ffffff" type="empty"/>
-            <xs:element name="mp" type="empty"/>
-            <xs:element name="mf" type="empty"/>
-            <xs:element name="sf" type="empty"/>
-            <xs:element name="sfp" type="empty"/>
-            <xs:element name="sfpp" type="empty"/>
-            <xs:element name="fp" type="empty"/>
-            <xs:element name="rf" type="empty"/>
-            <xs:element name="rfz" type="empty"/>
-            <xs:element name="sfz" type="empty"/>
-            <xs:element name="sffz" type="empty"/>
-            <xs:element name="fz" type="empty"/>
-            <xs:element name="other-dynamics" type="xs:string"/>
-        </xs:choice>
-        <xs:attributeGroup ref="print-style"/>
-        <xs:attributeGroup ref="placement"/>
-    </xs:complexType>
+data Dynamics = Dynamics
+    { dynamicsType       :: DynamicsType
+    , dynamicsPrintStyle :: Maybe PrintStyle
+    , dynamicsPlacement  :: Maybe Placement }
 
--}                     
+data DynamicsType =
+    P
+  | PP
+  | PPP
+  | PPPP
+  | PPPPP
+  | PPPPPP
+  | F
+  | FF
+  | FFF
+  | FFFF
+  | FFFFF
+  | FFFFFF
+  | MP
+  | MF
+  | SF
+  | SFP
+  | SFPP
+  | FP
+  | RF
+  | RFZ
+  | SFZ
+  | SFFZ
+  | FZ
+  | OtherDynamics String
+    
+
+
+data FermataShape = NormalFermata | AngledFermata | SquaredFermata
+-- | The fermata text content represents the shape of the fermata sign. An empty fermata element
+-- represents a normal fermata. The fermata type is upright if not specified.
+data Fermata = Fermata
+    { fermataShape      :: Maybe FermataShape
+    , fermataType       :: Maybe UprightInverted
+    , fermataPrintStyle :: Maybe PrintStyle }
+    
+-- | Wavy lines are one way to indicate trills. When used with a measure element, they should always
+-- have type="continue" set.
+data WavyLine = WavyLine
+    { wavyLineType       :: StartStopContinue
+    , wavyLineNumber     :: Maybe NumberLevel
+    , wavyLinePosition   :: Maybe Position
+    , wavyLinePlacement  :: Maybe Placement
+    , wavyLineColor      :: Maybe Color
+    , wavyLineTrillSound :: Maybe TrillSound }
+
+                   
 
 -- *****************************************************************************
 -- Element groups

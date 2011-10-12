@@ -4,8 +4,10 @@ module Music.Model.MusicXML.Note
 where
 
 import Music.Model.MusicXML.Base
+import Music.Model.MusicXML.Text
 import Music.Model.MusicXML.Layout
 import Music.Model.MusicXML.Articulations
+import Music.Model.MusicXML.Tuplet
 
 
 -- *****************************************************************************
@@ -27,6 +29,7 @@ import Music.Model.MusicXML.Articulations
 -- to represent multiple editorial levels. The set of notations may be refined and expanded over
 -- time, especially to handle more instrument-specific technical notations.
 type Notations = [Notation]
+
 data Notation =
     TiedNotation            Tied
   | SlurNotation            Slur
@@ -43,8 +46,8 @@ data Notation =
   | AccidentalMarkNotation  AccidentalMark
   | OtherNotationNotation   OtherNotation
 
--- | The tie element indicates that a tie begins or ends with this note. The tie element indicates
--- sound; the tied element indicates notation.
+-- | The tie element indicates that a tie begins or ends with this note. The tie element
+-- indicates sound; the tied element indicates notation.
 data Tie = Tie StartStop
 
 -- | The tied type represents the notated tie. The tie element represents the tie sound.
@@ -59,30 +62,30 @@ data Tied = Tied
     , color :: Color }
 
 -- | The display-step-octave type contains the sequence of elements used by both the rest and
--- unpitched elements. This group is used to place rests and unpitched elements on the staff without
--- implying that these elements have pitch. Positioning follows the current clef. If percussion clef
--- is used, the display-step and display-octave elements are interpreted as if in treble clef, with a
--- G in octave 4 on line 2. If not present, the note is placed on the middle line of the staff,
--- generally used for one-line staffs.
-type DisplayStepOctave = [(Either Step Octave)]
+-- unpitched elements. This group is used to place rests and unpitched elements on the staff
+-- without implying that these elements have pitch. Positioning follows the current clef. If
+-- percussion clef is used, the display-step and display-octave elements are interpreted as if
+-- in treble clef, with a G in octave 4 on line 2. If not present, the note is placed on the
+-- middle line of the staff, generally used for one-line staffs.
+type DisplayStepOctave = (Step, Octave)
 
 
 -- | The full-note group is a sequence of the common note elements between cue/grace notes and
--- regular (full) notes: pitch, chord, and rest information, but not duration (cue and grace notes do
--- not have duration encoded). Unpitched elements are used for unpitched percussion, speaking voice,
--- and other musical elements lacking determinate pitch.
+-- regular (full) notes: pitch, chord, and rest information, but not duration (cue and grace
+-- notes do not have duration encoded). Unpitched elements are used for unpitched percussion,
+-- speaking voice, and other musical elements lacking determinate pitch.
 data FullNote = 
-    -- | The chord element indicates that this note is an additional chord tone with the preceding note.
-    -- The duration of this note can be no longer than the preceding note. In MuseData, a missing
-    -- duration indicates the same length as the previous note, but the MusicXML format requires a
-    -- duration for chord notes too.
+    -- | The chord element indicates that this note is an additional chord tone with the preceding
+    -- note. The duration of this note can be no longer than the preceding note. In MuseData, a 
+    -- missing duration indicates the same length as the previous note, but the MusicXML format 
+    -- requires a duration for chord notes too.
     Chord 
   | Pitch  
-    -- | The unpitched element indicates musical elements that are notated on the staff but lack definite
-    -- pitch, such as unpitched percussion and speaking voice.
+    -- | The unpitched element indicates musical elements that are notated on the staff but lack
+    -- definite pitch, such as unpitched percussion and speaking voice.
   | Unpitched DisplayStepOctave 
-    -- | The rest element indicates notated rests or silences. Rest are usually empty, but placement on the
-    -- staff can be specified using display-step and display-octave elements.
+    -- | The rest element indicates notated rests or silences. Rest are usually empty, but
+    -- placement on the -- staff can be specified using display-step and display-octave elements.
   | Rest      DisplayStepOctave
 
 -- | Notes are the most common type of MusicXML data. The MusicXML format keeps the MuseData
@@ -109,8 +112,7 @@ data FullNote =
 --   notes that appear on a staff space.
 data  Note = 
     GraceNote 
-    {
-      fullNote          :: FullNote
+    { fullNote          :: FullNote
     , ties              :: [Tie]          
     , instrument        :: Maybe Instrument 
     , noteType          :: Maybe NoteType 
@@ -122,11 +124,9 @@ data  Note =
     , staff             :: Maybe Staff
     , beam              :: Maybe Beam
     , notations         :: [Notations]
-    , lyric             :: [Lyric]    
-    }
+    , lyric             :: [Lyric] }
   | CueNote 
-    {
-      fullNote          :: FullNote
+    { fullNote          :: FullNote
     , duration          :: Duration 
     , instrument        :: Maybe Instrument 
     , noteType          :: Maybe NoteType 
@@ -138,11 +138,9 @@ data  Note =
     , staff             :: Maybe Staff
     , beam              :: Maybe Beam
     , notations         :: [Notations]
-    , lyric             :: [Lyric]    
-    }
+    , lyric             :: [Lyric] }
   | NormalNote
-    {
-      fullNote          :: FullNote
+    { fullNote          :: FullNote
     , duration          :: Duration 
     , ties              :: [Tie]         
     , instrument        :: Maybe Instrument 
@@ -155,8 +153,7 @@ data  Note =
     , staff             :: Maybe Staff
     , beam              :: Maybe Beam
     , notations         :: [Notations]
-    , lyric             :: [Lyric]    
-    }        
+    , lyric             :: [Lyric] }        
                         
 
 -- | The note-type type indicates the graphic note type. Values range from 256th to long. The
@@ -168,20 +165,13 @@ type NoteType = (NoteTypeValue, SymbolSize)
 -- durations. For the enclosed shapes, the default is to be hollow for half notes and longer, and
 -- filled otherwise. The filled attribute can be set to change this if needed. If the parentheses
 -- attribute is set to yes, the notehead is parenthesized. It is no by default.
-type NoteHead = TODO
-{-
-    <xs:complexType name="notehead">
-        <xs:simpleContent>
-            <xs:extension base="notehead-value">
-                <xs:attribute name="filled" type="yes-no"/>
-                <xs:attribute name="parentheses" type="yes-no"/>
-                <xs:attributeGroup ref="font"/>
-                <xs:attributeGroup ref="color"/>
-            </xs:extension>
-        </xs:simpleContent>
-    </xs:complexType>
+data NoteHead = NoteHead
+    { noteHeadValue         :: NoteHeadValue
+    , noteHeadfilled        :: Bool
+    , noteHeadparentheses   :: Bool
+    , noteHeadfont          :: Font
+    , noteHeadcolor         :: Color }
 
--}
 
 -- *****************************************************************************
 -- Element groups

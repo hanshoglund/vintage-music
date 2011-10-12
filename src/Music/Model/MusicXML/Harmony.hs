@@ -47,22 +47,26 @@ type Harmony = TODO
         <xs:attributeGroup ref="placement"/>
     </xs:complexType>
 -}
+   
 
-
--- | The harp-pedals type is used to create harp pedal diagrams. The pedal-step and pedal-alter
--- elements use the same values as the step and alter elements. For easiest reading, the pedal-tuning
--- elements should follow standard harp pedal order, with pedal-step values of D, C, B, E, F, G, and
--- A.
-type HarpPedals = TODO
+-- | The figured-bass element represents figured bass notation. Figured bass elements take their
+-- position from the first regular note that follows. Figures are ordered from top to bottom. The
+-- value of parentheses is False if not present.
+type FiguredBass = TODO
 {-
-    <xs:complexType name="harp-pedals">
+    <xs:complexType name="figured-bass">
         <xs:sequence>
-            <xs:element name="pedal-tuning" type="pedal-tuning" maxOccurs="unbounded"/>
+            <xs:element name="figure" type="figure" maxOccurs="unbounded"/>
+            <xs:group ref="duration" minOccurs="0"/>
+            <xs:group ref="editorial"/>
         </xs:sequence>
         <xs:attributeGroup ref="print-style"/>
+        <xs:attributeGroup ref="printout"/>
+        <xs:attribute name="parentheses" type="yes-no"/>
     </xs:complexType>
 
 -}
+
 
 -- *****************************************************************************
 -- Element groups
