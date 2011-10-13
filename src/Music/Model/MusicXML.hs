@@ -6,314 +6,10 @@
 -}
 module Music.Model.MusicXML
 (
-TODO
-
--- ------------------------------------------------------------------------- --
--- * Simple types
--- ------------------------------------------------------------------------- --
-
--- -- ** Numeric
--- , Divisions
--- , Tenths
--- , StringNumber
--- , NumberLevel
--- , BeamLevel
--- , Percent
--- , RotationDegrees
--- , StaffLine
--- , StaffNumber
--- , Midi16
--- , Midi128
--- , Midi16384
--- , Color
--- , NumberOrNormal(..)
--- 
--- -- ** Placement and directions
--- , AboveBelow
--- , OverUnder
--- , TopBottom
--- , UpDown
--- , BackwardForward
--- , above, below, over, under, top, bottom, up, down, forward, backward
--- , LeftCenterRight(..)
--- 
--- -- ** Continuity
--- 
--- , StartStop
--- , StartStopContinue
--- , StartStopSingle
--- , StartStopDiscontinoue
--- , SSCDS(..)
--- 
--- 
--- -- ** Staves
--- , StaffType(..)
--- , MeasureNumberingValue(..)
--- , BarlineValue(..)
--- , GroupSymbolValue(..)
--- 
--- -- ** Measures
--- , BarStyle(..)
--- 
--- -- ** Key, time and clef
--- , Fifths
--- , Mode(..)
--- , TimeSymbol(..)
--- , ClefSign(..)
--- 
--- -- ** Notes
--- , NoteTypeValue
--- , eighth, quarter, half, whole, breve, long
--- , Octave
--- , Semitones
--- , AccidentalValue(..)
--- , NoteHeadValue(..)
--- , SymbolSize(..)
--- , NoteSizeType(..)
--- , BeamValue(..)
--- , Fan(..)
--- , StemValue(..)
--- , Step(..)
--- , TremoloMarks
--- , ShowTuplet(..)
--- 
--- -- ** Lines
--- , LineShape(..)
--- , LineType(..)
--- , LineEnd(..)
--- , WedgeType(..)
--- , TrillBeats
--- , TrillStep(..)
--- , StartNote(..)
--- , TwoNoteTurn(..)
--- 
--- -- ** Text
--- , FontStyle(..)
--- , FontWeight(..)
--- 
--- 
--- -- ------------------------------------------------------------------------- --
--- -- * Attribute groups
--- -- ------------------------------------------------------------------------- --
--- 
--- , BendSound(..)
--- , TrillSound(..)
--- 
--- , Bezier(..)
--- , Directive
--- 
--- , HorizontalAlign
--- , LetterSpacing
--- , LevelDisplay
--- , LineHeight
--- 
--- , Orientation
--- , Placement
--- , Position(..)
--- , PrintStyle(..)
--- , PrintOut(..)
--- , VerticalAlign(..)
--- , VerticalAlignImage(..)
--- , ElementPosition
--- , GroupNameText
--- 
--- , DocumentAttributes(..)
--- , LinkAttributes
--- , ImageAttributes
--- , PrintAttributes(..)
--- , MeasureAttributes (..)
--- , PartAttributes(..)
--- 
--- 
--- -- ------------------------------------------------------------------------- --
--- -- * Complex types
--- -- ------------------------------------------------------------------------- --
--- 
--- , AccidentalText
--- , Dynamics
--- , Empty
--- , EmptyPlacement
--- , EmptyPrintStyle
--- , EmptyTrillSound
--- , Fermata
--- , Fingering
--- , FormattedText
--- , Fret
--- , Level
--- , MidiInstrument
--- , NameDisplay
--- , StringNumber2
--- , TypedText
--- , WavyLine
--- , Attributes
--- , BeatRepeat
--- , Key
--- , KeyOctave
--- , MeasureRepeat
--- , MeasureStyle
--- , MultipleRest
--- , Slash
--- , StaffTuning
--- , Time
--- , Transpose
--- , BarStyleColor
--- , Ending
--- , Repeat
--- , Accord
--- , AccordionRegistration
--- , Barre
--- , Bass
--- , BassStep
--- , Bracket
--- , Dashes
--- , Degree
--- , DegreeAlter
--- , DegreeType
--- , DegreeValue
--- , Direction
--- , DirectionType
--- , Feature
--- , FirstFret
--- , Frame
--- , FrameNote
--- , Grouping
--- , Harmony
--- , HarpPedals
--- , Image
--- , Kind
--- , MeasureNumbering
--- , Metronome
--- , MetronomeBeam
--- , MetronomeNote
--- , MetronomeTuplet
--- , OctaveShift
--- , Offset
--- , OtherDirection
--- , Pedal
--- , PedalTuning
--- , PerMinute
--- , Print
--- , Rehearsal
--- , Root
--- , RootStep
--- , Scordatura
--- , Sound
--- , Wedge
--- , Encoding
--- , Identification
--- , Miscellaneous
--- , MiscellaneousFields
--- , Supports
--- , Appearance
--- , LineWidth
--- , MeasureLayout
--- , NoteSize
--- , OtherAppearance
--- , PageLayout
--- , PageMarigins
--- , Scaling
--- , StaffLayout
--- , SystemLayout
--- , SystemMargins
--- , Bookmark
--- , Link
--- , Accidental
--- , AccidentalMark
--- , Arpeggiate
--- , Articulations
--- , Backup
--- , Beam
--- , Bend
--- , DisplayStepOctave
--- , Elision
--- , EmptyLine
--- , Extend
--- , Figure
--- , FiguredBass
--- , Forward
--- , Glissando
--- , Grace
--- , HammerOnPulloff
--- , Harmonic
--- , HeelToe
--- , Instrument
--- , Lyric
--- , Mordent
--- , NonArpeggiate
--- , Notations
--- , Note(..)
--- , NoteType
--- , NoteHead
--- , Ornaments
--- , OtherNotation
--- , Pitch
--- , PlacementText
--- , Slide
--- , Slur
--- , Stem
--- , StrongAccent
--- , StyleText
--- , Technical
--- , TextElementData
--- , Tie
--- , Tied
--- , TimeModification
--- , Tremolo
--- , Tuplet
--- , TupletDot
--- , TupletPortion
--- , TupletType
--- , Credit
--- , Defaults
--- , EmptyFont
--- , Barline
--- , GroupName
--- , GroupSymbol
--- , LyricFont
--- , LyricLanguage
--- , MidiDevice
--- , Opus(..)
--- , PartGroup(..)
--- , PartList(..)
--- , PartName(..)
--- , ScoreInstrument(..)
--- , ScorePart(..)
--- , Work(..)
--- 
--- -- ------------------------------------------------------------------------- --
--- -- * Element groups
--- -- ------------------------------------------------------------------------- --
--- 
--- , Editorial
--- , EditorialVoice
--- , EditorialVoiceDirection
--- , Footnote
--- , LevelGroup
--- , Staff
--- , Tuning
--- , Voice
--- , NonTraditionalKey
--- , SlashGroup
--- , TraditionalKey
--- , BeatUnit
--- , HarmonyChord
--- , AllMargins
--- , Layout
--- , LeftRightMargins
--- , Duration
--- , FullNote(..)
--- , MusicData(..)
--- , ScoreHeader(..)
--- 
--- 
--- -- ------------------------------------------------------------------------- --
--- -- * Root elements
--- -- ------------------------------------------------------------------------- --
---              
-, Part
-, Measure
-, Score(..)
-
+  module Music.Model.MusicXML.Base
+, module Music.Model.MusicXML.Note
+, module Music.Model.MusicXML.Score
+, module Music.Model.MusicXML.Write
 )
 
 where
@@ -330,3 +26,35 @@ import Music.Model.MusicXML.Sound
 import Music.Model.MusicXML.Text
 import Music.Model.MusicXML.Tuplet
 import Music.Model.MusicXML.Write
+
+
+-- ------------------------------------------------------------------------- --
+-- Test stuff, remove later
+
+u = undefined  
+n = Nothing
+
+  
+attributes' = DocumentAttributes { version = "1.0" }
+
+work' = Work 
+    { workTitle  = Just "Music" 
+    , workNumber = Just "32"
+    , opus = Nothing }
+
+parts' = []
+
+header' = ScoreHeader 
+    { work = (Just work')
+    , movementNumber = Nothing
+    , movementTitle  = Nothing
+    , identification = Nothing
+    , defaults       = Nothing
+    , credit         = []
+    , partList       = parts' } 
+
+score' = PartwiseScore (Just attributes') header' parts'
+
+
+
+

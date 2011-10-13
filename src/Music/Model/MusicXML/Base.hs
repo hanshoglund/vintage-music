@@ -10,6 +10,7 @@ import Data.Word
 data TODO = Dummy deriving (Show, Eq, Enum)
 
 
+
 -- *****************************************************************************
 -- Simple types
 -- *****************************************************************************
@@ -98,7 +99,7 @@ forward = BackwardForward True ; backward = BackwardForward False
 upright = UprightInverted True ; inverted = UprightInverted False
 
 
-data LeftCenterRight = Left | Center | Right
+data LeftCenterRight = LeftPos | CenterPos | RightPos
     deriving (Show, Eq, Enum)
 
 

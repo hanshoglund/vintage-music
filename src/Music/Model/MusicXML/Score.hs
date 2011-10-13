@@ -1,5 +1,4 @@
 
-
 module Music.Model.MusicXML.Score 
 where
 
@@ -11,6 +10,7 @@ import Music.Model.MusicXML.Harmony
 import Music.Model.MusicXML.Sound
 import Music.Model.MusicXML.Note
 import Music.Model.MusicXML.Opus
+import Music.Model.MusicXML.Write
 
 
 data MusicData =
@@ -58,15 +58,17 @@ data MusicData =
 --   measure-numbering element. Measure width is specified in tenths. These are the global tenths
 --   specified in the scaling element, not local tenths as modified by the staff-size element.
 data MeasureAttributes = MeasureAttributes
-    { number         :: String
-    , implicit       :: Maybe Bool
-    , nonControlling :: Maybe Bool
-    , width          :: Maybe Tenths }
+    { 
+          number         :: String
+        , implicit       :: Maybe Bool
+        , nonControlling :: Maybe Bool
+        , width          :: Maybe Tenths 
+    }
     deriving (Show, Eq)
 
 -- | In either partwise or timewise format, the part element has an id attribute that is a reference 
 -- back to a score-part in the part-list.
-data PartAttributes = PartAttributes { id :: String }
+data PartAttributes = PartAttributes { partAttributesId :: String }
 
 
 -- | The document-attributes attribute group is used to specify the attributes for an entire MusicXML
@@ -78,6 +80,9 @@ data PartAttributes = PartAttributes { id :: String }
 -- distinguish earlier version files reliably. Programs that write MusicXML 1.1 or 2.0 files should
 -- set this attribute.
 data DocumentAttributes = DocumentAttributes { version :: String }
+
+instance WriteXml DocumentAttributes where
+    writeXml a = stringAttrs [("version", version a)]
 
 
 -- *****************************************************************************
@@ -116,14 +121,22 @@ type Identification = TODO
 -- | Works are optionally identified by number and title. The work type also may indicate a link to
 -- the opus document that composes multiple scores into a collection.
 data Work = Work
-    { -- The work-number element specifies the number of a work, such as its opus
-      -- number.
-      workNumber :: Maybe String
-      -- The work-title element specifies the title of a work, not including its opus or
-      -- other work number.            
-    , workTitle  :: Maybe String
-    , opus       :: Maybe Opus }
-    
+    { 
+        -- | The work-number element specifies the number of a work, such as its opus
+        -- number.
+          workNumber :: Maybe String
+        -- | The work-title element specifies the title of a work, not including its opus or
+        -- other work number.            
+        , workTitle  :: Maybe String
+        , opus       :: Maybe Opus 
+    }
+
+instance WriteXml Work where 
+    writeXml work 
+        = selem "work"
+            [ selem "work-number" [writeXml $ workNumber work ]
+            , selem "work-title"  [writeXml $ workTitle  work ]
+            , selem "opus"        [writeXml $ opus       work ] ]
 
 
 -- *****************************************************************************
@@ -198,19 +211,23 @@ type GroupSymbol = TODO
 -- to make a MIDI device or port assignment for the given track. Initial midi-instrument assignments
 -- may be made here as well.
 data ScorePart = ScorePart
-    { partIdentification      :: Maybe Identification
-    , partName                :: Maybe PartName
-    , partNameDisplay         :: Maybe NameDisplay
-    , partAbbreviation        :: Maybe PartName
-    , partAbbreviationDisplay :: Maybe NameDisplay
-    -- | The group element allows the use of different versions of the part for different purposes.
-    -- Typical values include score, parts, sound, and data. Ordering information that is directly
-    -- encoded in MuseData can be derived from the ordering within a MusicXML score or opus.
-    , scorePartGroup          :: Maybe String
-    , scoreInstruments        :: [ScoreInstrument]
-    , scoreMidiDevice         :: Maybe MidiDevice
-    , scoreMidiInstruments    :: [MidiInstrument] }
+    { 
+          partIdentification      :: Maybe Identification
+        , partName                :: Maybe PartName
+        , partNameDisplay         :: Maybe NameDisplay
+        , partAbbreviation        :: Maybe PartName
+        , partAbbreviationDisplay :: Maybe NameDisplay
+        -- | The group element allows the use of different versions of the part for different purposes.
+        -- Typical values include score, parts, sound, and data. Ordering information that is directly
+        -- encoded in MuseData can be derived from the ordering within a MusicXML score or opus.
+        , scorePartGroup          :: Maybe String
+        , scoreInstruments        :: [ScoreInstrument]
+        , scoreMidiDevice         :: Maybe MidiDevice
+        , scoreMidiInstruments    :: [MidiInstrument] 
+    }
 
+instance WriteXml ScorePart where
+    writeXml = undefined
     
 -- | The part-group element indicates groupings of parts in the score, usually indicated by braces
 -- and brackets. Braces that are used for multi-staff parts should be defined in the attributes
@@ -224,15 +241,20 @@ data ScorePart = ScorePart
 -- part-symbol element.
 
 data PartGroup = PartGroup
-    { groupName                 :: Maybe GroupName
-    , groupNameDisplay          :: Maybe NameDisplay
-    , groupAbbreviation         :: Maybe GroupName
-    , groupAbbreviationDisplay  :: Maybe NameDisplay
-    , groupSymbol               :: Maybe GroupSymbol
-    , groupBarline              :: Maybe (GroupBarlineValue, Maybe Color)
-    , groupTime                 :: Maybe Empty      
-    , groupType                 :: StartStop 
-    , groupNumber               :: String }
+    { 
+          groupName                 :: Maybe GroupName
+        , groupNameDisplay          :: Maybe NameDisplay
+        , groupAbbreviation         :: Maybe GroupName
+        , groupAbbreviationDisplay  :: Maybe NameDisplay
+        , groupSymbol               :: Maybe GroupSymbol
+        , groupBarline              :: Maybe (GroupBarlineValue, Maybe Color)
+        , groupTime                 :: Maybe Empty      
+        , groupType                 :: StartStop 
+        , groupNumber               :: String 
+    }
+
+instance WriteXml PartGroup where
+    writeXml = undefined
 
 
 -- | The part-list identifies the different musical parts in this movement. Each part has an identifier
@@ -241,27 +263,40 @@ data PartGroup = PartGroup
 -- one score-part, combined as desired with part-group elements that indicate braces and brackets. Parts
 -- are ordered from top to bottom in a score based on the order in which they appear in the part-list.
 type PartList = [Either PartGroup ScorePart]
--- type PartList = (Maybe PartGroup, ScorePart, [Either PartGroup ScorePart])
 
 -- | The ScoreHeader group contains basic score metadata about the work and movement,
 --   score-wide defaults for layout and fonts, credits that appear on the first or
 --   following pages, and the part list.
 data ScoreHeader = ScoreHeader
-    { work            :: Maybe Work
-    , movementNumber  :: Maybe String
-    , movementTitle   :: Maybe String
-    , identification  :: Maybe Identification
-    , defaults        :: Maybe Defaults
-    , credit          :: [Credit]
-    , partList        :: PartList }
+    { 
+          work            :: Maybe Work
+        , movementNumber  :: Maybe String
+        , movementTitle   :: Maybe String
+        , identification  :: Maybe Identification
+        , defaults        :: Maybe Defaults
+        , credit          :: [Credit]
+        , partList        :: PartList 
+    }
+
+
+instance WriteXml ScoreHeader where 
+    writeXml h = 
+            writeXml (work h)
+        <+> writeXml (movementNumber h)
+        <+> writeXml (movementTitle h)
+        <+> writeXml (identification h)
+        <+> writeXml (defaults h)
+        <+> writeXml (credit h)
+        <+> writeXml (partList h)
 
 
 -- *****************************************************************************
 -- Root elements
 -- *****************************************************************************
 
-type Part    = [(MeasureAttributes, [MusicData])]
-type Measure = (MeasureAttributes, [[MusicData]])
+newtype Part    = Part    [(MeasureAttributes, [MusicData])]
+
+newtype Measure = Measure (MeasureAttributes, [[MusicData]])
                                                             
 -- | The score is the root element for the schema. It includes the score-header
 -- group, followed either by a series of parts with measures inside (PartwiseScore) or a series of
@@ -270,13 +305,37 @@ type Measure = (MeasureAttributes, [[MusicData]])
 -- document already in the desired format.
 -- The document-attributes attribute group includes the version attribute.
 data Score = 
-  PartwiseScore 
-    { attributes :: Maybe DocumentAttributes
-    , header     :: ScoreHeader
-    , parts      :: [Part] }
-  | TimewiseScore 
-    { attributes :: Maybe DocumentAttributes
-    , header     :: ScoreHeader
-    , measures   :: [Measure] }
 
+      PartwiseScore 
+    { 
+          attributes :: Maybe DocumentAttributes
+        , header     :: ScoreHeader
+        , parts      :: [Part]
+    }
+
+    | TimewiseScore 
+    { 
+          attributes :: Maybe DocumentAttributes
+        , header     :: ScoreHeader
+        , measures   :: [Measure] 
+    }
+
+
+instance WriteXml Part where
+    writeXml = undefined
+
+instance WriteXml Measure where
+    writeXml = undefined
+
+instance WriteXml Score where
+    writeXml (PartwiseScore a h p) = 
+        mkelem 
+            "score-partwise" 
+            [writeXml a]   
+            [writeXml h <+> writeXml p]
+    writeXml (TimewiseScore a h p) = 
+        mkelem 
+            "score-timewise" 
+            [writeXml a]   
+            [writeXml h <+> writeXml p]
 
