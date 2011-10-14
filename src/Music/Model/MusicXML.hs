@@ -9,7 +9,11 @@ module Music.Model.MusicXML
   module Music.Model.MusicXML.Base
 , module Music.Model.MusicXML.Note
 , module Music.Model.MusicXML.Score
-, module Music.Model.MusicXML.Write
+
+, ReadXml
+, WriteXml
+, Trivial(..)
+, putXml 
 )
 
 where
@@ -34,27 +38,7 @@ import Music.Model.MusicXML.Write
 u = undefined  
 n = Nothing
 
-  
-attributes' = DocumentAttributes { version = "1.0" }
 
-work' = Work 
-    { workTitle  = Just "Music" 
-    , workNumber = Just "32"
-    , opus = Nothing }
-
-parts' = []
-
-header' = ScoreHeader 
-    { work = (Just work')
-    , movementNumber = Nothing
-    , movementTitle  = Nothing
-    , identification = Nothing
-    , defaults       = Nothing
-    , credit         = []
-    , partList       = parts' } 
-
-score' = PartwiseScore (Just attributes') header' parts'
-
-
-
-
+score1 :: Score
+score1 = trivial
+score2 = setTitle "Test" score1

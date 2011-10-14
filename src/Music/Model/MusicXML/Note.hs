@@ -24,6 +24,42 @@ import Music.Model.MusicXML.Tuplet
 -- Complex types
 -- *****************************************************************************
 
+-- | The accidental type represents actual notated accidentals. Editorial and cautionary indications
+-- are indicated by attributes. Values for these attributes are "no" if not present. Specific graphic
+-- display such as parentheses, brackets, and size are controlled by the level-display attribute
+-- group.
+type Accidental = TODO
+{-
+    <xs:complexType name="accidental">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:extension base="accidental-value">
+                <xs:attribute name="cautionary" type="yes-no"/>
+                <xs:attribute name="editorial" type="yes-no"/>
+                <xs:attributeGroup ref="level-display"/>
+                <xs:attributeGroup ref="print-style"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+-}
+-- | An accidental-mark can be used as a separate notation or as part of an ornament. When used in an
+-- ornament, position and placement are relative to the ornament, not relative to the note.
+type AccidentalMark = TODO
+{-
+    <xs:complexType name="accidental-mark">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:extension base="accidental-value">
+                <xs:attributeGroup ref="print-style"/>
+                <xs:attributeGroup ref="placement"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+-}
 
 -- | Notations refer to musical notations, not XML notations. Multiple notations are allowed in order
 -- to represent multiple editorial levels. The set of notations may be refined and expanded over
@@ -45,6 +81,65 @@ data Notation
     | NonArpeggiateNotation   NonArpeggiate
     | AccidentalMarkNotation  AccidentalMark
     | OtherNotationNotation   OtherNotation
+      
+-- | Stems can be down, up, none, or double. For down and up stems, the position attributes can be
+-- used to specify stem length. The relative values specify the end of the stem relative to the
+-- program default. Default values specify an absolute end stem position. Negative values of
+-- relative-y that would flip a stem instead of shortening it are ignored.
+type Stem = TODO
+{-
+    <xs:complexType name="stem">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:extension base="stem-value">
+                <xs:attributeGroup ref="y-position"/>
+                <xs:attributeGroup ref="color"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+-}          
+
+-- | The other-notation type is used to define any notations not yet in the MusicXML format. This
+-- allows extended representation, though without application interoperability. It handles notations
+-- where more specific extension elements such as other-dynamics and other-technical are not
+-- appropriate.
+type OtherNotation = TODO
+{-
+    <xs:complexType name="other-notation">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="type" type="start-stop-single" use="required"/>
+                <xs:attribute name="number" type="number-level" default="1"/>
+                <xs:attributeGroup ref="print-object"/>
+                <xs:attributeGroup ref="print-style"/>
+                <xs:attributeGroup ref="placement"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+-}
+
+
+-- | Pitch is represented as a combination of the step of the diatonic scale, the chromatic
+-- alteration, and the octave.
+type Pitch = TODO
+{-
+    <xs:complexType name="pitch">
+        <xs:sequence>
+            <xs:element name="step" type="step"/>
+            <xs:element name="alter" type="semitones" minOccurs="0"/>
+            <xs:element name="octave" type="octave"/>
+        </xs:sequence>
+    </xs:complexType>
+
+-}
+
+
+
 
 -- | The tie element indicates that a tie begins or ends with this note. The tie element
 -- indicates sound; the tied element indicates notation.

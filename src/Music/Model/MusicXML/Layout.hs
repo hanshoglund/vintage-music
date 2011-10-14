@@ -304,6 +304,151 @@ type LeftRightMargins = TODO
     <!-- Element groups derived from note.mod entities and elements -->
 -}
 
+-- | The measure-layout type includes the horizontal distance from the previous measure.
+type MeasureLayout = TODO
+{-
+    <xs:complexType name="measure-layout">
+        <xs:sequence>
+            <xs:element name="measure-distance" type="tenths" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>The measure-distance element specifies the horizontal distance from the previous measure. This value is only used for systems where there is horizontal whitespace in the middle of a system, as in systems with codas. To specify the measure width, use the width attribute of the measure element.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+-}
+
+-- | Staff layout includes the vertical distance from the bottom line of the previous staff in this
+-- system to the top line of the staff specified by the number attribute. The optional number
+-- attribute refers to staff numbers within the part, from top to bottom on the system. A value of 1
+-- is assumed if not present. When used in the defaults element, the values apply to all parts. This
+-- value is ignored for the first staff in a system.
+type StaffLayout = TODO
+{-
+    <xs:complexType name="staff-layout">
+        <xs:sequence>
+            <xs:element name="staff-distance" type="tenths" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="number" type="staff-number"/>
+    </xs:complexType>
+
+-}
+
+-- | System layout includes left and right margins and the vertical distance from the previous
+-- system. The system distance is measured from the bottom line of the previous system to the top
+-- line of the current system. It is ignored for the first system on a page. The top system distance
+-- is measured from the page's top margin to the top line of the first system. It is ignored for all
+-- but the first system on a page.
+--
+-- Sometimes the sum of measure widths in a system may not equal the system width specified by the
+-- layout elements due to roundoff or other errors. The behavior when reading MusicXML files in these
+-- cases is application-dependent. For instance, applications may find that the system layout data is
+-- more reliable than the sum of the measure widths, and adjust the measure widths accordingly.
+
+type SystemLayout = TODO
+{-
+    <xs:complexType name="system-layout">
+        <xs:sequence>
+            <xs:element name="system-margins" type="system-margins" minOccurs="0"/>
+            <xs:element name="system-distance" type="tenths" minOccurs="0"/>
+            <xs:element name="top-system-distance" type="tenths" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+-}
+
+
+-- | System margins are relative to the page margins. Positive values indent and negative values
+-- reduce the margin size.
+type SystemMargins = TODO
+{-
+    <xs:complexType name="system-margins">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:group ref="left-right-margins"/>
+    </xs:complexType>
+
+    <!-- Complex types derived from link.mod elements -->
+
+-}
+
+-- | The print type contains general printing parameters, including the layout elements defined in
+-- the layout.mod file. The part-name-display and part-abbreviation-display elements used in the
+-- score.mod file may also be used here to change how a part name or abbreviation is displayed over
+-- the course of a piece. They take effect when the current measure or a succeeding measure starts a
+-- new system.
+--
+-- Layout elements in a print statement only apply to the current page, system, staff, or measure.
+-- Music that follows continues to take the default values from the layout included in the defaults
+-- element.
+type Print = TODO
+{-
+    <xs:complexType name="print">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:group ref="layout"/>
+            <xs:element name="measure-layout" type="measure-layout" minOccurs="0"/>
+            <xs:element name="measure-numbering" type="measure-numbering" minOccurs="0"/>
+            <xs:element name="part-name-display" type="name-display" minOccurs="0"/>
+            <xs:element name="part-abbreviation-display" type="name-display" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="print-attributes"/>
+    </xs:complexType>
+
+-}   
+
+-- | The appearance type controls general graphical settings for the music's final form appearance on
+-- a printed page of display. Currently this includes support for line widths and definitions for
+-- note sizes, plus an extension element for other aspects of appearance.
+type Appearance = TODO
+{-
+    <xs:complexType name="appearance">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="line-width" type="line-width" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="note-size" type="note-size" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="other-appearance" type="other-appearance" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+-}
+-- | The line-width type indicates the width of a line type in tenths. The type attribute defines
+-- what type of line is being defined. Values include beam, bracket, dashes, enclosure, ending,
+-- extend, heavy barline, leger, light barline, octave shift, pedal, slur middle, slur tip, staff,
+-- stem, tie middle, tie tip, tuplet bracket, and wedge. The text content is expressed in tenths.
+type LineWidth = TODO
+{-
+    <xs:complexType name="line-width">
+        <xs:simpleContent>
+            <xs:extension base="tenths">
+                <xs:attribute name="type" type="line-width-type" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+-}
+
+-- | The note-size type indicates the percentage of the regular note size to use for notes with a cue
+-- and large size as defined in the type element. The grace type is used for notes of cue size that
+-- that include a grace element. The cue type is used for all other notes with cue size, whether
+-- defined explicitly or implicitly via a cue element. The large type is used for notes of large
+-- size. The text content represent the numeric percentage. A value of 100 would be identical to the
+-- size of a regular note as defined by the music font.
+type NoteSize = TODO
+{-
+    <xs:complexType name="note-size">
+        <xs:simpleContent>
+            <xs:extension base="non-negative-decimal">
+                <xs:attribute name="type" type="note-size-type" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+-}
+
+
 -- *****************************************************************************
 -- Root elements
 -- *****************************************************************************

@@ -14,7 +14,8 @@ module Music.Model.MusicXML.Text
 
 , AccidentalText
 , FormattedText
-, TypedText
+, TypedText  
+, Lyric
 )
 where
 
@@ -95,6 +96,109 @@ type TypedText = TODO
         </xs:simpleContent>
     </xs:complexType>
 
+-}    
+    
+-- | The style-text type represents a text element with a print-style attribute group.
+type StyleText = TODO
+{-
+    <xs:complexType name="style-text">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attributeGroup ref="print-style"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+-}
+
+type Lyric = TODO
+{-
+    <xs:complexType name="lyric">
+        <xs:annotation>
+            <xs:documentation>The lyric type represents text underlays for lyrics, based on Humdrum with support for other formats. Two text elements that are not separated by an elision element are part of the same syllable, but may have different text formatting. The MusicXML 2.0 XSD is more strict than the 2.0 DTD in enforcing this by disallowing a second syllabic element unless preceded by an elision element. The lyric number indicates multiple lines, though a name can be used as well (as in Finale's verse / chorus / section specification). Justification is center by default; placement is below by default.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:choice>
+                <xs:sequence>
+                    <xs:element name="syllabic" type="syllabic" minOccurs="0"/>
+                    <xs:element name="text" type="text-element-data"/>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:sequence minOccurs="0">
+                            <xs:element name="elision" type="elision"/>
+                            <xs:element name="syllabic" type="syllabic" minOccurs="0"/>
+                        </xs:sequence>
+                        <xs:element name="text" type="text-element-data"/>
+                    </xs:sequence>
+                    <xs:element name="extend" type="extend" minOccurs="0"/>
+                </xs:sequence>
+                <xs:element name="extend" type="extend"/>
+                <xs:element name="laughing" type="empty">
+                    <xs:annotation>
+                        <xs:documentation>The laughing element is taken from Humdrum.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="humming" type="empty">
+                    <xs:annotation>
+                        <xs:documentation>The humming element is taken from Humdrum.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:choice>
+            <xs:element name="end-line" type="empty" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>The end-line element comes from RP-017 for Standard MIDI File Lyric meta-events. It facilitates lyric display for Karaoke and similar applications.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="end-paragraph" type="empty" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>The end-paragraph element comes from RP-017 for Standard MIDI File Lyric meta-events. It facilitates lyric display for Karaoke and similar applications.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:group ref="editorial"/>
+        </xs:sequence>
+        <xs:attribute name="number" type="xs:NMTOKEN"/>
+        <xs:attribute name="name" type="xs:token"/>
+        <xs:attributeGroup ref="justify"/>
+        <xs:attributeGroup ref="position"/>
+        <xs:attributeGroup ref="placement"/>
+        <xs:attributeGroup ref="color"/>
+    </xs:complexType>
+
+-}
+
+-- | The text-element-data type represents a syllable or portion of a syllable for lyric text
+-- underlay. A hyphen in the string content should only be used for an actual hyphenated word.
+-- Language names for text elements come from ISO 639, with optional country subcodes from ISO 3166.
+type TextElementData = TODO
+{-
+    <xs:complexType name="text-element-data">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attributeGroup ref="font"/>
+                <xs:attributeGroup ref="color"/>
+                <xs:attributeGroup ref="text-decoration"/>
+                <xs:attributeGroup ref="text-rotation"/>
+                <xs:attributeGroup ref="letter-spacing"/>
+                <xs:attribute ref="xml:lang"/>
+                <xs:attributeGroup ref="text-direction"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+-}
+           
+
+-- | The empty-font type represents an empty element with font attributes.
+type EmptyFont = TODO
+{-
+    <xs:complexType name="empty-font">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:attributeGroup ref="font"/>
+    </xs:complexType>
+
 -}
 
 
@@ -102,6 +206,34 @@ type TypedText = TODO
 -- *****************************************************************************
 -- Element groups
 -- *****************************************************************************
+
+-- | The lyric-font type specifies the default font for a particular name and number of lyric.
+type LyricFont = TODO
+{-
+    <xs:complexType name="lyric-font">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:attribute name="number" type="xs:NMTOKEN"/>
+        <xs:attribute name="name" type="xs:token"/>
+        <xs:attributeGroup ref="font"/>
+    </xs:complexType>
+
+-}
+
+-- | The lyric-language type specifies the default language for a particular name and number of
+-- lyric.
+type LyricLanguage = TODO
+{-
+    <xs:complexType name="lyric-language">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:attribute name="number" type="xs:NMTOKEN"/>
+        <xs:attribute name="name" type="xs:token"/>
+        <xs:attribute ref="xml:lang" use="required"/>
+    </xs:complexType>
+
+-}
+
 
 -- *****************************************************************************
 -- Root elements
