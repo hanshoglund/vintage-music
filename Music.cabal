@@ -14,8 +14,20 @@ library
     hs-source-dirs:     src
     default-extensions: TypeSynonymInstances, OverlappingInstances
     exposed-modules:
+        Data.Trivial
+    
         Music
+
         Music.Model
+
+        Music.Model.Abc
+
+        Music.Model.General
+
+        Music.Model.GUIDO
+
+        Music.Model.MIDI
+
         Music.Model.MusicXML
         Music.Model.MusicXML.Base
         Music.Model.MusicXML.Articulations
@@ -29,4 +41,6 @@ library
         Music.Model.MusicXML.Text
         Music.Model.MusicXML.Tuplet
         Music.Model.MusicXML.Write
+
         Music.Utilities
+

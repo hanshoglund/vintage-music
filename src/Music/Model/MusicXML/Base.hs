@@ -1,14 +1,181 @@
-{-# LANGUAGE RankNTypes #-}
 
 module Music.Model.MusicXML.Base
+(
+-- * Basic value
+    -- ** Numeric
+              Divisions
+            , Tenths
+            , StringNumber
+            , NumberLevel
+            , BeamLevel
+            , Percent
+            , Degrees
+            , StaffLine
+            , StaffNumber
+            , Midi16
+            , Midi128
+            , Midi16384
+            , Color
+   -- ** Symbolic
+            , NumberOrNormal(..)
+            , AboveBelow
+            , OverUnder
+            , TopBottom
+            , UpDown
+            , BackwardForward
+            , UprightInverted
+            , LeftCenterRight(..)
+            , Fifths
+
+            , Mode(..)
+
+            , StartNote(..)
+            
+            , Start(..)
+            , Stop(..)
+            , Single(..)
+            , Continue(..)
+            , Discontinue(..)
+            , StartStop
+            , StartStopContinue
+            , StartStopDiscontinue
+            , StartStopSingle
+
+            , TrillBeats
+            , TrillStep(..)
+            , TwoNoteTurn(..)
+
+            , ClefSign(..)
+            , TimeSymbol(..)
+            , StaffType(..)
+
+            , BarStyle(..)
+            , LineShape(..)
+            , LineType(..)
+            , LineEnd(..)
+
+            , MeasureNumberingValue(..)
+
+            , WedgeType(..)
+            , SymbolSize(..)
+            , NoteSizeType(..)
+            , AccidentalValue(..)
+            , BeamValue(..)
+            , Fan(..)
+            , NoteTypeValue
+            , quarter
+            , half
+            , whole
+            , breve
+            , long
+            , eighth
+            , NoteHeadValue(..)
+            , Octave
+            , Semitones
+            , StemValue(..)
+            , Step(..)
+            , TremoloMarks
+            , GroupBarlineValue(..)
+            , GroupSymbolValue(..)
+            , Bezier(..)
+            , LevelDisplay
+            , ImageAttributes
+            , LinkAttributes
+            , Empty
+            , Fingering
+            , Fret
+            , Level
+            , StringNumber2
+            , BeatRepeat
+            , MeasureRepeat
+            , MeasureStyle
+            , MultipleRest
+            , Slash
+            , StaffTuning
+            , BarStyleColor
+            , Ending
+            , Repeat
+            , Accord
+            , AccordionRegistration
+            , Barre
+            , Bracket
+            , Dashes
+            , Direction
+            , DirectionType
+            , Feature
+            , FirstFret
+            , Frame
+            , FrameNote
+            , Grouping
+            , Image
+            , MeasureNumbering
+            , Metronome
+            , MetronomeBeam
+            , MetronomeNote
+            , MetronomeTuplet
+            , OctaveShift
+            , Offset
+            , OtherDirection
+            , Pedal
+            , PedalTuning
+            , PerMinute
+            , Rehearsal
+            , Scordatura
+            , Instrument
+            , Wedge
+            , Encoding
+            , Miscellaneous
+            , MiscellaneousFields
+            , Supports
+            , Bookmark
+            , Link
+            , Arpeggiate
+            , Backup
+            , Beam
+            , Bend
+            , Elision
+            , Extend
+            , Forward
+            , Glissando
+            , Grace
+            , Mordent
+            , NonArpeggiate
+            , Ornaments
+            , Slide
+            , Slur
+            , Technical
+            , Tremolo
+            , HarpPedals
+            , Barline
+            , Editorial
+            , EditorialVoice
+            , EditorialVoiceDirection
+            , Footnote
+            , LevelGroup
+            , Staff
+            , Tuning
+            , Voice
+            , SlashGroup
+            , BeatUnit
+            , Duration   
+
+-- * Miscellaneous
+            , TODO
+            
+)
+
 where
+    
+import Data.Word 
+import Data.Trivial
 
-import Data.Word
 
-
--- | Placeholder for unimplemented types. Can not be initiated.
+-- | Placeholder for unimplemented types. Can not be initiated. The trivial value 
+--   raises an error upon evaluation.
 data TODO = Dummy deriving (Show, Eq, Enum)
 
+instance Trivial TODO where 
+    trivial = error "TODO is not implemented"
 
 
 -- *****************************************************************************
@@ -46,7 +213,7 @@ type BeamLevel          = Int
 type Percent            = Int
 -- | The rotation-degrees type specifies rotation, pan, and elevation values in degrees. Values
 -- range from -180 to 180.
-type RotationDegrees    = Int
+type Degrees    = Int
 -- | The staff-line type indicates the line on a given staff. Staff lines are numbered from
 -- bottom to top, with 1 being the bottom line on a staff. Staff line values can be used to specify
 -- positions outside the staff, such as a C clef positioned in the middle of a grand staff.
@@ -68,7 +235,7 @@ type Midi16384          = Int
 -- is totally opaque. For instance, the RGB value "#FF800080" represents purple. An ARGB value of
 -- "#40800080" would be a transparent purple. As in SVG 1.1, colors are defined in terms of the sRGB
 -- color space (IEC 61966).
-type Color = Word32                                   
+newtype Color           = MkColor Word32 deriving (Show, Eq)
 
 -- | The number-or-normal values can be either a decimal number or the string "normal". This is used 
 -- by the line-height and letter-spacing attributes.
@@ -76,7 +243,7 @@ data NumberOrNormal     = Number Double | Normal
 
 -- | The above-below type is used to indicate whether one element appears above or below another
 -- element.
-newtype AboveBelow         = AboveBelow Bool
+newtype AboveBelow      = AboveBelow Bool
 -- | The over-under type is used to indicate whether the tips of curved lines such as slurs and
 -- ties are overhand (tips down) or underhand (tips up).
 newtype OverUnder        = OverUnder Bool
@@ -119,58 +286,42 @@ data Mode   = Major | Minor | Dorian | Phrygian | Lydian | Mixolydian | Aeolian 
 data StartNote              = StartNoteUpper | StartNoteMain | StartNoteBelow
     deriving (Show, Eq, Enum)
 
+data SSCDS = Start | Stop | Continue | Discontinue | Single deriving (Show, Eq) 
 
 -- | The start-stop type is used for an attribute of musical elements that can either start or
 -- stop, such as tuplets, wedges, and lines.
-type StartStop              = SSCDS
+newtype StartStop              = SS  SSCDS deriving (Show, Eq)
+-- | The start-stop-single type is used for an attribute of musical elements that can be used for
+-- either multi-note or single-note musical elements, as for tremolos.
+newtype StartStopSingle        = SSS SSCDS deriving (Show, Eq)   
 -- | The start-stop-continue type is used for an attribute of musical elements that can either
 -- start or stop, but also need to refer to an intermediate point in the symbol, as for complex
 -- slurs.
-type StartStopContinue      = SSCDS
+newtype StartStopContinue      = SSC SSCDS deriving (Show, Eq)
 -- | The start-stop-discontinue type is used to specify ending types. Typically, the start type
 -- is associated with the left barline of the first measure in an ending. The stop and
 -- discontinue types are associated with the right barline of the last measure in an ending. Stop
 -- is used when the ending mark concludes with a downward jog, as is typical for first endings.
 -- Discontinue is used when there is no downward jog, as is typical for second endings that do
 -- not conclude a piece.
-type StartStopDiscontinoue  = SSCDS
--- | The start-stop-single type is used for an attribute of musical elements that can be used for
--- either multi-note or single-note musical elements, as for tremolos.
-type StartStopSingle        = SSCDS   
+newtype StartStopDiscontinue  = SSD SSCDS deriving (Show, Eq)
 
-
-data SSCDS = Start | Stop | Continue | Discontinue | Single
-    deriving (Show, Eq, Enum) 
-
--- class (Show a, Eq a, Enum a) => StartStop' a where
---     start       :: a
---     stop        :: a
--- class StartStop' a => StartStopContinue' a where
---     continue    :: a
--- class StartStop' a => StartStopDiscontinue' a where
---     discontinue :: a
--- class StartStop' a => StartStopSingle' a where
---     single      :: a
--- 
--- instance StartStop' SSCDS where
---     start = Start
---     stop  = Stop
--- instance StartStopContinue' SSCDS where
---     continue = Continue
--- instance StartStopDiscontinue' SSCDS where
---     discontinue = Discontinue
--- instance StartStopSingle' SSCDS where
---     single = Single
--- 
--- type SS  = forall a. StartStop' a => a
--- type SSC = forall a. StartStopContinue' a => a
--- type SSD = forall a. StartStopDiscontinue' a => a
--- type SSS = forall a. StartStopSingle' a => a
---     
--- _ss  :: SS  -> SS
--- _ssc :: SSC -> SSC
--- _ssd :: SSD -> SSD
--- _sss :: SSS -> SSS
+class Start a where  start :: a
+class Stop a where   stop :: a
+class Single a where single :: a
+class Continue a where continue :: a
+class Discontinue a where discontinue :: a
+instance Start StartStop where start = SS Start
+instance Stop  StartStop where stop  = SS Stop            
+instance Start  StartStopSingle where start = SSS Start
+instance Stop   StartStopSingle where stop  = SSS Stop            
+instance Single StartStopSingle where single  = SSS Single
+instance Start  StartStopContinue where start = SSC Start
+instance Stop   StartStopContinue where stop  = SSC Stop            
+instance Continue StartStopContinue where continue = SSC Continue
+instance Start  StartStopDiscontinue where start = SSD Start
+instance Stop   StartStopDiscontinue where stop  = SSD Stop            
+instance Discontinue StartStopDiscontinue where discontinue = SSD Discontinue
 
 
 -- | The trill-beats type specifies the beats used in a trill-sound or bend-sound attribute

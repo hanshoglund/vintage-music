@@ -1,34 +1,49 @@
 
+{-|
+    Defines the root element 'Score' and related information such as the score
+    header, basic attributes and meta-information such as credits, layout options
+    etc. Each score must have at lest one 'Part'. In the trivial case, a simple
+    treble clef part is provided. For a more complicated instrumention, see 'PartList'.
+
+    The actual musical data is wrapped up in the 'MusicData' type, which references
+    types defined in other modules, notably:
+
+        * "Music.Model.MusicXML.Note"
+
+        * "Music.Model.MusicXML.Attribute"
+
+        * "Music.Model.MusicXML.Articulations"
+-}
 module Music.Model.MusicXML.Score
-(     
-      MeasureAttributes(..)
+(
+-- *
+      Score(..)
+    , Part
+    , Measure
+-- * Basic Attributes
+    , MeasureAttributes(..)
     , PartAttributes(..)
     , DocumentAttributes(..)
+-- * Header
+    , ScoreHeader(..)
+-- ** Meta-information
     , Work(..)
     , Identification(..)
     , Defaults(..)
     , Credit(..)
+-- ** Parts and groups
+    , PartList
+    , ScorePart(..)
+    , PartGroup(..)
+    , PartName
+    , GroupName(..)
+    , GroupSymbol(..)
     , MidiDevice(..)
     , MidiInstrument(..)
     , ScoreInstrument(..)
-    , PartName
-    , ScorePart(..)
-    , GroupName(..)
-    , GroupSymbol(..)
-    , PartGroup(..)
-    , PartList
-    , ScoreHeader(..)
+-- * Body
     , MusicData(..)
-    , Part
-    , Measure
-    , Score(..)    
-    , withHeader
-    , withWork
-    , setWork
-    , setDefaults
-    , setCredit
-    , setTitle
-) 
+)
 where
 
 import Music.Model.MusicXML.Base
@@ -42,9 +57,9 @@ import Music.Model.MusicXML.Opus
 import Music.Model.MusicXML.Write
 
 
--- **************************************************************************************************** 
+-- ****************************************************************************************************
 -- Attribute groups
--- **************************************************************************************************** 
+-- ****************************************************************************************************
 
 -- | The MeasureAttributes group is used by the measure element. Measures have a required number
 --   attribute (going from partwise to timewise, measures are grouped via the number).
@@ -53,7 +68,7 @@ import Music.Model.MusicXML.Write
 --   such as pickup measures and the last half of mid-measure repeats. The value is 'False' if not
 --   specified.
 --
---   The nonControlling attribute is intended for use in multimetric music. 
+--   The nonControlling attribute is intended for use in multimetric music.
 --   If set to 'True', the left barline in this measure does not coincide with
 --   the left barline of measures in other parts. The value is 'False' if not specified. In partwise
 --   files, the number attribute should be the same for measures in different parts that share the
@@ -71,9 +86,18 @@ data MeasureAttributes = MeasureAttributes { number         :: String
                                            , width          :: Maybe Tenths }
                                            deriving (Show, Eq)
 
--- | In either partwise or timewise format, the part element has an id attribute that is a reference 
+instance Trivial MeasureAttributes where
+    trivial = MeasureAttributes "0" Nothing Nothing Nothing
+
+-- instance WriteXml MeasureAttributes where
+--     writeXml a = stringAttrs [("version", version a)]
+
+-- | In either partwise or timewise format, the part element has an id attribute that is a reference
 -- back to a 'ScorePart' in the 'PartList'.
 data PartAttributes = PartAttributes { partAttributesId :: String }
+
+instance WriteXml PartAttributes where
+    writeXml a = stringAttrs [("id", partAttributesId a)]
 
 
 -- | The DocumentAttributes attribute group is used to specify the attributes for an entire MusicXML
@@ -90,25 +114,25 @@ instance WriteXml DocumentAttributes where
     writeXml a = stringAttrs [("version", version a)]
 
 
--- **************************************************************************************************** 
+-- ****************************************************************************************************
 -- Complex types
--- **************************************************************************************************** 
+-- ****************************************************************************************************
 
 -- | Works are optionally identified by number and title. The work type also may indicate a link to
 -- the 'Opus' document that composes multiple scores into a collection.
-data Work = Work { 
+data Work = Work {
                  -- | The workNumber element specifies the number of a work, such as its opus
                  -- number.
                  workNumber :: Maybe String
                  -- | The workTitle element specifies the title of a work, not including its opus or
-                 -- other work number.            
+                 -- other work number.
                  , workTitle  :: Maybe String
-                 , opus       :: Maybe Opus } 
-    
+                 , opus       :: Maybe Opus }
+
 instance Trivial Work where
     trivial = Work Nothing Nothing Nothing
 
-instance WriteXml Work where 
+instance WriteXml Work where
     writeXml work = element "work" [] elements
         where elements = [ element "work-number" [] [writeXml $ workNumber work ]
                          , element "work-title"  [] [writeXml $ workTitle  work ]
@@ -118,7 +142,7 @@ instance WriteXml Work where
 -- headers that may apply at a score-wide, movement-wide, or part-wide level. The creator, rights,
 -- source, and relation elements are based on Dublin Core.
 type Identification = TODO
-                           
+
 
 -- | The defaults type specifies score-wide defaults for scaling, layout, and appearance.
 type Defaults = TODO
@@ -129,11 +153,11 @@ type Defaults = TODO
 -- However, since the credit is not part of a measure, the default-x and default-y attributes adjust
 -- the origin relative to the bottom left-hand corner of the first page. The enclosure for
 -- credit-words is none by default.
--- 
+--
 -- By default, a series of credit-words elements within a single credit element follow one another in
 -- sequence visually. Non-positional formatting attributes are carried over from the previous element
 -- by default.
--- 
+--
 -- The page attribute for the credit element, new in Version 2.0, specifies the page number where the
 -- credit should appear. This is an integer value that starts with 1 for the first page. Its value is
 -- 1 by default. Since credits occur before the music, these page numbers do not refer to the page
@@ -142,9 +166,9 @@ type Defaults = TODO
 type Credit = TODO
 
 
--- **************************************************************************************************** 
+-- ****************************************************************************************************
 -- Element groups
--- **************************************************************************************************** 
+-- ****************************************************************************************************
 
 
 -- | The MidiDevice type corresponds to the DeviceName meta event in Standard MIDI Files. The
@@ -160,7 +184,7 @@ type MidiInstrument = TODO
 -- | The ScoreInstrument type represents a single instrument within a score-part. As with the
 -- 'ScorePart' type, each ScoreInstrument has a required ID attribute, a name, and an optional
 -- abbreviation.
--- 
+--
 -- A ScoreInstrument type is also required if the score specifies MIDI 1.0 channels, banks, or
 -- programs. An initial MidiInstrument assignment can also be made here. MusicXML software should be
 -- able to automatically assign reasonable channels and instruments without these elements in simple
@@ -189,6 +213,9 @@ data ScorePart = ScorePart { partIdentification      :: Maybe Identification
                            , scoreInstruments        :: [ScoreInstrument]
                            , scoreMidiDevice         :: Maybe MidiDevice
                            , scoreMidiInstruments    :: [MidiInstrument] }
+
+instance Trivial ScorePart where
+    trivial = ScorePart Nothing Nothing Nothing Nothing Nothing Nothing [] Nothing []
 
 instance WriteXml ScorePart where
     writeXml = undefined
@@ -226,7 +253,7 @@ type GroupSymbol = TODO
     </xs:complexType>
 
 -}
-    
+
 -- | The PartGroup element indicates groupings of parts in the score, usually indicated by braces and
 --   brackets. Braces that are used for multi-staff parts should be defined in the attributes element
 --   for that part. The 'PartGroup' start element appears before the first 'ScorePart' in the group. The
@@ -243,8 +270,8 @@ data PartGroup = PartGroup { groupName                 :: Maybe GroupName
                            , groupAbbreviationDisplay  :: Maybe NameDisplay
                            , groupSymbol               :: Maybe GroupSymbol
                            , groupBarline              :: Maybe (GroupBarlineValue, Maybe Color)
-                           , groupTime                 :: Maybe Empty      
-                           , groupType                 :: StartStop 
+                           , groupTime                 :: Maybe Empty
+                           , groupType                 :: StartStop
                            , groupNumber               :: String }
 
 instance WriteXml PartGroup where
@@ -252,7 +279,7 @@ instance WriteXml PartGroup where
 
 -- | The PartList identifies the different musical parts in this movement. Each part has an identifier
 -- that is used later within the musical data. Since parts may be encoded separately and combined later,
--- identification elements are present at both the score and 'ScorePart' levels. There must be at least
+-- 'Identification' elements are present at both the score and 'ScorePart' levels. There must be at least
 -- one ScorePart, combined as desired with 'PartGroup' elements that indicate braces and brackets. Parts
 -- are ordered from top to bottom in a score based on the order in which they appear in the PartList.
 type PartList = [Either PartGroup ScorePart]
@@ -278,7 +305,7 @@ instance Trivial ScoreHeader where
                           , credit          = trivial
                           , partList        = trivial }
 
-instance WriteXml ScoreHeader where 
+instance WriteXml ScoreHeader where
     writeXml h  =  writeXml (work h)
                <+> writeXml (movementNumber h)
                <+> writeXml (movementTitle h)
@@ -288,7 +315,7 @@ instance WriteXml ScoreHeader where
                <+> writeXml (partList h)
 
 
--- **************************************************************************************************** 
+-- ****************************************************************************************************
 -- Root elements
 -- ****************************************************************************************************
 
@@ -304,7 +331,7 @@ data MusicData = Note Note
                | Barline Barline
                | Grouping Grouping
                | Link Link
-               | Bookmark Bookmark 
+               | Bookmark Bookmark
 
 newtype Part    = Part    [(MeasureAttributes, [MusicData])]
 newtype Measure = Measure (MeasureAttributes, [[MusicData]])
@@ -315,36 +342,20 @@ instance WriteXml Part where
 instance WriteXml Measure where
     writeXml = undefined
 
-                                                            
+
 -- | The score is the root element for the schema. It includes the 'ScoreHeader' group, followed either
---   by a series of parts with measures inside (PartwiseScore) or a series of measures with parts inside
---   (TimewiseScore).
+--   by a series of parts with measures inside or a series of measures with parts inside.
 data Score = PartwiseScore { attributes :: Maybe DocumentAttributes
                            , header     :: ScoreHeader
-                           , parts      :: [Part] } 
+                           , parts      :: [Part] }
            | TimewiseScore { attributes :: Maybe DocumentAttributes
                            , header     :: ScoreHeader
                            , measures   :: [Measure] }
-    
+
 instance Trivial Score where
     trivial = PartwiseScore trivial trivial trivial
 instance WriteXml Score where
     writeXml (PartwiseScore a h p) = element "score-partwise" [writeXml a] [writeXml h <+> writeXml p]
     writeXml (TimewiseScore a h p) = element "score-timewise" [writeXml a] [writeXml h <+> writeXml p]
-
-withHeader  :: (ScoreHeader -> ScoreHeader) -> Score -> Score
-withWork    :: (Work -> Work)               -> Score -> Score
-setWork     :: Work                         -> Score -> Score
-setDefaults :: Defaults                     -> Score -> Score
-setCredit   :: [Credit]                     -> Score -> Score
-setTitle    :: String                       -> Score -> Score
-
-withHeader  f s = s { header = f (header s) }
-
-withWork    f = withHeader $ \h -> h { work      = Just (force f $ work h) }
-setWork     x = withHeader $ \h -> h { work      = Just x }
-setDefaults x = withHeader $ \h -> h { defaults  = Just x }
-setCredit   x = withHeader $ \h -> h { credit    = x      }
-setTitle    x = withWork   $ \w -> w { workTitle = Just x }
 
 
