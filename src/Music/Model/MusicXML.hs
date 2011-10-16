@@ -3,7 +3,7 @@
     Implements MusicXML 2.0.
         
     XML elements are lifted to Haskell values. Optional and listed elements are represented using
-    'Maybe', 'Either' and @[]@. Most types can be initiated using the "Data.Trival" class. This should 
+    'Maybe', 'Either' and @[]@. Most types can be initiated using the "Data.Trivial" class. This should 
     produce a sensible default element, such as a blank score, a note list without elements etc.
     
     Utility function are provided to manipulate the structured data. Generally, for a type @S@ with
@@ -82,7 +82,7 @@ withHeader  f s = s { header   = f (header s) }
 setParts    p s = s { parts    = p }
 setMeasures p s = s { measures = p }
 
-withWork    f = withHeader $ \h -> h { work      = Just (force f $ work h) }
+withWork    f = withHeader $ \h -> h { work      = Just (f . force $ work h) }
 setWork     x = withHeader $ \h -> h { work      = Just x }
 setDefaults x = withHeader $ \h -> h { defaults  = Just x }
 setCredit   x = withHeader $ \h -> h { credit    = x      }

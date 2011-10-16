@@ -25,9 +25,9 @@ import Music.Model.MusicXML.Base
 -- *****************************************************************************
 -- Simple types
 -- *****************************************************************************
-data FontStyle = NormalFontStyle | ItalicFontStyle
+data FontStyle = Roman | Italic
     deriving (Show, Eq) 
-data FontWeight = NormalFontWeight | ItalicFontWeight
+data FontWeight = Regular | Bold
     deriving (Show, Eq) 
 
 

@@ -6,19 +6,20 @@ module Data.Trivial where
 -- | A class for types with a sensible default value.     
 class Trivial a where
     trivial :: a
-    always  :: Maybe a -> a
-    force   :: (a -> b) -> Maybe a -> b
-    forceLeft  :: Either a b -> a
-    forceRight :: Either b a -> a
     
-    always (Nothing)  = trivial
-    always (Just x)   = x 
-    force f (Nothing) = f trivial
-    force f (Just x)  = f x
-    forceLeft (Left x)   = x
-    forceRight (Right x) = x
-    forceLeft _          = trivial
-    forceLeft _          = trivial
+force      :: Trivial a => Maybe a -> a
+forceF     :: Trivial a => (a -> b) -> Maybe a -> b
+forceLeft  :: Trivial a => Either a b -> a
+forceRight :: Trivial a => Either b a -> a
+
+force (Nothing)      = trivial
+force (Just x)       = x 
+forceF f (Nothing)   = f trivial
+forceF f (Just x)    = f x
+forceLeft  (Left x)  = x
+forceLeft  (Right _) = trivial
+forceRight (Right x) = x
+forceRight (Right _) = trivial
 
 instance Trivial () where
     trivial = ()

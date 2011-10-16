@@ -6,20 +6,14 @@
     treble clef part is provided. For a more complicated instrumention, see 'PartList'.
 
     The actual musical data is wrapped up in the 'MusicData' type, which references
-    types defined in other modules, notably:
-
-        * "Music.Model.MusicXML.Note"
-
-        * "Music.Model.MusicXML.Attribute"
-
-        * "Music.Model.MusicXML.Articulations"
+    types defined in other modules, notably 'Note', 'Direction' and 'Attributes'.
 -}
 module Music.Model.MusicXML.Score
 (
--- *
+-- * Root elements
       Score(..)
-    , Part
-    , Measure
+    , Part(..)
+    , Measure(..)
 -- * Basic Attributes
     , MeasureAttributes(..)
     , PartAttributes(..)
@@ -333,8 +327,8 @@ data MusicData = Note Note
                | Link Link
                | Bookmark Bookmark
 
-newtype Part    = Part    [(MeasureAttributes, [MusicData])]
-newtype Measure = Measure (MeasureAttributes, [[MusicData]])
+type Part    = [(MeasureAttributes, [MusicData])]
+type Measure = (MeasureAttributes, [[MusicData]])
 
 instance WriteXml Part where
     writeXml = undefined
