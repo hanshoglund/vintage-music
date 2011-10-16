@@ -14,6 +14,9 @@ library
     hs-source-dirs:     src
     default-extensions: TypeSynonymInstances, OverlappingInstances
     exposed-modules:
+        
+        Control.Parrow
+        
         Data.Trivial
     
         Music
