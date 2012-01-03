@@ -64,7 +64,7 @@ import Music.Model.MusicXML.Write
 
 -- | Create a single-voice partwise score with the given name.
 createPartwiseScore :: String -> [Part] -> Score
-createPartwiseScore title parts    = setParts parts . setTitle title $ trivial
+createPartwiseScore title parts = setParts parts . setTitle title $ trivial
 
 -- | Create a single-voice partwise score with the given name.
 createTimewiseScore :: String -> [Measure] -> Score

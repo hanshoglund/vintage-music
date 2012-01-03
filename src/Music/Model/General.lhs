@@ -82,8 +82,8 @@ and applicative operations.
     addS :: SF Double Double
     cosS :: SF Double Double
 
-    mapS   :: (a -> b) -> SF a b
-    constS :: a -> SF b a
+    pureS   :: (a -> b) -> SF a b
+    constS :: a -> SF _ a
     applyS :: SF (SF b c, b) c
                              
 
@@ -110,8 +110,6 @@ Composition
  - Parallel
     - This option combines two events so that they occur simultaneously.
 
- - Repetition
-    - This option takes an event and repeats it infinitely.
 
 > type Time = Double
 
@@ -137,7 +135,7 @@ The primitive events:
 - Constant
     - This event is simply a constant value
 - Discrete
-    - This event is a step of values, which changes at the given sample rate
+    - This event is a step of values, which changes at the given points
 - Continous
     - This event represents an arbitrary change in time
 

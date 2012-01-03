@@ -2,8 +2,10 @@
 
 module Data.Trivial where
     
+import Control.Monad
 
--- | A class for types with a sensible default value.     
+
+-- | A class for types with a trivial value.     
 class Trivial a where
     trivial :: a
     

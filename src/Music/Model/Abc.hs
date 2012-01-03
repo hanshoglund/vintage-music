@@ -36,44 +36,41 @@ import Data.Word
 -- --------------------------------------------------------------------------------
 
     
-data Field = Author
-           | Book
-           | Composer
-           | Discography
-           | FileUrl
-           | Group
-           | History
-           | Instruction
-           | Key
-           | UnitNoteLength
-           | Meter
-           | Macro
-           | Notes
-           | Origin
-           | Parts
-           | Tempo
-           | Rhythm
-           | Remark
-           | Source
-           | SymbolLine
-           | Title
-           | UserDefined
-           | Voice
-           | Words
-           | ReferenceNumber
-           | Transcriber
-           deriving (Eq, Show)
+data Field 
+    = Author
+    | Book
+    | Composer
+    | Discography
+    | FileUrl
+    | Group
+    | History
+    | Instruction
+    | Key
+    | UnitNoteLength
+    | Meter
+    | Macro
+    | Notes
+    | Origin
+    | Parts
+    | Tempo
+    | Rhythm
+    | Remark
+    | Source
+    | SymbolLine
+    | Title
+    | UserDefined
+    | Voice
+    | Words
+    | ReferenceNumber
+    | Transcriber
+    deriving (Eq, Show)
 
 -- ABC pitches use reduntant octave and accidental modifiers 
 -- The default form LiteralPitch preserves the original representation
 -- The normalized forms are more efficient
--- The MIDI form can not distinguish C# and Db
 
 data Pitch = LiteralPitch      PitchName OctaveBase [OctaveModifier] [Accidental]
-           | NzOctavePitch     PitchName Int [Accidental]
-           | NzAccidentalPitch PitchName OctaveBase [OctaveModifier] Int
-           | NzPitch           PitchName Int Int
-           | MIDIPitch         Word8
+           | NormalizedPitch   PitchName Int Int
 
 
 data PitchName = C | D | E | F | G | A | B 

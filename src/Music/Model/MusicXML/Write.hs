@@ -1,5 +1,10 @@
 {-# LANGUAGE TypeSynonymInstances, OverlappingInstances #-}
 
+-- TODO Take out {TypeSynonymInstances, OverlappingInstances} from cabal file (?)
+
+-- TODO Move HXT specific stuff into an internal module and hide in-memory XML in a newtype
+--      We can provide a conversion function to HXT
+
 module Music.Model.MusicXML.Write
 (
   ArrowXml
@@ -101,7 +106,7 @@ writeXmlAttrs = attrs' writeXml
 attrs' f      = catA . map (\(k, v) -> attr k (f v))
 
 
-   
+-- | Write the XML representation of the given value to the standard output.   
 putXml :: WriteXml a => a -> IO ()
 putXml = printXml . writeXml
 

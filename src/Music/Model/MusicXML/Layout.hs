@@ -450,5 +450,143 @@ type NoteSize = TODO
 
 
 -- *****************************************************************************
--- Root elements
 -- *****************************************************************************
+-- *****************************************************************************
+
+
+
+-- *****************************************************************************
+-- Metronome marks
+
+-- | The beat-unit group combines elements used repeatedly in the metronome element to specify a
+--   note within a metronome mark.
+
+data BeatUnit = BeatUnit { 
+-- | Indicates the graphical note type to use in a metronome mark.
+                           beatUnit    :: NoteTypeValue
+-- | Used to specify any augmentation dots for a metronome mark note.
+                         , beatUnitDot :: Bool}
+
+-- | The per-minute type can be a number, or a text description including numbers. If a font is
+--   specified, it overrides the font specified for the overall metronome element. This allows separate
+--   specification of a music font for the beat-unit and a text font for the numeric value, in cases
+--   where a single metronome font is not used.
+data PerMinute = PerMinute String Font
+
+-- | The metronome type represents metronome marks and other metric relationships. The beat-unit
+--   group and per-minute element specify regular metronome marks. The metronome-note and
+--   metronome-relation elements allow for the specification of more complicated metric relationships,
+--   such as swing tempo marks where two eighths are equated to a quarter note / eighth note triplet.
+--   The parentheses attribute indicates whether or not to put the metronome mark in parentheses; its
+--   value is no if not specified.
+data Metronome 
+    = MetronomeBeats          BeatUnit BeatUnit
+    | MetronomeBeatsPerMinute BeatUnit PerMinute
+    | Metronome
+
+{-
+    <xs:complexType name="metronome">
+        <xs:choice>
+
+            <xs:sequence>
+                <xs:group ref="beat-unit"/>
+                <xs:choice>
+                    <xs:element name="per-minute" type="per-minute"/>
+                    <xs:group ref="beat-unit"/>
+                </xs:choice>
+            </xs:sequence>
+
+            <xs:sequence>
+                <xs:element name="metronome-note" type="metronome-note" maxOccurs="unbounded"/>
+                <xs:sequence minOccurs="0">
+                    <xs:element name="metronome-relation" type="xs:string">
+                        <xs:annotation>
+                            <xs:documentation>The metronome-relation element describes the relationship symbol that goes between the two sets of metronome-note elements. The currently allowed value is equals, but this may expand in future versions. If the element is empty, the equals value is used.</xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="metronome-note" type="metronome-note" maxOccurs="unbounded"/>
+                </xs:sequence>
+            </xs:sequence>
+
+        </xs:choice>
+        <xs:attributeGroup ref="print-style"/>
+        <xs:attribute name="parentheses" type="yes-no"/>
+    </xs:complexType>
+
+-}
+
+-- | The metronome-beam type works like the beam type in defining metric relationships, but does not
+--   include all the attributes available in the beam type.
+type MetronomeBeam = TODO
+{-
+    <xs:complexType name="metronome-beam">
+        <xs:simpleContent>
+            <xs:extension base="beam-value">
+                <xs:attribute name="number" type="beam-level" default="1"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+-}
+
+-- | The metronome-note type defines the appearance of a note within a metric relationship mark.
+data MetronomeNote 
+    = MetronomeNote { 
+-- | The metronome-type element works like the type element in defining metric
+--   relationships.
+                                     metronomeNoteValue  :: NoteTypeValue
+-- | The metronome-dot element works like the dot element in defining metric
+--   relationships.
+                                   , metronomeNoteDot    :: Int
+                                   , metronomeNoteBeam   :: [MetronomeBeam]
+                                   , metronomeNoteTuplet :: Maybe MetronomeTuplet }
+
+-- | The metronome-tuplet type uses the same element structure as the time-modification element along
+--   with some attributes from the tuplet element.
+type MetronomeTuplet = TODO
+{-
+    <xs:complexType name="metronome-tuplet">
+        <xs:complexContent>
+            <xs:extension base="time-modification">
+                <xs:attribute name="type" type="start-stop" use="required"/>
+                <xs:attribute name="bracket" type="yes-no"/>
+                <xs:attribute name="show-number" type="show-tuplet"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+-}
+      
+
+
+-- *****************************************************************************
+
+-- | The string type is used with tablature notation, regular notation (where it is often circled),
+--   and chord diagrams. String numbers start with 1 for the highest string.
+data StringIndication = StringIndication StringNumber PrintStyle Placement
+  
+
+-- *****************************************************************************
+
+
+-- | Fingering is typically indicated 1,2,3,4,5. Multiple fingerings may be given, typically to
+--   substitute fingerings in the middle of a note. The substitution and alternate values are "no" if
+--   the attribute is not present. For guitar and other fretted instruments, the fingering element
+--   represents the fretting finger; the pluck element represents the plucking finger.
+data Fingering = Fingering { fingeringValue        :: String
+                           , fingeringSubstitution :: Bool
+                           , fingeringAlternate    :: Bool
+                           , fingeringPrintStyle   :: PrintStyle
+                           , fingeringPlacement    :: Placement }
+
+
+-- *****************************************************************************
+
+-- | The fret element is used with tablature notation and chord diagrams. Fret numbers start with 0
+--   for an open string and 1 for the first fret.
+data Fret = Fret { fretValue :: Int
+                 , fretFont  :: Font
+                 , fretColor :: Color }
+
+-- *****************************************************************************
+

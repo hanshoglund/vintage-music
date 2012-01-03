@@ -1,0 +1,14 @@
+-- import Control.Parrow
+-- import Data.Trivial
+-- import Music
+-- import Music.Model
+-- import Music.Model.Abc
+-- import Music.Model.GUIDO
+-- import Music.Model.MIDI
+
+import Music.Model.MusicXML
+import Music.Utilities
+
+:load src/Music/Model/MusicXml.hs
+
+:set prompt "Music> "

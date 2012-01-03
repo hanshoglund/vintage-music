@@ -12,10 +12,18 @@ module Music.Model.MusicXML.Text
 , TextRotation
 , GroupNameText
 
+, Footnote
+
 , AccidentalText
 , FormattedText
 , TypedText  
 , Lyric
+, TextElementData
+, EmptyFont
+, LyricFont
+, LyricLanguage
+, Elision
+, Extend
 )
 where
 
@@ -112,11 +120,18 @@ type StyleText = TODO
     </xs:complexType>
 -}
 
+-- | The lyric type represents text underlays for lyrics, based on Humdrum with support for other
+--   formats. Two text elements that are not separated by an elision element are part of the same
+--   syllable, but may have different text formatting. The MusicXML 2.0 XSD is more strict than the
+--   2.0 DTD in enforcing this by disallowing a second syllabic element unless preceded by an
+--   elision element. The lyric number indicates multiple lines, though a name can be used as well
+--   (as in Finale's verse / chorus / section specification). Justification is center by default;
+--   placement is below by default.
+
 type Lyric = TODO
 {-
     <xs:complexType name="lyric">
         <xs:annotation>
-            <xs:documentation>The lyric type represents text underlays for lyrics, based on Humdrum with support for other formats. Two text elements that are not separated by an elision element are part of the same syllable, but may have different text formatting. The MusicXML 2.0 XSD is more strict than the 2.0 DTD in enforcing this by disallowing a second syllabic element unless preceded by an elision element. The lyric number indicates multiple lines, though a name can be used as well (as in Finale's verse / chorus / section specification). Justification is center by default; placement is below by default.</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:choice>
@@ -234,7 +249,42 @@ type LyricLanguage = TODO
 
 -}
 
+-- | In Version 2.0, the content of the elision type is used to specify the symbol used to display
+-- the elision. Common values are a no-break space (Unicode 00A0), an underscore (Unicode 005F), or
+-- an undertie (Unicode 203F).
+type Elision = TODO
+{-
+    <xs:complexType name="elision">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attributeGroup ref="font"/>
+                <xs:attributeGroup ref="color"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+-}
+
+-- | The extend type represents word extensions for lyrics.
+type Extend = TODO
+{-
+    <xs:complexType name="extend">
+        <xs:attributeGroup ref="font"/>
+        <xs:attributeGroup ref="color"/>
+    </xs:complexType>
+-}
+
+
 
 -- *****************************************************************************
--- Root elements
 -- *****************************************************************************
+-- *****************************************************************************
+
+
+
+-- | The footnote element specifies editorial information that appears in footnotes in the printed
+--   score. It is defined within a group due to its multiple uses within the MusicXML schema.
+
+data Footnote = Footnote FormattedText

@@ -1,6 +1,49 @@
 
+-- ------------------------------------------------------------
+
+{- |
+   Module     : Music.Model.MusicXML.Score
+   Copyright  : Copyright (C) 2012 Hans Höglund
+   License    : MIT
+
+   Maintainer : Hans Hoglund (hans@hanshoglund.se)
+   Stability  : experimental
+   Portability: non-portable
+-}
+
+-- ------------------------------------------------------------
 
 module Music.Model.MusicXML.Note 
+(
+-- * Rhythm
+      NoteType
+
+-- * Pitch
+    , Pitch(..)
+    , DisplayStepOctave(..)
+    , AccidentalValue(..)
+    , Accidental(..)
+    , AccidentalMark(..)
+-- * Stems and ties
+    , Stem(..)
+    , Tie(..)
+    , Tied(..)
+
+-- * Noteheads
+    , NoteHead(..)
+
+-- * Notations
+    , Slur(..)
+    , Glissando(..)
+    , Slide(..)
+    , Notation(..)
+    , OtherNotation(..)
+
+-- * Note definition
+    , FullNote(..)
+    , NoteProperties(..)
+    , Note(..)
+)
 where
 
 import Music.Model.MusicXML.Base
@@ -8,73 +51,165 @@ import Music.Model.MusicXML.Text
 import Music.Model.MusicXML.Layout
 import Music.Model.MusicXML.Articulations
 import Music.Model.MusicXML.Tuplet
+import Music.Model.MusicXML.Sound
+import Music.Model.MusicXML.Write
 
 
--- *****************************************************************************
--- Simple types
--- *****************************************************************************
+-- ------------------------------------------------------------
 
--- *****************************************************************************
--- Attribute groups
--- *****************************************************************************
+-- | Pitch is represented as a combination of the step of the diatonic scale, the chromatic
+-- alteration, and the octave.
+data Pitch = Pitch Step (Maybe Semitones) Octave
+
+-- | The display-step-octave type contains the sequence of elements used by both the rest and
+-- unpitched elements. This group is used to place rests and unpitched elements on the staff
+-- without implying that these elements have pitch. Positioning follows the current clef. If
+-- percussion clef is used, the display-step and display-octave elements are interpreted as if
+-- in treble clef, with a G in octave 4 on line 2. If not present, the note is placed on the
+-- middle line of the staff, generally used for one-line staffs.
+data DisplayStepOctave = DisplayStepOctave Step Octave
 
 
-
--- *****************************************************************************
--- Complex types
--- *****************************************************************************
-
+-- | The accidental-value type represents notated accidentals supported by MusicXML. In the
+--   MusicXML 2.0 DTD this was a string with values that could be included. The XSD strengthens the
+--   data typing to an enumerated list.
+data AccidentalValue 
+    = Sharp
+    | Natural
+    | Flat
+    | DoubleSharp
+    | SharpSharp
+    | FlatFlat
+    | NaturalSharp
+    | NaturalFlat
+    | QuarterFlat
+    | QuarterSharp
+    | ThreeQuartersFlat
+    | ThreeQuartersSharp
+    deriving (Show, Eq, Enum)
+  
 -- | The accidental type represents actual notated accidentals. Editorial and cautionary indications
--- are indicated by attributes. Values for these attributes are "no" if not present. Specific graphic
--- display such as parentheses, brackets, and size are controlled by the level-display attribute
--- group.
-type Accidental = TODO
-{-
-    <xs:complexType name="accidental">
-        <xs:annotation>
-        </xs:annotation>
-        <xs:simpleContent>
-            <xs:extension base="accidental-value">
-                <xs:attribute name="cautionary" type="yes-no"/>
-                <xs:attribute name="editorial" type="yes-no"/>
-                <xs:attributeGroup ref="level-display"/>
-                <xs:attributeGroup ref="print-style"/>
-            </xs:extension>
-        </xs:simpleContent>
-    </xs:complexType>
+--   are indicated by attributes. Values for these attributes are False if not present. Specific graphic
+--   display such as parentheses, brackets, and size are controlled by the level-display attribute
+--   group.
+data Accidental = Accidental { accidentalValue        :: AccidentalValue
+                             , accidentalCautionary   :: Bool
+                             , accidentalEditorial    :: Bool
+                             , accidentalLevelDisplay :: Maybe LevelDisplay
+                             , accidentalPrintStyle   :: Maybe PrintStyle }
 
--}
+instance Trivial Accidental where
+    trivial = Accidental Natural False False Nothing Nothing
+
+instance WriteXml Accidental where
+    writeXml a = undefined
+
+
 -- | An accidental-mark can be used as a separate notation or as part of an ornament. When used in an
 -- ornament, position and placement are relative to the ornament, not relative to the note.
-type AccidentalMark = TODO
-{-
-    <xs:complexType name="accidental-mark">
-        <xs:annotation>
-        </xs:annotation>
-        <xs:simpleContent>
-            <xs:extension base="accidental-value">
-                <xs:attributeGroup ref="print-style"/>
-                <xs:attributeGroup ref="placement"/>
-            </xs:extension>
-        </xs:simpleContent>
-    </xs:complexType>
+data AccidentalMark = AccidentalMark { accidentalMarkValue      :: AccidentalValue
+                                     , accidentalMarkPrintStyle :: Maybe PrintStyle
+                                     , accidentalMarkPlacement  :: Maybe Placement }
 
--}
+instance Trivial AccidentalMark where
+    trivial = AccidentalMark Natural Nothing Nothing
+
+instance WriteXml AccidentalMark where
+    writeXml a = undefined
+      
+
+-- ------------------------------------------------------------
+
+-- | The tie element indicates that a tie begins or ends with this note. The tie element
+-- indicates sound; the tied element indicates notation.
+data Tie = TODO
+
+-- | The tied type represents the notated tie. The tie element represents the tie sound.
+data Tied 
+    = Tied
+    { startStop   :: StartStop
+    , numberLevel :: NumberLevel
+    , lineType    :: LineType
+    , position    :: Position
+    , placement   :: Placement
+    , orientation :: Orientation
+    , bezier      :: Bezier
+    , color       :: Color }
+
+
+-- ------------------------------------------------------------
+
+-- | Slur types are empty. Most slurs are represented with two elements: one with a start type, and
+--   one with a stop type. Slurs can add more elements using a continue type. This is typically used to
+--   specify the formatting of cross-system slurs, or to specify the shape of very complex slurs.
+
+data Slur = Slur { slurType        :: StartStopContinue 
+                 , slurNumber      :: NumberLevel
+                 , slurLineType    :: Position 
+                 , slurPlacement   :: Placement
+                 , slurOrientation :: Orientation
+                 , slurBezier      :: Bezier
+                 , slurColor       :: Color }
+                 
+-- ------------------------------------------------------------
+
+-- | Glissando and slide types both indicate rapidly moving from one pitch to the other so that
+--   individual notes are not discerned. The distinction is similar to that between NIFF's glissando
+--   and portamento elements. A glissando sounds the half notes in between the slide and defaults to a
+--   wavy line. The optional text is printed alongside the line.
+
+data Glissando = Glissando { glissandoValue      :: String 
+                           , glissandoType       :: StartStop
+                           , glissandoNumber     :: NumberLevel
+                           , glissandoLineType   :: LineType
+                           , glissandoPrintStyle :: PrintStyle }
+
+-- ------------------------------------------------------------
+
+data Slide = Slide { slideValue      :: String
+                   , slideType       :: StartStop
+                   , slideNumber     :: NumberLevel
+                   , slideLineType   :: LineType
+                   , slidePrintStyle :: PrintStyle 
+                   , slideBendSound  :: BendSound }
+
+
+-- ------------------------------------------------------------
+-- ------------------------------------------------------------
+-- ------------------------------------------------------------
+-- ------------------------------------------------------------
+
+-- | While using repeater beams was the original method for indicating tremolos, often playback and
+--   display are not well-enough integrated in an application to make that feasible. The tremolo
+--   ornament can be used to indicate either single-note or double-note tremolos. Single-note tremolos
+--   use the single type, while double-note tremolos use the start and stop types. The default is
+--   "single" for compatibility with Version 1.1. The text of the element indicates the number of
+--   tremolo marks and is an integer from 0 to 6. Note that the number of attached beams is not
+--   included in this value, but is represented separately using the beam element.
+
+data Tremolo = Tremolo { tremoloStartStopSingle :: StartStopSingle
+                       , tremoloTremoloMarks    :: TremoloMarks
+                       , tremoloPrintStyle      :: PrintStyle
+                       , tremoloPlacement       :: Placement }
+
+-- ------------------------------------------------------------
 
 -- | Notations refer to musical notations, not XML notations. Multiple notations are allowed in order
 -- to represent multiple editorial levels. The set of notations may be refined and expanded over
 -- time, especially to handle more instrument-specific technical notations.
-type Notations = [Notation]
-
 data Notation 
     = TiedNotation            Tied
     | SlurNotation            Slur
     | TupletNotation          Tuplet
+    
     | GlissandoNotation       Glissando
     | SlideNotation           Slide
+    
     | OrnamentsNotation       Ornaments
+    
     | TechnicalNotation       Technical
     | ArticulationsNotation   Articulations
+    
     | DynamicsNotation        Dynamics
     | FermataNotation         Fermata
     | ArpeggiateNotation      Arpeggiate
@@ -82,6 +217,21 @@ data Notation
     | AccidentalMarkNotation  AccidentalMark
     | OtherNotationNotation   OtherNotation
       
+
+-- | The other-notation type is used to define any notations not yet in the MusicXML format. This
+-- allows extended representation, though without application interoperability. It handles notations
+-- where more specific extension elements such as other-dynamics and other-technical are not
+-- appropriate.
+data OtherNotation = OtherNotation { otherNotationName        :: String 
+                                   , otherNotationType        :: StartStopSingle
+                                   , otherNotationLevel       :: NumberLevel
+                                   , otherNotationPrintObject :: Bool
+                                   , otherNotationPrintStyle  :: PrintStyle
+                                   , otherNotationPlacement   :: Placement }
+
+
+-- ------------------------------------------------------------
+
 -- | Stems can be down, up, none, or double. For down and up stems, the position attributes can be
 -- used to specify stem length. The relative values specify the end of the stem relative to the
 -- program default. Default values specify an absolute end stem position. Negative values of
@@ -101,88 +251,42 @@ type Stem = TODO
 
 -}          
 
--- | The other-notation type is used to define any notations not yet in the MusicXML format. This
--- allows extended representation, though without application interoperability. It handles notations
--- where more specific extension elements such as other-dynamics and other-technical are not
--- appropriate.
-type OtherNotation = TODO
-{-
-    <xs:complexType name="other-notation">
-        <xs:annotation>
-        </xs:annotation>
-        <xs:simpleContent>
-            <xs:extension base="xs:string">
-                <xs:attribute name="type" type="start-stop-single" use="required"/>
-                <xs:attribute name="number" type="number-level" default="1"/>
-                <xs:attributeGroup ref="print-object"/>
-                <xs:attributeGroup ref="print-style"/>
-                <xs:attributeGroup ref="placement"/>
-            </xs:extension>
-        </xs:simpleContent>
-    </xs:complexType>
-
--}
-
-
--- | Pitch is represented as a combination of the step of the diatonic scale, the chromatic
--- alteration, and the octave.
-type Pitch = TODO
-{-
-    <xs:complexType name="pitch">
-        <xs:sequence>
-            <xs:element name="step" type="step"/>
-            <xs:element name="alter" type="semitones" minOccurs="0"/>
-            <xs:element name="octave" type="octave"/>
-        </xs:sequence>
-    </xs:complexType>
-
--}
-
-
-
-
--- | The tie element indicates that a tie begins or ends with this note. The tie element
--- indicates sound; the tied element indicates notation.
-data Tie = TODO
-
--- | The tied type represents the notated tie. The tie element represents the tie sound.
-data Tied 
-    = Tied
-    { startStop :: StartStop
-    , numberLevel :: NumberLevel
-    , lineType :: LineType
-    , position :: Position
-    , placement :: Placement
-    , orientation :: Orientation
-    , bezier :: Bezier
-    , color :: Color }
-
--- | The display-step-octave type contains the sequence of elements used by both the rest and
--- unpitched elements. This group is used to place rests and unpitched elements on the staff
--- without implying that these elements have pitch. Positioning follows the current clef. If
--- percussion clef is used, the display-step and display-octave elements are interpreted as if
--- in treble clef, with a G in octave 4 on line 2. If not present, the note is placed on the
--- middle line of the staff, generally used for one-line staffs.
-type DisplayStepOctave = (Step, Octave)
+-- ------------------------------------------------------------
 
 
 -- | The full-note group is a sequence of the common note elements between cue/grace notes and
--- regular (full) notes: pitch, chord, and rest information, but not duration (cue and grace
--- notes do not have duration encoded). Unpitched elements are used for unpitched percussion,
--- speaking voice, and other musical elements lacking determinate pitch.
+--   regular (full) notes: pitch, chord, and rest information, but not duration (cue and grace
+--   notes do not have duration encoded). Unpitched elements are used for unpitched percussion,
+--   speaking voice, and other musical elements lacking determinate pitch.
+
+--   The isChord attribute indicates that this note is an additional chord tone with the preceding
+--   note. The duration of this note can be no longer than the preceding note. In MuseData, a 
+--   missing duration indicates the same length as the previous note, but the MusicXML format 
+--   requires a duration for chord notes too.
+
+-- TODO note that the Bool indicates whether it is a chord or not
+
 data FullNote = 
-    -- | The chord element indicates that this note is an additional chord tone with the preceding
-    -- note. The duration of this note can be no longer than the preceding note. In MuseData, a 
-    -- missing duration indicates the same length as the previous note, but the MusicXML format 
-    -- requires a duration for chord notes too.
-    Chord 
-  | Pitch  
+    Pitched   Bool Pitch
     -- | The unpitched element indicates musical elements that are notated on the staff but lack
     -- definite pitch, such as unpitched percussion and speaking voice.
-  | Unpitched DisplayStepOctave 
+  | Unpitched Bool DisplayStepOctave 
     -- | The rest element indicates notated rests or silences. Rest are usually empty, but
     -- placement on the -- staff can be specified using display-step and display-octave elements.
-  | Rest      DisplayStepOctave
+  | Rest      Bool DisplayStepOctave
+
+data NoteProperties = NoteProperties
+    { instrument        :: Maybe Instrument 
+    , noteType          :: Maybe NoteType 
+    , dots              :: [EmptyPlacement] 
+    , accidental        :: Maybe Accidental
+    , timeModification  :: Maybe TimeModification
+    , stem              :: Maybe Stem
+    , noteHead          :: Maybe NoteHead
+    , staff             :: Maybe Staff
+    , beam              :: Maybe Beam
+    , notations         :: [[Notation]]
+    , lyric             :: [Lyric] }
 
 -- | Notes are the most common type of MusicXML data. The MusicXML format keeps the MuseData
 --   distinction between elements used for sound information and elements used for notation
@@ -206,51 +310,22 @@ data FullNote =
 --   One dot element is used for each dot of prolongation. The placement element is used to 
 --   specify whether the dot should appear above or below the staff line. It is ignored for 
 --   notes that appear on a staff space.
-data  Note = 
-    GraceNote 
-    { fullNote          :: FullNote
-    , ties              :: [Tie]          
-    , instrument        :: Maybe Instrument 
-    , noteType          :: Maybe NoteType 
-    , dots              :: [EmptyPlacement] 
-    , accidental        :: Maybe Accidental
-    , timeModification  :: Maybe TimeModification
-    , stem              :: Maybe Stem
-    , noteHead          :: Maybe NoteHead
-    , staff             :: Maybe Staff
-    , beam              :: Maybe Beam
-    , notations         :: [Notations]
-    , lyric             :: [Lyric] }
-  | CueNote 
-    { fullNote          :: FullNote
-    , duration          :: Duration 
-    , instrument        :: Maybe Instrument 
-    , noteType          :: Maybe NoteType 
-    , dots              :: [EmptyPlacement] 
-    , accidental        :: Maybe Accidental
-    , timeModification  :: Maybe TimeModification
-    , stem              :: Maybe Stem
-    , noteHead          :: Maybe NoteHead
-    , staff             :: Maybe Staff
-    , beam              :: Maybe Beam
-    , notations         :: [Notations]
-    , lyric             :: [Lyric] }
-  | NormalNote
-    { fullNote          :: FullNote
-    , duration          :: Duration 
-    , ties              :: [Tie]         
-    , instrument        :: Maybe Instrument 
-    , noteType          :: Maybe NoteType 
-    , dots              :: [EmptyPlacement] 
-    , accidental        :: Maybe Accidental
-    , timeModification  :: Maybe TimeModification
-    , stem              :: Maybe Stem
-    , noteHead          :: Maybe NoteHead
-    , staff             :: Maybe Staff
-    , beam              :: Maybe Beam
-    , notations         :: [Notations]
-    , lyric             :: [Lyric] }        
-                        
+data Note 
+    = GraceNote 
+      { noteFullNote      :: FullNote
+      , noteTies          :: [Tie]
+      , noteProperties    :: NoteProperties }
+
+    | CueNote 
+      { noteFullNote      :: FullNote
+      , noteDuration      :: Duration
+      , noteProperties    :: NoteProperties }
+
+    | NormalNote
+      { noteFullNote      :: FullNote
+      , noteDuration      :: Duration 
+      , noteTies          :: [Tie]         
+      , noteProperties    :: NoteProperties }
 
 -- | The note-type type indicates the graphic note type. Values range from 256th to long. The
 -- size attribute indicates full, cue, or large size, with full the default for regular notes and
@@ -269,10 +344,3 @@ data NoteHead = NoteHead
     , noteHeadcolor         :: Color }
 
 
--- *****************************************************************************
--- Element groups
--- *****************************************************************************
-
--- *****************************************************************************
--- Root elements
--- *****************************************************************************

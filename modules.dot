@@ -16,21 +16,24 @@ digraph Music {
     MusicXML -> Opus;
     MusicXML -> Score;
     
-    Text -> Base;
+    Text          -> Base;
     
-    Layout -> Text;
-    Layout -> Base;
-                   
+    Layout        -> Text;
+    Layout        -> Base;
+
     Articulations -> Base;
-    Attributes -> Base;
+    Attributes    -> Base;
     
     Harmony -> Base;      
+
+    Image -> Layout;
     
     Note -> Layout; 
     Note -> Base;
     Note -> Articulations;
     
     Score -> Base;
+    Score -> Image;
     Score -> Layout;
     Score -> Articulations;
     Score -> Attributes;
@@ -38,5 +41,4 @@ digraph Music {
     Score -> Sound;
     Score -> Note;
     Score -> Opus;
-
 }
