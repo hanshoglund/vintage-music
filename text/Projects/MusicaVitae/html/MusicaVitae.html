@@ -3,7 +3,8 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta name="generator" content="pandoc" />
-  <title></title>
+  <meta name="author" content="Hans Höglund 2012" />
+  <title>For string orchestra</title>
   <style type="text/css">
 /*<![CDATA[*/
 table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode, table.sourceCode pre 
@@ -27,52 +28,52 @@ code.sourceCode span.er { color: red; font-weight: bold; }
   </style>
 </head>
 <body>
-<h1 id="introduktion">Introduktion</h1>
-<h1 id="passages">Passages</h1>
-<h1 id="passager">Passager</h1>
-<h2 id="instrumentation">Instrumentation</h2>
+<div id="header">
+<h1 class="title">For string orchestra</h1>
+<h3 class="author">Hans Höglund 2012</h3>
+</div>
+<h2 id="introduction">Introduction</h2>
+<p>This file contains the code for a (yet to be named) piece for string orchestra. It is a literate source file, meaning it is both a computer program and an piece of writing. If you obtain this document in source form, you can convert it to a PDF document using Pandoc<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> or compiled to a Haskell program using a Haskell compiler<sup><a href="#fn2" class="footnoteRef" id="fnref2">2</a></sup>.</p>
+<p>The following external modules will be used by the program:</p>
+<pre class="sourceCode"><code class="sourceCode haskell"><span class="kw">module</span> <span class="dt">Music.Projects.MusicaVitae</span><br /><span class="kw">where</span><br /><br /><span class="kw">import</span> <span class="dt">Temporal.Media</span></code></pre>
+<h2 id="instrumentation-and-tuning">Instrumentation and tuning</h2>
+<p>The following instruments are used:</p>
 <ul>
-<li>Violin I-IV (a: I, III, b : II, IV)</li>
-<li>Viola I-II (a: I, b: II)</li>
-<li>Cello I-II (a: I, b: II)</li>
+<li>Violin I-IV</li>
+<li>Viola I-II</li>
+<li>Cello I-II</li>
 <li>Double Bass</li>
 </ul>
-<h2 id="tuning">Tuning</h2>
-<p>The orchestra is split into sections:</p>
+<p>A basic idea of the piece is to combine (slightly) different tunings of the instruments using open-string techniques and harmonics. For this purpose, the orchestra is split into three sections, each using a different tuning:</p>
 <ul>
-<li>Section (a) tunes A4 to 442 Hz (A3 to 217 Hz)</li>
-<li>Section (b) tunes A4 to 437 Hz (A3 to 222 Hz)</li>
-<li>Double bass (c) tunes A1 to 57 Hz (?)</li>
+<li><p><em>Violin I</em>, <em>III</em>, <em>Viola I</em> and <em>Cello I</em> tunes A4 to 443 Hz (A3 to 221.5 Hz)</p></li>
+<li><p><em>Violin II</em>, <em>IV</em>, <em>Viola II</em> and <em>Cello II</em> tunes A4 to 437 Hz (A3 to 218.5 Hz)</p></li>
+<li><p><em>Double bass</em> tunes A1 to 55 Hz</p></li>
 </ul>
-<p>The other strings are tuned using the harmonics of the A-string Other frequences may be picked, as long as the following holds:</p>
-<pre><code>a + b / 16 = 55 + (a - b)
-</code></pre>
-<p>Intonation</p>
-<p>Many playing techiniques in the score calls for open strings. In this case intonation is determined solely by the differencing tuning.</p>
+<p>The other strings are tuned in relation to the A-string as usual.</p>
+<pre class="sourceCode"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Section</span> <br />    <span class="fu">=</span> <span class="dt">High</span> <br />    <span class="fu">|</span> <span class="dt">Low</span> <br />    <span class="fu">|</span> <span class="dt">Middle</span> <br />    <span class="kw">deriving</span> (<span class="kw">Eq</span>, <span class="kw">Show</span>)<br /><br /><span class="kw">data</span> <span class="dt">Part</span> <br />    <span class="fu">=</span> <span class="dt">Violin</span> <span class="dt">Int</span><br />    <span class="fu">|</span> <span class="dt">Viola</span> <span class="dt">Int</span><br />    <span class="fu">|</span> <span class="dt">Cello</span> <span class="dt">Int</span><br />    <span class="fu">|</span> <span class="dt">DoubleBass</span><br />    <span class="kw">deriving</span> (<span class="kw">Eq</span>, <span class="kw">Show</span>)<br /><br />partSection (<span class="dt">Violin</span> <span class="dv">1</span>)   <span class="fu">=</span> <span class="dt">High</span><br />partSection (<span class="dt">Violin</span> <span class="dv">2</span>)   <span class="fu">=</span> <span class="dt">Low</span><br />partSection (<span class="dt">Violin</span> <span class="dv">3</span>)   <span class="fu">=</span> <span class="dt">High</span><br />partSection (<span class="dt">Violin</span> <span class="dv">4</span>)   <span class="fu">=</span> <span class="dt">Low</span><br />partSection (<span class="dt">Viola</span> <span class="dv">1</span>)    <span class="fu">=</span> <span class="dt">High</span><br />partSection (<span class="dt">Viola</span> <span class="dv">2</span>)    <span class="fu">=</span> <span class="dt">Low</span><br />partSection (<span class="dt">Cello</span> <span class="dv">1</span>)    <span class="fu">=</span> <span class="dt">High</span><br />partSection (<span class="dt">Cello</span> <span class="dv">2</span>)    <span class="fu">=</span> <span class="dt">Low</span><br />partSection <span class="dt">DoubleBass</span>   <span class="fu">=</span> <span class="dt">Middle</span><br /><br />sectionTuning <span class="dt">Low</span>    <span class="fu">=</span> <span class="dv">437</span><br />sectionTuning <span class="dt">Middle</span> <span class="fu">=</span> <span class="dv">440</span><br />sectionTuning <span class="dt">High</span>   <span class="fu">=</span> <span class="dv">443</span><br /><br />partTuning <span class="fu">=</span> sectionTuning <span class="fu">.</span> partSection</code></pre>
+<p>All parts may be doubled. If several parts are doubled but not all, the musicians should strive for a balance between the two main tuning sections (i.e. avoid doubling just the upper parts or vice versa).</p>
+<p>Certain cues are required to be played by a single musician even if the parts are doubled, which will be marked <em>solo</em>. These passages should be distributed evenly among the musicians, instead of being played by designated soloists.</p>
+<h2 id="playing-techniques">Playing techniques</h2>
+<p>The piece makes use of different playing techniques in both hands. As the intonation will be different between open and stopped strings, we define a function mapping each left-hand technique to a stopping.</p>
+<pre class="sourceCode"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Stopping</span> <br />    <span class="fu">=</span> <span class="dt">Open</span><br />    <span class="fu">|</span> <span class="dt">QuarterStopped</span><br />    <span class="fu">|</span> <span class="dt">Stopped</span>    <br /><br /><span class="kw">data</span> <span class="dt">LeftHand</span> p<br />    <span class="fu">=</span> <span class="dt">OpenString</span> p <span class="dt">Str</span><br />    <span class="fu">|</span> <span class="dt">NaturalHarmonic</span> p <span class="dt">Str</span><br />    <span class="fu">|</span> <span class="dt">NaturalHarmonicTrem</span> p p <span class="dt">Str</span><br />    <span class="fu">|</span> <span class="dt">NaturalHarmonicGliss</span> p p <span class="dt">Str</span><br /><br />    <span class="fu">|</span> <span class="dt">QuarterStoppedString</span> <span class="dt">Str</span><br /><br />    <span class="fu">|</span> <span class="dt">StoppedString</span> p <span class="dt">Str</span><br />    <span class="fu">|</span> <span class="dt">StoppedStringTrem</span> p p <span class="dt">Str</span><br />    <span class="fu">|</span> <span class="dt">StoppedStringGliss</span> p p <span class="dt">Str</span><br />    <span class="kw">deriving</span> (<span class="kw">Eq</span>, <span class="kw">Show</span>)<br /><br />techniqueStopping ( <span class="dt">OpenString</span>           _ _   ) <span class="fu">=</span> <span class="dt">Open</span><br />techniqueStopping ( <span class="dt">NaturalHarmonic</span>      _ _   ) <span class="fu">=</span> <span class="dt">Open</span><br />techniqueStopping ( <span class="dt">NaturalHarmonicTrem</span>  _ _ _ ) <span class="fu">=</span> <span class="dt">Open</span><br />techniqueStopping ( <span class="dt">NaturalHarmonicGliss</span> _ _ _ ) <span class="fu">=</span> <span class="dt">Open</span><br />techniqueStopping ( <span class="dt">QuarterStoppedString</span> _     ) <span class="fu">=</span> <span class="dt">QuarterStopped</span><br />techniqueStopping ( <span class="dt">StoppedString</span>        _ _   ) <span class="fu">=</span> <span class="dt">Stopped</span><br />techniqueStopping ( <span class="dt">StoppedStringTrem</span>    _ _ _ ) <span class="fu">=</span> <span class="dt">Stopped</span><br />techniqueStopping ( <span class="dt">StoppedStringGliss</span>   _ _ _ ) <span class="fu">=</span> <span class="dt">Stopped</span><br /><br /><br /><span class="kw">data</span> <span class="dt">RightHand</span> a<br />    <span class="fu">=</span> <span class="dt">Pizz</span> a<br />    <span class="fu">|</span> <span class="dt">Note</span> a<br />    <span class="fu">|</span> <span class="dt">Phrase</span> [a]<br />    <span class="fu">|</span> <span class="dt">Jete</span> [a]<br />    <span class="kw">deriving</span> (<span class="kw">Eq</span>, <span class="kw">Show</span>)</code></pre>
+<h2 id="intonation">Intonation</h2>
+<p>Many playing techiniques in the score calls for open strings. In this case intonation is determined solely by the tuning.</p>
 <p>In some cases, open-string techniques are used with an above first-position stop. This should make the open string pitch rise about a quarter-tone step (or at least less than a half-tone step).</p>
 <p>Where stopped strings are used, intonation is determined by context:</p>
 <ul>
-<li><p>In solo passages, intonation is individual Do not attempt to synchronize intontation (on long notes et al) at overlapping solo cues.</p></li>
+<li><p>In solo passages, intonation is individual. No attempt should be made to synchronize intontation (on long notes et al) for overlapping solo cues.</p></li>
 <li><p>In unison passages, intonation should be synchronized.</p></li>
 </ul>
-<h3 id="&#246;ppna-str&#228;ngarbakgrund">Öppna strängar/Bakgrund</h3>
-<pre><code>nat flageolett
-nat flageolett gliss
-trem (halvflageolett)
-öppen sträng
-</code></pre>
-<h3 id="kvartsstoppade-str&#228;ngar">Kvartsstoppade strängar</h3>
-<pre><code>trem kvarsttopp/öppen
-gliss + jete
-pizz
-snap
-</code></pre>
-<h3 id="stoppade-str&#228;ngarf&#246;rgrund">Stoppade strängar/Förgrund</h3>
-<pre><code>Melodik (diatonisk, kromatisk?)
-    Hur representera förhållandet till omgivningen?
-
-Fördela mellan grupper   
-</code></pre>
-<pre class="sourceCode"><code class="sourceCode haskell">  <span class="kw">module</span> <span class="dt">Music.Projects.MusicaVitae</span><br /><br />  <span class="kw">where</span><br /><br /><br /><br /><br />  tuning1 <span class="fu">=</span> <span class="dv">442</span><br />  tuning2 <span class="fu">=</span> <span class="dv">437</span><br />  tuning3 <span class="fu">=</span> <span class="dv">57</span><br /><br />  <span class="kw">data</span> <span class="dt">OpenStringTechnique</span>    <span class="fu">=</span> <span class="dt">NaturalHarmonic</span><br />                              <span class="fu">|</span> <span class="dt">NaturalHarmonicGliss</span><br />                              <span class="fu">|</span> <span class="dt">HalfHarmonicTrem</span><br />                              <span class="fu">|</span> <span class="dt">OpenStringNote</span><br />                              <span class="fu">|</span> <span class="dt">Jete</span><br />                              <span class="fu">|</span> <span class="dt">Pizz</span><br />                              <span class="fu">|</span> <span class="dt">Snap</span><br /><br />  <span class="kw">data</span> <span class="dt">QuarterStringTechnique</span> <span class="fu">=</span> <span class="dt">OpenQuarterTrem</span><br />                              <span class="fu">|</span> <span class="dt">QuarterStoppedStringNote</span><br /><br />  <span class="kw">data</span> <span class="dt">StoppedStringTechnique</span> <span class="fu">=</span> <span class="dt">StoppedStringNote</span><br />                              <span class="fu">|</span> <span class="dt">StoppedStringPhrase</span></code></pre>
+<pre class="sourceCode"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">IntonationType</span><br />    <span class="fu">=</span> <span class="dt">Tuning</span><br />    <span class="fu">|</span> <span class="dt">Raised</span><br />    <span class="fu">|</span> <span class="dt">Solo</span><br />    <span class="fu">|</span> <span class="dt">Choral</span></code></pre>
+<h2 id="other-preliminaries">Other preliminaries</h2>
+<pre class="sourceCode"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Pitch</span> <span class="fu">=</span> <span class="dt">Int</span><br /><br /><span class="kw">data</span> <span class="dt">Cue</span> <span class="fu">=</span> <span class="dt">Cue</span> <span class="dt">Part</span> (<span class="dt">RightHand</span> (<span class="dt">LeftHand</span> <span class="dt">Pitch</span>))<br /><br /><span class="kw">data</span> <span class="dt">Str</span>   <span class="fu">=</span> <span class="dt">I</span> <span class="fu">|</span> <span class="dt">II</span> <span class="fu">|</span> <span class="dt">III</span> <span class="fu">|</span> <span class="dt">IV</span><br />    <span class="kw">deriving</span> (<span class="kw">Eq</span>, <span class="kw">Show</span>)<br /><br /><br /><br /><span class="kw">data</span> <span class="dt">Phrasing</span> <span class="fu">=</span> <span class="dt">Phrasing</span> {<span class="ot"> attackVel  </span><span class="ot">::</span> <span class="dt">Double</span> <br />                         ,<span class="ot"> sustainVel </span><span class="ot">::</span> [<span class="dt">Double</span>]<br />                         ,<span class="ot"> releaseVel </span><span class="ot">::</span> <span class="dt">Double</span><br />                         ,<span class="ot"> staccatto  </span><span class="ot">::</span> <span class="dt">Double</span> }</code></pre>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Which can be found at http://johnmacfarlane.net/pandoc <a href="#fnref1" class="footnoteBackLink">↩</a></p></li>
+<li id="fn2"><p>Such as GHC, see http://www.haskell.org/ghc <a href="#fnref2" class="footnoteBackLink">↩</a></p></li>
+</ol>
+</div>
 </body>
 </html>
