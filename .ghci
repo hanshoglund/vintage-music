@@ -6,9 +6,12 @@
 -- import Music.Model.GUIDO
 -- import Music.Model.MIDI
 
+-- import Music.Model.Standard
 import Music.Model.MusicXML
 import Music.Utilities
 
-:load src/Music/Model/MusicXml.hs
+-- :load src/Music/Model/MusicXml.hs
+-- :load src/Music/Model/Standard.hs
+:load src/Music/Projects/MusicaVitae.lhs
 
 :set prompt "Music> "

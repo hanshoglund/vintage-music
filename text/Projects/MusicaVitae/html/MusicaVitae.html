@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">
+/*<![CDATA[*/
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode, table.sourceCode pre 
+   { margin: 0; padding: 0; border: 0; vertical-align: baseline; border: none; }
+td.lineNumbers { border-right: 1px solid #AAAAAA; text-align: right; color: #AAAAAA; padding-right: 5px; padding-left: 5px; }
+td.sourceCode { padding-left: 5px; }
+code.sourceCode span.kw { color: #007020; font-weight: bold; } 
+code.sourceCode span.dt { color: #902000; }
+code.sourceCode span.dv { color: #40a070; }
+code.sourceCode span.bn { color: #40a070; }
+code.sourceCode span.fl { color: #40a070; }
+code.sourceCode span.ch { color: #4070a0; }
+code.sourceCode span.st { color: #4070a0; }
+code.sourceCode span.co { color: #60a0b0; font-style: italic; }
+code.sourceCode span.ot { color: #007020; }
+code.sourceCode span.al { color: red; font-weight: bold; }
+code.sourceCode span.fu { color: #06287e; }
+code.sourceCode span.re { }
+code.sourceCode span.er { color: red; font-weight: bold; }
+/*]]>*/
+  </style>
+</head>
+<body>
+<h1 id="introduktion">Introduktion</h1>
+<h1 id="passages">Passages</h1>
+<h1 id="passager">Passager</h1>
+<h2 id="instrumentation">Instrumentation</h2>
+<ul>
+<li>Violin I-IV (a: I, III, b : II, IV)</li>
+<li>Viola I-II (a: I, b: II)</li>
+<li>Cello I-II (a: I, b: II)</li>
+<li>Double Bass</li>
+</ul>
+<h2 id="tuning">Tuning</h2>
+<p>The orchestra is split into sections:</p>
+<ul>
+<li>Section (a) tunes A4 to 442 Hz (A3 to 217 Hz)</li>
+<li>Section (b) tunes A4 to 437 Hz (A3 to 222 Hz)</li>
+<li>Double bass (c) tunes A1 to 57 Hz (?)</li>
+</ul>
+<p>The other strings are tuned using the harmonics of the A-string Other frequences may be picked, as long as the following holds:</p>
+<pre><code>a + b / 16 = 55 + (a - b)
+</code></pre>
+<p>Intonation</p>
+<p>Many playing techiniques in the score calls for open strings. In this case intonation is determined solely by the differencing tuning.</p>
+<p>In some cases, open-string techniques are used with an above first-position stop. This should make the open string pitch rise about a quarter-tone step (or at least less than a half-tone step).</p>
+<p>Where stopped strings are used, intonation is determined by context:</p>
+<ul>
+<li><p>In solo passages, intonation is individual Do not attempt to synchronize intontation (on long notes et al) at overlapping solo cues.</p></li>
+<li><p>In unison passages, intonation should be synchronized.</p></li>
+</ul>
+<h3 id="&#246;ppna-str&#228;ngarbakgrund">Öppna strängar/Bakgrund</h3>
+<pre><code>nat flageolett
+nat flageolett gliss
+trem (halvflageolett)
+öppen sträng
+</code></pre>
+<h3 id="kvartsstoppade-str&#228;ngar">Kvartsstoppade strängar</h3>
+<pre><code>trem kvarsttopp/öppen
+gliss + jete
+pizz
+snap
+</code></pre>
+<h3 id="stoppade-str&#228;ngarf&#246;rgrund">Stoppade strängar/Förgrund</h3>
+<pre><code>Melodik (diatonisk, kromatisk?)
+    Hur representera förhållandet till omgivningen?
+
+Fördela mellan grupper   
+</code></pre>
+<pre class="sourceCode"><code class="sourceCode haskell">  <span class="kw">module</span> <span class="dt">Music.Projects.MusicaVitae</span><br /><br />  <span class="kw">where</span><br /><br /><br /><br /><br />  tuning1 <span class="fu">=</span> <span class="dv">442</span><br />  tuning2 <span class="fu">=</span> <span class="dv">437</span><br />  tuning3 <span class="fu">=</span> <span class="dv">57</span><br /><br />  <span class="kw">data</span> <span class="dt">OpenStringTechnique</span>    <span class="fu">=</span> <span class="dt">NaturalHarmonic</span><br />                              <span class="fu">|</span> <span class="dt">NaturalHarmonicGliss</span><br />                              <span class="fu">|</span> <span class="dt">HalfHarmonicTrem</span><br />                              <span class="fu">|</span> <span class="dt">OpenStringNote</span><br />                              <span class="fu">|</span> <span class="dt">Jete</span><br />                              <span class="fu">|</span> <span class="dt">Pizz</span><br />                              <span class="fu">|</span> <span class="dt">Snap</span><br /><br />  <span class="kw">data</span> <span class="dt">QuarterStringTechnique</span> <span class="fu">=</span> <span class="dt">OpenQuarterTrem</span><br />                              <span class="fu">|</span> <span class="dt">QuarterStoppedStringNote</span><br /><br />  <span class="kw">data</span> <span class="dt">StoppedStringTechnique</span> <span class="fu">=</span> <span class="dt">StoppedStringNote</span><br />                              <span class="fu">|</span> <span class="dt">StoppedStringPhrase</span></code></pre>
+</body>
+</html>
