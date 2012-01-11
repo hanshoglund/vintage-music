@@ -392,7 +392,7 @@ renderCuesToMidi = Midi.stringEnsemble1 . foldDmap renderCue
 -- instr :: (Seg nVol, Seg nPch) => 
 --     Preset -> Score (Note nVol nPch a) -> Score MidiEvent
 -- fmap $ \(Note v p a) -> MidiEvent id v (Just p)
-
+          
 exportCues :: Score Cue -> IO ()
 exportCues = Demo.exportMidi "test.mid" . renderCuesToMidi
 
