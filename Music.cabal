@@ -32,12 +32,14 @@ library
 
         Music.Model.Abc
 
---        Music.Model.General
-        Music.Model.Standard
-        Music.Model.Standard.Time
-        Music.Model.Standard.Pitch
-        Music.Model.Standard.Phrasing
-        Music.Model.Standard.Instrumentation
+        -- Music.Model.General
+        -- Music.Model.Standard
+        -- Music.Model.Standard.Time
+        -- Music.Model.Standard.Pitch
+        -- Music.Model.Standard.Phrasing
+        -- Music.Model.Standard.Instrumentation
+
+        Music.Model.Temporal.Media
 
         Music.Model.GUIDO
 

@@ -4,33 +4,18 @@
 Introduction
 --------------------------------------------------------------------------------
 
-This file contains the code for a (yet to be named) piece for string orchestra. It is a
-literate source file, meaning it is written both for reading and running as a program.
-Throughout, code will appear in a `typewriter font`. The code form a valid program
-that can be run to produce the piece.
-
-If you obtain this document in source form, you can convert it to a PDF document using
-Pandoc ^[Which can be found at
-[http://johnmacfarlane.net/pandoc](http://johnmacfarlane.net/pandoc)]
-or compile it using a Haskell compiler^[Such as GHC, see
-[http://www.haskell.org/ghc](http://www.haskell.org/ghc)].
-
 \begin{code}
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 
 module Music.Projects.MusicaVitae
 where
 
-import Data.Monoid
-import Data.Foldable
-
 import Music.Utilities
+import Music.Model.Temporal.Media
 
-import Temporal.Music.Notation hiding (tmap, dmap, tdmap)
+import Temporal.Music.Notation hiding (delay)
 
-import qualified Temporal.Media as Media
 import qualified Temporal.Music.Notation.Note as Note
-import qualified Temporal.Music.Notation.Pitch as Pitch
 import qualified Temporal.Music.Notation.Scales as Scales
 import qualified Temporal.Music.Notation.Demo as Demo
 import qualified Temporal.Music.Notation.Demo.GeneralMidi as Midi
@@ -90,9 +75,9 @@ partSection (Cello 1)  = High
 partSection (Cello 2)  = Low
 partSection DoubleBass = Middle
 
-sectionTuning Low    = 437
+sectionTuning Low    = 434
 sectionTuning Middle = 440
-sectionTuning High   = 443
+sectionTuning High   = 446
 
 partTuning = sectionTuning . partSection
 \end{code}
@@ -153,6 +138,44 @@ We are going to represent time and pitch using two packages for Haskell called
 *temporal-media* and *temporal-music-notation* ^[All packages we reference here
 can be obtained from [http://hackage.haskell.org](http://hackage.haskell.org)].
 
+Pitch
+--------------------------------------------------------------------------------
+
+
+Dynamics
+--------------------------------------------------------------------------------
+
+\begin{code}
+data Dynamics = PPP | PP | P | MP | MF | F | FF | FFF
+    deriving (Show, Eq, Enum, Bounded)
+
+instance Seg Dynamics
+
+instance Vol Dynamics where
+    volume = Volume (1e-5, 1)
+
+-- short-cuts
+
+ppp', pp', p', mp', mf', f', ff', fff' :: LevelFunctor a => a -> a
+
+ppp' = setLevel PPP
+pp'  = setLevel PP
+p'   = setLevel P
+mp'  = setLevel MP
+mf'  = setLevel MF
+f'   = setLevel F
+ff'  = setLevel FF
+fff' = setLevel FFF
+
+-- | diminuendo
+dim :: LevelFunctor a => Accent -> Score a -> Score a
+dim v = dynamics ((-v) *)
+
+-- | crescendo
+cresc :: LevelFunctor a => Accent -> Score a -> Score a
+cresc v = dynamics (v * )
+
+\end{code}
 
 
 Playing techniques
@@ -176,6 +199,23 @@ data Stopping
     | Stopped
     deriving (Eq, Show)
 
+data Articulation = Articulation
+    deriving (Eq, Show)
+
+data Phrasing 
+    = Phrasing { attackVel  :: Double
+               , sustainVel :: [Double]
+               , releaseVel :: Double
+               , staccatto  :: Double }
+    deriving (Eq, Show)
+
+data RightHand a
+    = Pizz   a Articulation
+    | Single a Articulation
+    | Phrase [a] Phrasing
+    | Jete   [a] Phrasing
+    deriving (Eq, Show)
+
 data LeftHand
     -- Open string techniques
     = OpenString Str
@@ -192,6 +232,15 @@ data LeftHand
     | StoppedStringGliss Int Int Str
     deriving (Eq, Show)
 
+type Technique = RightHand LeftHand
+
+data Cue
+    = Cue { cuePart      :: Part
+          , cueDoubling  :: Doubling
+          , cueTechnique :: Technique }
+    deriving (Eq, Show)
+
+
 class Stopped a where
     stopping :: a -> Stopping
 
@@ -205,33 +254,11 @@ instance Stopped LeftHand where
     stopping ( StoppedStringTrem    _ _ _ ) = Stopped
     stopping ( StoppedStringGliss   _ _ _ ) = Stopped
 
-
-data Phrasing = Phrasing { attackVel  :: Double
-                         , sustainVel :: [Double]
-                         , releaseVel :: Double
-                         , staccatto  :: Double }
-    deriving (Eq, Show)
-
-data RightHand a
-    = Pizz   a
-    | Single a
-    | Phrase [a] Phrasing
-    | Jete   [a]
-    deriving (Eq, Show)
-
-type Technique = RightHand LeftHand
-
 instance Stopped a => Stopped (RightHand a) where
-    stopping ( Pizz x ) = stopping x
-    stopping ( Single x ) = stopping x
+    stopping ( Pizz x _ ) = stopping x
+    stopping ( Single x _ ) = stopping x
     stopping ( Phrase (x:xs) _ ) = stopping x
-    stopping ( Jete   (x:xs)   ) = stopping x
-
-data Cue
-    = Cue { cuePart      :: Part
-          , cueDoubling  :: Doubling
-          , cueTechnique :: Technique }
-    deriving (Eq, Show)
+    stopping ( Jete   (x:xs) _ ) = stopping x
 
 
 
@@ -277,103 +304,31 @@ intonation Solo   t | stopping t == Open           = Tuning
 
 
 
-Dynamics
---------------------------------------------------------------------------------
-
-\begin{code}
-data Dynamics = PPP | PP | P | MP | MF | F | FF | FFF
-    deriving (Show, Eq, Enum, Bounded)
-
-instance Seg Dynamics
-
-instance Vol Dynamics where
-    volume = Volume (1e-5, 1)
-
--- short-cuts
-
-ppp', pp', p', mp', mf', f', ff', fff' :: LevelFunctor a => a -> a
-
-ppp' = setLevel PPP
-pp'  = setLevel PP
-p'   = setLevel P
-mp'  = setLevel MP
-mf'  = setLevel MF
-f'   = setLevel F
-ff'  = setLevel FF
-fff' = setLevel FFF
-
--- | diminuendo
-dim :: LevelFunctor a => Accent -> Score a -> Score a
-dim v = dynamics ((-v) *)
-
--- | crescendo
-cresc :: LevelFunctor a => Accent -> Score a -> Score a
-cresc v = dynamics (v * )
-
-\end{code}
-
-
-Form
---------------------------------------------------------------------------------
-
-\begin{code}
-
-test1 = note 1 $ Cue (Violin 1) Solo (Pizz $ OpenString I)
-test2 = test1 +:+ test1 +:+ test1 +:+ test1
-
-    
-\end{code}
-
-
 Rendering
 --------------------------------------------------------------------------------
 
 \begin{code}
-instance Seg Int where
+instance Seg Int where            
 
--- Add instances to fold a score of scores
-
-class DurFunctor f where
-    dmap :: (Dur -> a -> b) -> f a -> f b
-
-class DurFoldable t where
-    foldDmap :: Monoid m => (Dur -> a -> m) -> t a -> m
-
-instance Monoid (Media.Media Dur a) where
-    mempty  = rest 0
-    mappend = (+:+)
-
-instance DurFunctor (Media.Media Dur) where
-    dmap = Media.dmap
-
-instance Foldable (Media.Media Dur) where
-    foldMap render = mconcat . events . renderScore . fmap render
-        where events (EventList _ xs) = map eventContent xs
-
-instance DurFoldable (Media.Media Dur) where
-    foldDmap render = mconcat . events . renderScore . dmap render
-        where events (EventList _ xs) = map eventContent xs
-
-
-renderCue :: Time -> Cue -> Score (Note.Note Dynamics Int ())
+renderCue :: Dur -> Cue -> Score (Note.Note Dynamics Int ())
 renderCue dur (Cue part doubl tech) =
     case tech of
-        Pizz x ->
+        Pizz x attr ->
             note dur $ Note.Note (volume $ level MF)
                        (Pitch scale (tone 60))
                        Nothing
 
-        Single x ->
+        Single x attr ->
+            note dur $ Note.Note (volume $ level MF)
+                       (Pitch scale (tone $ pitch x))
+                       Nothing
+
+        Phrase xs attr ->
             note dur $ Note.Note (volume $ level MF)
                        (Pitch scale (tone 60))
                        Nothing
 
-        Phrase (x:xs) attrs ->
-            note dur $ Note.Note (volume $ level MF)
-                       (Pitch scale (tone 60))
-                       Nothing
-
-        Jete (x:xs) ->
+        Jete xs attr ->
             note dur $ Note.Note (volume $ level MF)
                        (Pitch scale (tone 60))
                        Nothing
@@ -381,32 +336,61 @@ renderCue dur (Cue part doubl tech) =
     where tune = partTuning part
           scale = makeScale tune
           intone = intonation doubl tech
-
-    
-makeScale :: Tuning -> Pitch.Scale
-makeScale = Scales.eqt 69
+          pitch (OpenString str) = undefined
+          pitch (NaturalHarmonic n str) = undefined
+          pitch (NaturalHarmonicTrem m n str) = undefined
+          pitch (NaturalHarmonicGliss m n str) = undefined
+          pitch (QuarterStoppedString str) = undefined
+          pitch (StoppedString p str) = p
+          pitch (StoppedStringTrem p q str) = undefined
+          pitch (StoppedStringGliss p q str) = undefined
+          makeScale = Scales.eqt 69
 
 renderCuesToMidi :: Score Cue -> Score Demo.MidiEvent
-renderCuesToMidi = Midi.stringEnsemble1 . foldDmap renderCue
+renderCuesToMidi = Midi.stringEnsemble1 . dfoldMap renderCue
 
--- instr :: (Seg nVol, Seg nPch) => 
---     Preset -> Score (Note nVol nPch a) -> Score MidiEvent
--- fmap $ \(Note v p a) -> MidiEvent id v (Just p)
-          
 exportCues :: Score Cue -> IO ()
 exportCues = Demo.exportMidi "test.mid" . renderCuesToMidi
 
 play score = do
     exportCues score
     openMidiFile "test.mid"
+
 export score = do
     exportCues score
     exportMidiFile "test.mid"
 
-openMidiFile = openFileWith "/Applications/Utilities/QuickTime Player 7.app/Contents/MacOS/QuickTime Player 7"
+openMidiFile name = execute "timidity" [name]
 exportMidiFile = openFileWith "/Applications/Sibelius 6.app/Contents/MacOS/Sibelius 6"
-
-
-
 \end{code}
+
+
+
+Form
+--------------------------------------------------------------------------------
+
+\begin{code}
+
+t1 p = note (1/8) $ Cue (Violin 1) Solo (Single (StoppedString p I) Articulation) 
+t2 p = note (1/8) $ Cue (Violin 2) Solo (Single (StoppedString p I) Articulation)
+
+
+
+test = t1' >>> rest (1/4) 
+       >>> 
+       t2' >>> rest (1/2)
+       >>> 
+       (t1' ||| loop 3 t2')
+       >>> 
+       (loop 3 t1' ||| t2')
+
+    where
+        t1' = t1 60 >>> t1 62 >>> t1 64
+        t2' = t2 60 >>> t2 62 >>> t2 64
+            
+scale = line [ note (1/4) $ Cue (Violin 1) 
+                            Solo (Single (StoppedString p I) Articulation)
+             | p <- [60..72] ]
+\end{code}
+
 
