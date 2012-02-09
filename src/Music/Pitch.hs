@@ -1,5 +1,5 @@
 {-|
-    Module      :  Music.Model
+    Module      :  Music.Pitch
     Copyright   :  Hans Höglund 2012
 
     Maintainer  :  hans@hanshoglund.se
@@ -7,4 +7,4 @@
     Portability :  portable
 -}
 
-module Music.Model where
+module Music.Pitch where

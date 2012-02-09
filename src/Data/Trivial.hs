@@ -1,3 +1,12 @@
+{-|
+    Module      :  Data.Trivial
+    Copyright   :  Hans Höglund 2005
+
+    Maintainer  :  hans@hanshoglund.se
+    Stability   :  experimental
+    Portability :  portable
+-}
+
 module Data.Trivial where
     
 import Control.Monad
@@ -17,10 +26,10 @@ alwaysLeft  :: Trivial a => Either a b -> a
 alwaysRight :: Trivial a => Either b a -> a
 
 -- | Converts a partial function to a total function.
-partial   :: Trivial a  => (a -> b) -> Maybe a -> b
+partial     :: Trivial a  => (a -> b) -> Maybe a -> b
 
 -- | Converts a total function to a partial function.
-total     :: Trivial b => (a -> Maybe b) -> a -> b
+total       :: Trivial b => (a -> Maybe b) -> a -> b
 
 partialLeft   :: Trivial a  => (a -> b) -> Either a c -> b
 partialRight  :: Trivial c  => (c -> b) -> Either a c -> b

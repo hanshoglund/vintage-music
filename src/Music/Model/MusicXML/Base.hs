@@ -171,15 +171,9 @@ where
     
 import Data.Word 
 import Data.Trivial
+import Data.Undefined
 
-
--- | Placeholder for unimplemented types. Can not be initiated. The trivial value 
---   raises an error upon evaluation.
-data TODO = Dummy deriving (Show, Eq, Enum)
-
-instance Trivial TODO where 
-    trivial = error "TODO is not implemented"
-
+type TODO = Undefined
 
 -- | The divisions type is used to express values in terms of the musical divisions defined by
 --   the divisions element. It is preferred that these be integer values both for MIDI
