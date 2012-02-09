@@ -10,6 +10,8 @@ Introduction
 module Music.Projects.MusicaVitae
 where
 
+import qualified Control.Concurrent as Concurrent
+
 import Music.Utilities
 import Music.Model.Temporal.Media
 
@@ -45,17 +47,20 @@ The other strings should be tuned in relation to the A-string as usual.
 
 To represent this in Haskell, we must first define the data types to represent parts,
 sections and tunings:
+
 \begin{code}
 data Part
-    = Violin Int | Viola Int | Cello Int | DoubleBass
-    deriving (Eq, Show)
+    = Violin Int 
+    | Viola Int 
+    | Cello Int 
+    | DoubleBass
+    deriving ( Eq, Show )
 
 data Section
     = High | Low | Middle
-    deriving (Eq, Show)
+    deriving ( Eq, Show )
 
 type Tuning = Double
-
 \end{code}
 
 We then define the relation between these types as follows:
@@ -87,7 +92,9 @@ Then add some utility definitions to quickly access the various parts:
 \begin{code}
 ensemble                                        :: [Part]
 sectionParts                                    :: Section -> [Part]
+
 isViolin, isViola, isCello                      :: Part -> Bool
+
 highParts, lowParts                             :: [Part]
 highViolinParts, highViolaParts, highCelloParts :: [Part]
 lowViolinParts, lowViolaParts, lowCelloParts    :: [Part]
@@ -114,7 +121,6 @@ highCelloParts  = filter isCello  (sectionParts High)
 lowViolinParts  = filter isViolin (sectionParts Low)
 lowViolaParts   = filter isViola  (sectionParts Low)
 lowCelloParts   = filter isCello  (sectionParts Low)
-
 \end{code}
 
 All parts may be doubled. If several parts are doubled but not all, the musicians should
@@ -127,16 +133,9 @@ the musicians, instead of being played by designated soloists.
 
 \begin{code}
 data Doubling = Solo | Tutti
-    deriving (Eq, Show)
+    deriving ( Eq, Show )
 \end{code}
 
-
-Musical preliminaries
---------------------------------------------------------------------------------
-
-We are going to represent time and pitch using two packages for Haskell called
-*temporal-media* and *temporal-music-notation* ^[All packages we reference here
-can be obtained from [http://hackage.haskell.org](http://hackage.haskell.org)].
 
 Pitch
 --------------------------------------------------------------------------------
@@ -147,7 +146,10 @@ Dynamics
 
 \begin{code}
 data Dynamics = PPP | PP | P | MP | MF | F | FF | FFF
-    deriving (Show, Eq, Enum, Bounded)
+    deriving ( Show, 
+               Eq, 
+               Enum, 
+               Bounded )
 
 instance Seg Dynamics
 
@@ -167,11 +169,9 @@ f'   = setLevel F
 ff'  = setLevel FF
 fff' = setLevel FFF
 
--- | diminuendo
 dim :: LevelFunctor a => Accent -> Score a -> Score a
 dim v = dynamics ((-v) *)
 
--- | crescendo
 cresc :: LevelFunctor a => Accent -> Score a -> Score a
 cresc v = dynamics (v * )
 
@@ -191,54 +191,58 @@ data Str
     | II
     | III
     | IV
-    deriving (Eq, Show)
+    deriving ( Eq, Show )
 
 data Stopping
     = Open
     | QuarterStopped
     | Stopped
-    deriving (Eq, Show)
+    deriving ( Eq, Show )
 
 data Articulation = Articulation
-    deriving (Eq, Show)
+    deriving ( Eq, Show )
 
 data Phrasing 
-    = Phrasing { attackVel  :: Double
+    = NoPhrasing   
+    | Phrasing { attackVel  :: Double
                , sustainVel :: [Double]
                , releaseVel :: Double
                , staccatto  :: Double }
-    deriving (Eq, Show)
+    deriving ( Eq, Show )
+
+
+
 
 data RightHand a
     = Pizz   a Articulation
     | Single a Articulation
     | Phrase [a] Phrasing
     | Jete   [a] Phrasing
-    deriving (Eq, Show)
+    deriving ( Eq, Show )
+
+
 
 data LeftHand
-    -- Open string techniques
     = OpenString Str
+
     | NaturalHarmonic Int Str
     | NaturalHarmonicTrem Int Int Str
     | NaturalHarmonicGliss Int Int Str
 
-    -- Quarter stopped string techniques
     | QuarterStoppedString Str
 
-    -- Stopped string techniques
     | StoppedString Int Str
     | StoppedStringTrem Int Int Str
     | StoppedStringGliss Int Int Str
-    deriving (Eq, Show)
+    deriving ( Eq, Show )
 
 type Technique = RightHand LeftHand
 
 data Cue
-    = Cue { cuePart      :: Part
-          , cueDoubling  :: Doubling
-          , cueTechnique :: Technique }
-    deriving (Eq, Show)
+    = Cue { cuePart      :: Part, 
+            cueDoubling  :: Doubling, 
+            cueTechnique :: Technique } 
+    deriving ( Eq, Show )
 
 
 class Stopped a where
@@ -259,8 +263,6 @@ instance Stopped a => Stopped (RightHand a) where
     stopping ( Single x _ ) = stopping x
     stopping ( Phrase (x:xs) _ ) = stopping x
     stopping ( Jete   (x:xs) _ ) = stopping x
-
-
 
 \end{code}
 
@@ -289,16 +291,19 @@ data Intonation
     | Raised
     | Common
     | Individual
-    deriving (Eq, Show)
+    deriving ( Eq, Show )
 
 intonation :: Doubling -> Technique -> Intonation
 
-intonation Tutti  t | stopping t == Open           = Tuning
-                    | stopping t == QuarterStopped = Raised
-                    | stopping t == Stopped        = Common
-intonation Solo   t | stopping t == Open           = Tuning
-                    | stopping t == QuarterStopped = Raised
-                    | stopping t == Stopped        = Individual
+intonation Tutti t = case stopping t of 
+    Open           -> Tuning
+    QuarterStopped -> Raised
+    Stopped        -> Common
+
+intonation Solo t = case stopping t of
+    Open           -> Tuning
+    QuarterStopped -> Raised
+    Stopped        -> Individual
 
 \end{code}
 
@@ -310,7 +315,7 @@ Rendering
 \begin{code}
 instance Seg Int where            
 
-renderCue :: Dur -> Cue -> Score (Note.Note Dynamics Int ())
+renderCue :: Dur -> Cue -> Score (Note.Note Dynamics Int a)
 renderCue dur (Cue part doubl tech) =
     case tech of
         Pizz x attr ->
@@ -347,21 +352,19 @@ renderCue dur (Cue part doubl tech) =
           makeScale = Scales.eqt 69
 
 renderCuesToMidi :: Score Cue -> Score Demo.MidiEvent
-renderCuesToMidi = Midi.stringEnsemble1 . dfoldMap renderCue
+renderCuesToMidi = Midi.marimba . dfoldMap renderCue
 
-exportCues :: Score Cue -> IO ()
-exportCues = Demo.exportMidi "test.mid" . renderCuesToMidi
+exportCues :: FilePath -> Score Cue -> IO ()
+exportCues path = Demo.exportMidi path . renderCuesToMidi
 
 play score = do
-    exportCues score
+    exportCues "test.mid" score
     openMidiFile "test.mid"
 
 export score = do
-    exportCues score
+    exportCues "test.mid" score
     exportMidiFile "test.mid"
 
-openMidiFile name = execute "timidity" [name]
-exportMidiFile = openFileWith "/Applications/Sibelius 6.app/Contents/MacOS/Sibelius 6"
 \end{code}
 
 
@@ -375,22 +378,21 @@ t1 p = note (1/8) $ Cue (Violin 1) Solo (Single (StoppedString p I) Articulation
 t2 p = note (1/8) $ Cue (Violin 2) Solo (Single (StoppedString p I) Articulation)
 
 
-
-test = t1' >>> rest (1/4) 
-       >>> 
-       t2' >>> rest (1/2)
-       >>> 
-       (t1' ||| loop 3 t2')
-       >>> 
-       (loop 3 t1' ||| t2')
-
+test =  loop 500 t1' 
+        ||| 
+        (stretch 1.01 $ loop 500 t1')
     where
-        t1' = t1 60 >>> t1 62 >>> t1 64
-        t2' = t2 60 >>> t2 62 >>> t2 64
+        t1' = phrase
+
+phrase = t1 60 >>> t1 65 >>> t1 67 >>> t1 60 >>> t1 55 >>> t1 62
             
-scale = line [ note (1/4) $ Cue (Violin 1) 
+scale = line [ note (1/8) $ Cue (Violin 1) 
                             Solo (Single (StoppedString p I) Articulation)
              | p <- [60..72] ]
+
+main = do play test
+          Concurrent.threadDelay (1000000 * 300)
+
 \end{code}
 
 

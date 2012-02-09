@@ -82,7 +82,7 @@ withHeader  f s = s { header   = f (header s) }
 setParts    p s = s { parts    = p }
 setMeasures p s = s { measures = p }
 
-withWork    f = withHeader $ \h -> h { work      = Just (f . force $ work h) }
+withWork    f = withHeader $ \h -> h { work      = Just (f . always $ work h) }
 setWork     x = withHeader $ \h -> h { work      = Just x }
 setDefaults x = withHeader $ \h -> h { defaults  = Just x }
 setCredit   x = withHeader $ \h -> h { credit    = x      }

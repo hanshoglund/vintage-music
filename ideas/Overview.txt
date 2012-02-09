@@ -1,0 +1,75 @@
+Prelude
+    Bool
+    Maybe
+    Either
+    Ordering    
+    
+    Char
+    String
+    
+    fst, snd, curry, uncurry
+    
+    Eq
+    Ord
+    
+    Enum
+    Bounded
+    
+    Int
+    Integer
+    Float
+    Double
+    Rational
+    
+    Num
+    Real
+    Integral
+    Fractional
+    Floating
+    RealFrac
+    RealFloat
+    
+    Monad
+    Functor
+    
+    []
+    IO
+
+Misc
+    Functor
+    Applicative
+    Arrow
+    Monad
+    Comonad
+    Monoid
+    Traversable
+    Foldable
+    
+Music
+    Score (temporal structure)
+    Functor, Monoid, Applicative, Monad
+   
+    Transformers
+        Pitch
+        Dynamics
+        Articulation
+        Instrumentation
+
+
+    Rendering to MIDI
+    Rendering to Graphics
+    Rendering to MusicXML
+    
+    Segments      
+    Monadic FRP/DSP?
+    Arrowised FRP/DSP?
+    Comonadic FRP/DSP?
+
+
+
+
+
+
+
+
+
