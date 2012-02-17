@@ -17,7 +17,7 @@
 module Music.Time.Score
 (
 -- * Score
-    Score,
+    Score(..),
     note,  
     render,
     events,
@@ -94,9 +94,9 @@ instance Time t => Timed t (Score t) where
 instance Time t => Delayed t (Score t) where
     rest      = Rest
     
-instance Time t => LoopTemporal t (Score t)
+instance Time t => Loop (Score t)
 
-instance Time t => ReverseTemporal t (Score t) where
+instance Time t => Reverse (Score t) where
     reverse (Seq x y) = Seq (reverse y) (reverse x)
     reverse (Par x y) = Par (reverse x) (reverse y)
     reverse x         = x
@@ -138,19 +138,11 @@ join' = mconcat . fmap arrange . events
 --     abs         = Rest . abs . duration
 --     signum      = Rest . signum . duration
 --     fromInteger = Rest . fromInteger
--- 
--- instance (Time t, Eq a, Show a) => Fractional (Score t a) where
---     x / y        = Rest $ duration x + duration y
---     fromRational = Rest . fromRational
 
-
-
-
-
-------------------------------------------------------------------------------------------
 
 data Event t a
-    = Event {
+    = Event 
+    {
         eventPosition :: t,
         eventDuration :: t,
         eventContent  :: a
@@ -162,10 +154,9 @@ instance Time t => Timed t (Event t) where
     withDuration f (Event t d x) = Event t (f d) x
 
 
-------------------------------------------------------------------------------------------
-
 data EventList t a
-    = EventList { 
+    = EventList 
+    { 
         eventListDuration :: t,
         eventListContent :: [Event t a]
     }
@@ -189,9 +180,3 @@ render' t (Seq  x y) = EventList (duration xs + duration ys) (eventListContent x
     where xs = render' t x
           ys = render' (t + duration xs) y
 
--- line = Note 1 60 >>> Note 1 62 >>> Note 1 65 >>> Note 1 55 >>> Note 1 59
--- epos =  map eventPosition . events . render
--- edur =  map eventDuration . events . render
--- econ =  map eventContent . events . render
--- 
--- 

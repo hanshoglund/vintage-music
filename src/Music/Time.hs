@@ -13,21 +13,22 @@
 
 module Music.Time 
 (
--- * Temporal class
+-- * Temporal
     Temporal(..),
+-- ** Loop
+    Loop(..),
+-- ** Reverse
+    Reverse(..),
 
--- * Manipulation of temporal values
--- ** Looping
-    LoopTemporal(..),
--- ** Reversing
-    ReverseTemporal(..),
--- ** Cutting
-    SplitTemporal(..),
-
--- * Offset and duration
+-- * Timed values
     Time(..),
-    Timed(..),
+-- ** Offset
     Delayed(..),
+-- ** Duration
+    Timed(..),
+-- ** Split
+    Split(..),
+
 )
 where
 
@@ -36,38 +37,59 @@ infixr 9 >>>
 infixr 8 |||
 
 
--- | Value with temporal semantics. Minimal complete definition: `instant`, `>>>` and `|||`.
---   
---   * `instant` and `|||` should form a monoid, as should `instant` and `>>>`:
---   
---   > instant >>> x         = x
---   > x       >>> instant   = x
---   >
---   > instant ||| x         = x
---   > x       ||| instant   = x
---   >
---   > x >>> (y >>> z) = (x >>> y) >>> z
---   > x ||| (y ||| z) = (x ||| y) ||| z
---   
---   * Instances for `Timed` should also satisfy the following laws:
---   
---   > duration (x >>> y) = duration x + duration y
---   > duration (x <<< y) = duration x + duration y
---   > duration (x ||| y) = duration x `max` duration y
---
-class Temporal e where 
+{-| 
+    Value with temporal semantics.
+      
+    * `instant` and should form a monoid with each of the operations `>>>`, `|||` and `<<<`.
+
+    * Instances for `Timed` should also satisfy the following laws:
+
+    > duration (x >>> y) = duration x + duration y
+    > duration (x <<< y) = duration x + duration y
+    > duration (x ||| y) = duration x `max` duration y
+
+    Minimal complete definition: all except `>>>` or `<<<`.
+-}
+class Temporal t where 
     -- | The instantanous temporal value. 
-    instant :: e a
+    instant :: t a
 
     -- | Parallel composition of temporal values. 
-    (|||)   :: e a -> e a -> e a
+    (|||)   :: t a -> t a -> t a
 
     -- | Sequential composition of temporal values. 
-    (>>>)   :: e a -> e a -> e a
+    (>>>)   :: t a -> t a -> t a
+    a >>> b = a <<< b
 
     -- | Reverse sequential composition of temporal values. 
-    (<<<)   :: e a -> e a -> e a
+    (<<<)   :: t a -> t a -> t a
     a <<< b = a >>> b
+
+
+{-| 
+    Value that can be looped.
+-}
+class Temporal t => Loop t where
+    -- | Loop the given value for ever.
+    loop    :: t a -> t a
+    -- loop x  = x >>> loop x
+
+
+{-| 
+    Value that can be reversed.
+
+      * Instances should satisfy the following laws:
+  
+      > (reverse . reverse) = id
+
+      * Instances for `Timed` should also satisfy the following laws:
+  
+      > duration (reverse x) = duration x
+-}
+class Temporal t => Reverse t where
+    -- | Reverse the given value.
+    reverse :: t a -> t a
+
 
 
 -- | Time values must be ordered and support numeric operations.
@@ -92,36 +114,17 @@ class (Time t, Temporal d) => Delayed t d where
     delay t x = rest t >>> x
 
 
--- | Values that can be looped.
-class (Time t, Temporal d) => LoopTemporal t d | d -> t where
-
-    -- | Loop the given value for ever.
-    loop    :: d a -> d a
-    loop x  = x >>> loop x
-
-
--- | Values that can be reversed.
---
---   * Instances should satisfy the following laws:
---   
---   > (reverse . reverse) = id
---
-class (Time t, Temporal d) => ReverseTemporal t d | d -> t   where
-
-    -- | Reverse the given value.
-    reverse :: d a -> d a
-
 
 -- | Values that can be cut.
 --
---   * Instances of 'LoopTemporal' and 'Timed' should satisfy the following laws:
+--   * Instances of 'Loop' and 'Timed' should satisfy the following laws:
 --   
 --   > before d (loop x)           = x
 --   > before d (after d) (loop x) = x
 --   >     where d = duration x
 --
 --   Minimal complete definition: either `split` or all the others.
-class (Time t, Temporal d) => SplitTemporal t d | d -> t   where    
+class (Time t, Temporal d) => Split t d | d -> t   where    
     
     split   :: t -> d a -> (d a, d a, d a) 
     before  :: t -> d a -> d a

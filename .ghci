@@ -1,17 +1,3 @@
--- import Control.Parrow
--- import Data.Trivial
--- import Music
--- import Music.Model
--- import Music.Model.Abc
--- import Music.Model.GUIDO
--- import Music.Model.MIDI
-
--- import Music.Model.Standard
--- import Music.Model.MusicXML
--- import Music.Utilities
-
--- :load src/Music/Model/MusicXml.hs
--- :load src/Music/Model/Standard.hs
-:load src/Music/Projects/MusicaVitae.lhs
+:load src/Music/Time/Segment.hs
 
 :set prompt "Music> "

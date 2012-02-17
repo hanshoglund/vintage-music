@@ -7,4 +7,14 @@
     Portability :  portable
 -}
 
+{-# LANGUAGE 
+    MultiParamTypeClasses, 
+    FunctionalDependencies #-}
+
 module Music.Pitch where
+    
+
+type Frequency = Rational    
+
+class Pitched p where
+    toFrequency :: p -> Rational

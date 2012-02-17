@@ -1,5 +1,5 @@
 {-|
-    Module      :  Music.Dynamics
+    Module      :  Music.Space
     Copyright   :  Hans Höglund 2012
 
     Maintainer  :  hans@hanshoglund.se
@@ -11,9 +11,12 @@
     MultiParamTypeClasses, 
     FunctionalDependencies #-}
 
-module Music.Dynamics where
+module Music.Space
+where
 
-type Amplitude = Rational    
+type Location = (Rational, Rational, Rational)
 
-class Dynamic p where
-    toAmplitude :: p -> Amplitude
+type Frequency = Rational    
+
+class Spacial p where
+    toLocation :: p -> Location
