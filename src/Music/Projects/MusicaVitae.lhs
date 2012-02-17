@@ -352,7 +352,7 @@ renderCue dur (Cue part doubl tech) =
           makeScale = Scales.eqt 69
 
 renderCuesToMidi :: Score Cue -> Score Demo.MidiEvent
-renderCuesToMidi = Midi.marimba . dfoldMap renderCue
+renderCuesToMidi = Midi.acousticGrandPiano . dfoldMap renderCue
 
 exportCues :: FilePath -> Score Cue -> IO ()
 exportCues path = Demo.exportMidi path . renderCuesToMidi
@@ -374,21 +374,40 @@ Form
 
 \begin{code}
 
-t1 p = note (1/8) $ Cue (Violin 1) Solo (Single (StoppedString p I) Articulation) 
-t2 p = note (1/8) $ Cue (Violin 2) Solo (Single (StoppedString p I) Articulation)
+note' p = note (1/8) $ Cue (Violin 1) Solo (Single (StoppedString p I) Articulation) 
+loop' = loop 500
 
 
-test =  loop 500 t1' 
-        ||| 
-        (stretch 1.01 $ loop 500 t1')
-    where
-        t1' = phrase
 
-phrase = t1 60 >>> t1 65 >>> t1 67 >>> t1 60 >>> t1 55 >>> t1 62
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------
+
+test =  loop' phrase   |||    (stretch 1.01 $ loop' phrase)
+
+phrase = note' 60 >>> note' 65 >>> note' 67 >>> note' 60 >>> note' 55 >>> note' 62
+
+
+
+
+
+
+--------------------------------------------------------------------------------
+
             
 scale = line [ note (1/8) $ Cue (Violin 1) 
                             Solo (Single (StoppedString p I) Articulation)
              | p <- [60..72] ]
+
+
+--------------------------------------------------------------------------------
+
+
 
 main = do play test
           Concurrent.threadDelay (1000000 * 300)

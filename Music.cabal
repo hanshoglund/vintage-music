@@ -33,6 +33,7 @@ library
         Music
 
         Music.Time
+        Music.Time.Score
         Music.Pitch
         Music.Dynamics
         Music.Phrasing
