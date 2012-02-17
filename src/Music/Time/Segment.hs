@@ -17,7 +17,9 @@
 
 module Music.Time.Segment
 (
-    Segment
+    Segment,
+    segment,
+    at
 )
 where
 
@@ -67,8 +69,8 @@ instance Time t => Reverse (Segment t) where
 segment :: (Monoid a, Time t) => (t -> a) -> Segment t a
 segment f = Segment 1 f
 
-atTime :: (Monoid a, Time t) => Segment t a -> t -> a
-atTime (Segment d f) t = if (t > d) then mempty else f t
+at :: (Monoid a, Time t) => Segment t a -> t -> a
+at (Segment d f) t = if (t > d) then mempty else f t
 
 
 test = segment (\x -> Sum 1) :: Segment Double (Sum Int)

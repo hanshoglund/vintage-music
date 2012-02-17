@@ -20,6 +20,9 @@ module Music.Time.Score
     Score,
     note,  
     render,
+    
+    melody,
+    chord
 )
 where
 
@@ -148,6 +151,13 @@ render' t (Par  x y) = render' t x `mappend` render' t y
 render' t (Seq  x y) = EventList (duration xs + duration ys) (E.val xs ++ E.val ys)
     where xs = render' t x
           ys = render' (t + duration xs) y
+
+
+chord :: Time t => [a] -> Score t a
+chord = mconcat . map note
+
+melody :: Time t => [a] -> Score t a
+melody = undefined
 
 
 -- instance (Time t, Eq a, Show a) => Num (Score t a) where
