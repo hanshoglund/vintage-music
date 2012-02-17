@@ -8,12 +8,11 @@
 -}
 
 {-# LANGUAGE 
-    MultiParamTypeClasses, 
-    FunctionalDependencies #-}
+    MultiParamTypeClasses #-}
 
 module Music.Time 
 (
--- * Temporal
+-- * Temporal values
     Temporal(..),
 -- ** Loop
     Loop(..),
@@ -22,10 +21,10 @@ module Music.Time
 
 -- * Timed values
     Time(..),
--- ** Offset
-    Delayed(..),
 -- ** Duration
     Timed(..),
+-- ** Position
+    Delayed(..),
 -- ** Split
     Split(..),
 
@@ -35,7 +34,6 @@ where
 infixr 9 <<<
 infixr 9 >>>
 infixr 8 |||
-
 
 {-| 
     Value with temporal semantics.
@@ -70,71 +68,79 @@ class Temporal t where
     Value that can be looped.
 -}
 class Temporal t => Loop t where
-    -- | Loop the given value for ever.
-    loop    :: t a -> t a
-    -- loop x  = x >>> loop x
+    
+    loop :: t a -> t a
+    loop x = x >>> loop x
 
 
 {-| 
     Value that can be reversed.
 
-      * Instances should satisfy the following laws:
+    Instances should satisfy the following laws:
   
-      > (reverse . reverse) = id
+    > (reverse . reverse) = id
 
-      * Instances for `Timed` should also satisfy the following laws:
+    Instances for `Timed` should also satisfy the following laws:
   
-      > duration (reverse x) = duration x
+    > duration (reverse x) = duration x
 -}
 class Temporal t => Reverse t where
+
     -- | Reverse the given value.
     reverse :: t a -> t a
 
 
 
--- | Time values must be ordered and support numeric operations.
+{-| 
+    Time values must be ordered and support numeric operations.
+-}
 class (Ord t, Num t) => Time t where
 instance Time Double
+instance Time Integer
+instance Time Rational
 
 
--- | Values with a duration.
+{-| 
+    Values with a duration.
+-}
 class Time t => Timed t d where
     duration        :: d a -> t
-
     stretch         :: t -> d a -> d a
-    stretch t       = withDuration (* t)
 
-    withDuration    :: (t -> t) -> d a -> d a -- FIXME this should go
-
--- | Values with an offset.
-class (Time t, Temporal d) => Delayed t d where
-    rest    :: t -> d a
-
-    delay   :: t -> d a -> d a
-    delay t x = rest t >>> x
-
-
-
--- | Values that can be cut.
---
---   * Instances of 'Loop' and 'Timed' should satisfy the following laws:
---   
---   > before d (loop x)           = x
---   > before d (after d) (loop x) = x
---   >     where d = duration x
---
---   Minimal complete definition: either `split` or all the others.
-class (Time t, Temporal d) => Split t d | d -> t   where    
+{-|
+    Values with an offset.
     
-    split   :: t -> d a -> (d a, d a, d a) 
+    Instances should satisfy the following laws:
+  
+    > delay t x = rest t >>> x
+    > a >>> b = a ||| delay (duration a) b    
+-}
+class Time t => Delayed t d where
+    rest    :: t -> d a
+    delay   :: t -> d a -> d a
+    -- offset  :: d a -> t
+
+
+{-| 
+    Values that can be cut.
+
+    Instances of 'Loop' and 'Timed' should satisfy the following laws:
+    
+    > before d (loop x)           = x
+    > before d (after d) (loop x) = x
+    >     where d = duration x
+
+   Minimal complete definition: either `split` or all except `split`.
+-}
+class Time t => Split t d where    
+    
+    split   :: t -> d a -> (d a, d a) 
     before  :: t -> d a -> d a
-    at      :: t -> d a -> d a
     after   :: t -> d a -> d a
     
-    split t x = (before t x, at t x, after t x)
+    split t x = (before t x, after t x)
 
-    before t x = a where (a, b, c) = split t x
-    at     t x = b where (a, b, c) = split t x
-    after  t x = c where (a, b, c) = split t x     
+    before t x = a where (a, b) = split t x
+    after  t x = b where (a, b) = split t x     
  
                                                              

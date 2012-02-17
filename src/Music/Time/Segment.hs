@@ -16,7 +16,9 @@
     RankNTypes #-}
 
 module Music.Time.Segment
-
+(
+    Segment
+)
 where
 
 import Data.Monoid    
@@ -29,6 +31,11 @@ data Segment t a
         segmentDuration :: t,
         segmentValue    :: Monoid a => t -> a 
     }
+    deriving
+    (
+    -- Eq,
+    -- Show
+    )
     
 
 instance Time t => Temporal (Segment t) where
@@ -45,11 +52,12 @@ instance Time t => Temporal (Segment t) where
             (\x -> if x < d then f x else f (x - d))
 
 instance Time t => Timed t (Segment t) where
-    duration       (Segment d xs) = d
-    withDuration f (Segment d xs) = Segment (f d) xs
+    duration  (Segment d xs) = d
+    stretch t (Segment d xs) = Segment (d * t) xs
 
 instance Time t => Delayed t (Segment t) where
-    rest d = Segment d (\x -> mempty)
+    rest d   = Segment d (\x -> mempty)
+    delay t x = rest t >>> x
     
 instance Time t => Loop (Segment t)
 

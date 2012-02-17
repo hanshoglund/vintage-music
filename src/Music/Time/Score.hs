@@ -17,14 +17,9 @@
 module Music.Time.Score
 (
 -- * Score
-    Score(..),
+    Score,
     note,  
     render,
-    events,
-    
--- * Events and event lists
-    Event(..),
-    EventList(..),
 )
 where
 
@@ -38,6 +33,8 @@ import Data.Ord ( comparing )
 import qualified Data.List as List
 
 import Music.Time
+import Music.Time.EventList
+import qualified Music.Time.EventList as E
 
 
 -- | The Score type.
@@ -46,7 +43,13 @@ data Score t a
     | Note t a
     | Par  (Score t a) (Score t a)
     | Seq  (Score t a) (Score t a)
-    deriving (Eq, Show, Functor, Foldable)
+    deriving 
+    (
+    -- Eq, 
+    -- Show, 
+    Functor 
+    -- Foldable
+    )
 
 
 -- parallelNormalForm   = parNF
@@ -86,13 +89,18 @@ instance Time t => Timed t (Score t) where
     duration (Seq  x y)      = duration x + duration y
     duration (Par  x y)      = duration x `max` duration y
 
-    withDuration f (Rest d)   = Rest (f d)
-    withDuration f (Note d x) = Note (f d) x
-    withDuration f (Par  x y) = Par (withDuration f x) (withDuration f y)
-    withDuration f (Seq  x y) = Seq (withDuration f x) (withDuration f y)
+    stretch t (Rest d)   = Rest (d * t)
+    stretch t (Note d x) = Note (d * t) x
+    stretch t (Par  x y) = Par  (stretch t x) (stretch t y)
+    stretch t (Seq  x y) = Seq  (stretch t x) (stretch t y)
 
 instance Time t => Delayed t (Score t) where
-    rest      = Rest
+    rest = Rest
+    delay t x = rest t >>> x
+    -- offset (Rest d)   = d
+    -- offset (Note d x) = 0
+    -- offset (Seq  x y) = offset x + offset y
+    -- offset (Par  x y) = offset x `min` offset y
     
 instance Time t => Loop (Score t)
 
@@ -112,24 +120,35 @@ instance Time t => Monad (Score t) where
 instance Time t => Applicative (Score t) where
     pure  = return
     (<*>) = ap
-    
-instance Time t => MonadPlus (Score t) where
-    mzero = mempty
-    mplus = mappend
 
-instance Time t => Alternative (Score t) where
-    empty = mempty
-    (<|>) = mappend
+-- instance Time t => MonadPlus (Score t) where
+--     mzero = mempty
+--     mplus = mappend
+-- 
+-- instance Time t => Alternative (Score t) where
+--     empty = mempty
+--     (<|>) = mappend
 
 note   :: Time t => a -> Score t a
 note   = Note 1
 
 events :: Time t => Score t a -> [Event t a]
-events = eventListContent . render
+events = E.val . render
     
 join' :: Time t => Score t (Score t a) -> Score t a
 join' = mconcat . fmap arrange . events
     where arrange (Event t d x) = (delay t . stretch d) x
+
+render :: Time t => Score t a -> EventList t a
+render = (\(EventList d xs) -> EventList d (List.sortBy (comparing E.posE) xs)) . render' 0
+
+render' t (Rest d)   = EventList d []
+render' t (Note d x) = EventList d [Event t d x]
+render' t (Par  x y) = render' t x `mappend` render' t y
+render' t (Seq  x y) = EventList (duration xs + duration ys) (E.val xs ++ E.val ys)
+    where xs = render' t x
+          ys = render' (t + duration xs) y
+
 
 -- instance (Time t, Eq a, Show a) => Num (Score t a) where
 --     x + y       = Rest $ duration x + duration y
@@ -140,43 +159,5 @@ join' = mconcat . fmap arrange . events
 --     fromInteger = Rest . fromInteger
 
 
-data Event t a
-    = Event 
-    {
-        eventPosition :: t,
-        eventDuration :: t,
-        eventContent  :: a
-    }
-    deriving (Eq, Show, Functor, Foldable)
 
-instance Time t => Timed t (Event t) where
-    duration = eventDuration
-    withDuration f (Event t d x) = Event t (f d) x
-
-
-data EventList t a
-    = EventList 
-    { 
-        eventListDuration :: t,
-        eventListContent :: [Event t a]
-    }
-    deriving (Eq, Show, Functor, Foldable)
-
-instance Time t => Monoid (EventList t a) where
-    mempty        = EventList 0 []
-    mappend xs ys = EventList (duration xs `max` duration ys) (eventListContent xs ++ eventListContent ys)
-
-instance Time t => Timed t (EventList t) where
-    duration = eventListDuration
-    withDuration f (EventList d xs) = EventList (f d) (map (withDuration f) xs) -- FIXME only works for stretching
-
-render :: Time t => Score t a -> EventList t a
-render = (\(EventList d xs) -> EventList d (List.sortBy (comparing eventPosition) xs)) . render' 0
-
-render' t (Rest d)   = EventList d []
-render' t (Note d x) = EventList d [Event t d x]
-render' t (Par  x y) = render' t x `mappend` render' t y
-render' t (Seq  x y) = EventList (duration xs + duration ys) (eventListContent xs ++ eventListContent ys)
-    where xs = render' t x
-          ys = render' (t + duration xs) y
 

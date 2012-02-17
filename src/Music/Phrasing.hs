@@ -8,3 +8,8 @@
 -}
 
 module Music.Phrasing where
+
+
+-- type Phrasing = (Start, Middle, Stop)
+-- 
+-- class Phrased p where
