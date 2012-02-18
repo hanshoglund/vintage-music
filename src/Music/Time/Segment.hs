@@ -61,7 +61,8 @@ instance Time t => Delayed t (Segment t) where
     rest d   = Segment d (\x -> mempty)
     delay t x = rest t >>> x
     
-instance Time t => Loop (Segment t)
+instance Time t => Loop (Segment t) where
+    loop x = x >>> loop x
 
 instance Time t => Reverse (Segment t) where
     reverse (Segment d f) = Segment d (\x -> f $ negate x + d)

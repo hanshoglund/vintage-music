@@ -105,7 +105,8 @@ instance Time t => Delayed t (Score t) where
     -- offset (Seq  x y) = offset x + offset y
     -- offset (Par  x y) = offset x `min` offset y
     
-instance Time t => Loop (Score t)
+instance Time t => Loop (Score t) where
+    loop x = x >>> loop x
 
 instance Time t => Reverse (Score t) where
     reverse (Seq x y) = Seq (reverse y) (reverse x)
