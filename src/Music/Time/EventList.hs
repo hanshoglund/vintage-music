@@ -7,64 +7,59 @@
     Portability :  portable
 -}
 
-{-# LANGUAGE 
-    MultiParamTypeClasses, 
-    FunctionalDependencies, 
-    FlexibleInstances, 
-    DeriveFunctor, 
+{-# LANGUAGE
+    MultiParamTypeClasses,
+    FlexibleInstances,
+    DeriveFunctor,
     DeriveFoldable #-}
 
 module Music.Time.EventList
 (
-    Event(..),
     EventList(..),
+    normalize
 )
 where
 
 import Data.Monoid
 import Data.Foldable
+import Data.Ord (comparing)
+import qualified Data.List as List
 
 import Music.Time
-
-data Event t a
-    = Event 
-    {
-        posE :: t,
-        durE :: t,
-        valE :: a
-    }
-    deriving 
-    (
-    Eq, 
-    Show, 
-    Functor
-    -- Foldable
-    )
-
-instance Time t => Timed t (Event t) where
-    duration = durE
-    stretch a (Event t d x) = Event t (d * a) x
+import Music.Time.Event hiding (dur)
 
 
 data EventList t a
-    = EventList 
-    { 
-        dur :: t,
-        val :: [Event t a]
+    = EventList
+    {
+        dur    :: t,
+        events :: [Event t a]
     }
     deriving
     (
-    Eq, 
-    Show, 
+    Eq,
+    Show,
     Functor
     -- Foldable
     )
 
-instance Time t => Monoid (EventList t a) where
-    mempty        = EventList 0 []
-    mappend xs ys = EventList (duration xs `max` duration ys) (val xs ++ val ys)
+instance Time t => Temporal (EventList t) where
+    instant = EventList 0 []
+    x ||| y = EventList (dur x `max` dur y) (events x ++ events y)
+    x >>> y = EventList (dur x  +    dur y) (events x ++ map (delay $ dur x) (events y) )
 
 instance Time t => Timed t (EventList t) where
     duration = dur
     stretch t (EventList d xs) = EventList (d * t) (map (stretch t) xs)
+
+instance Time t => Delayed t (EventList t) where
+    rest d = EventList d []
+    delay v (EventList d xs) = EventList (d + v) (map (delay v) xs)
+
+-- instance Time t => Monoid (EventList t a) where
+--     mempty  = instant
+--     mappend = (>>>)
+
+normalize :: Time t => EventList t a -> EventList t a
+normalize (EventList d xs) = EventList d (List.sortBy (comparing pos) xs)
 

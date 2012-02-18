@@ -38,6 +38,7 @@ Library
 
         Music.Time
         Music.Space
+        Music.Time.Event
         Music.Time.EventList
         Music.Time.Score
         Music.Time.Segment

@@ -52,6 +52,12 @@ instance Time t => Temporal (Segment t) where
             (d + d') 
             (\x -> if x < d then f x else f (x - d))
 
+instance Time t => Loop (Segment t) where
+    loop x = x >>> loop x
+
+instance Time t => Reverse (Segment t) where
+    reverse (Segment d f) = Segment d (\x -> f $ negate x + d)
+
 instance Time t => Timed t (Segment t) where
     duration  (Segment d xs) = d
     stretch t (Segment d xs) = Segment (d * t) xs
@@ -60,12 +66,6 @@ instance Time t => Delayed t (Segment t) where
     rest d   = Segment d (\x -> mempty)
     delay t x = rest t >>> x
     
-instance Time t => Loop (Segment t) where
-    loop x = x >>> loop x
-
-instance Time t => Reverse (Segment t) where
-    reverse (Segment d f) = Segment d (\x -> f $ negate x + d)
-
 segment :: (Monoid a, Time t) => (t -> a) -> Segment t a
 segment f = Segment 1 f
 

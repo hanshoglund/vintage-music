@@ -15,6 +15,8 @@ module Music.Time
 (
 -- * Temporal values
     Temporal(..),
+    Seq(..),
+    Par(..),
 -- ** Loop
     Loop(..),
 -- ** Reverse
@@ -31,13 +33,15 @@ module Music.Time
 )
 where
 
+import Data.Monoid
+
 infixr 9 <<<
 infixr 9 >>>
 infixr 8 |||
 
-------------------------
+--
 -- Temporal values
-------------------------
+--
 
 {-|
     Composable temporal values.
@@ -60,21 +64,40 @@ infixr 8 |||
 
     Minimal complete definition: all except `>>>` or `<<<`.
 -}
-class Temporal t where
+class Temporal d where
     -- | The instantanous temporal value.
-    instant :: t a
+    instant :: d a
 
     -- | Parallel composition of temporal values.
-    (|||)   :: t a -> t a -> t a
+    (|||)   :: d a -> d a -> d a
 
     -- | Sequential composition of temporal values.
-    (>>>)   :: t a -> t a -> t a
+    (>>>)   :: d a -> d a -> d a
 
     -- | Reverse sequential composition of temporal values.
-    (<<<)   :: t a -> t a -> t a
+    (<<<)   :: d a -> d a -> d a
 
     a <<< b = a >>> b
     a >>> b = a <<< b
+
+
+{-|
+    Monoid under sequential composition.
+-}
+newtype Seq d a = Seq { getSeq :: d a }
+
+instance Temporal d => Monoid (Seq d a) where
+    mempty = Seq instant
+    Seq a `mappend` Seq b = Seq (a >>> b)
+
+{-|
+    Monoid under parallell composition.
+-}
+newtype Par d a = Par { getPar :: d a }
+
+instance Temporal d => Monoid (Par d a) where
+    mempty = Par instant
+    Par a `mappend` Par b = Par (a ||| b)
 
 
 {-|
@@ -83,8 +106,8 @@ class Temporal t where
 
     > duration (loop x) = maxBound
 -}
-class Temporal t => Loop t where
-    loop :: t a -> t a
+class Temporal d => Loop d where
+    loop :: d a -> d a
     loop x = x >>> loop x
 
 
@@ -97,13 +120,13 @@ class Temporal t => Loop t where
 
     > duration (reverse x) = duration x
 -}
-class Temporal t => Reverse t where
-    reverse :: t a -> t a
+class Temporal d => Reverse d where
+    reverse :: d a -> d a
 
 
-------------------------
+--
 -- Timed values
-------------------------
+--
 
 {-|
     Time values must be ordered and support numeric operations.
@@ -121,6 +144,7 @@ instance Time Rational
 class Time t => Timed t d | d -> t where
     duration :: d a -> t
     stretch  :: t -> d a -> d a
+
 
 {-|
     Values with an offset.
