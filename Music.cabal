@@ -1,6 +1,6 @@
 
 Name:                   Music
-Version:                0.1
+Version:                1.1
 Cabal-Version:          >= 1.10
 Synopsis:               Music creation and manipulation
 Category:               Sound, Music
@@ -38,6 +38,7 @@ Library
 
         Music.Time
         Music.Space
+        Music.Time.EventList
         Music.Time.Score
         Music.Time.Segment
         Music.Pitch

@@ -35,8 +35,8 @@ data Event t a
     }
     deriving 
     (
-    -- Eq, 
-    -- Show, 
+    Eq, 
+    Show, 
     Functor
     -- Foldable
     )
@@ -54,8 +54,8 @@ data EventList t a
     }
     deriving
     (
-    -- Eq, 
-    -- Show, 
+    Eq, 
+    Show, 
     Functor
     -- Foldable
     )

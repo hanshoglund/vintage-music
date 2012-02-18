@@ -1,3 +1,6 @@
-:load src/Music/Time/Segment.hs
+
+-- :load src/Music/Time/Score.hs
+-- :load src/Music/Time/Segment.hs
+:load test.hs
 
 :set prompt "Music> "

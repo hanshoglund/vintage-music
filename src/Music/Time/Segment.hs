@@ -9,7 +9,6 @@
 
 {-# LANGUAGE
     MultiParamTypeClasses,
-    FunctionalDependencies,
     FlexibleInstances,
     DeriveFunctor,
     DeriveFoldable,

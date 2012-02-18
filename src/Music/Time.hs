@@ -8,7 +8,8 @@
 -}
 
 {-# LANGUAGE 
-    MultiParamTypeClasses #-}
+    MultiParamTypeClasses,
+    FunctionalDependencies #-}
 
 module Music.Time 
 (
@@ -36,28 +37,23 @@ infixr 9 >>>
 infixr 8 |||
 
 {-| 
+    Composable temporal values.
+    
     Laws:  
 
     * `instant` should form a monoid with each of the operations `>>>`, `|||` and `<<<`.
 
-    * Instances of `Temporal` and `Timed` should always satisfy the following laws:
+    * Instances of `Temporal` and `Timed` should satisfy the following laws:
 
     > duration (a >>> b) = duration a + duration b
     > duration (a <<< b) = duration a + duration b
     > duration (a ||| b) = duration a `max` duration b
+    >
+    > a >>> b ||| c >>> d = (a ||| c) >>> (c ||| d) only if P, where P is one of
+    >   duration a = duration c
+    >   duration b = duration d
+    >   duration a = duration b = duration c = duration d
 
-    * Furthermore, instances of `Temporal` and `Timed` should satisfy one of the following laws:
-
-      > a >>> b ||| c >>> d = (a ||| c) >>> (c ||| d) 
-      >     iff duration a = duration c 
-
-      > a >>> b ||| c >>> d = (a ||| c) >>> (c ||| d) 
-      >     iff duration b = duration d 
-    
-      > a >>> b ||| c >>> d = (a ||| c) >>> (c ||| d) 
-      >     iff duration a = duration b = duration c = duration d 
-    
-      > a >>> b ||| c >>> d = (a ||| c) >>> (c ||| d) 
     
     Minimal complete definition: all except `>>>` or `<<<`.
 -}
@@ -118,7 +114,7 @@ instance Time Rational
 {-| 
     Values with a duration.
 -}
-class Time t => Timed t d where
+class Time t => Timed t d | d -> t where
     duration        :: d a -> t
     stretch         :: t -> d a -> d a
 
@@ -131,7 +127,7 @@ class Time t => Timed t d where
     > a >>> b = a ||| delay d b
     >     where d = duration a
 -}
-class Time t => Delayed t d where
+class Time t => Delayed t d | d -> t where
     rest    :: t -> d a
     delay   :: t -> d a -> d a
     -- offset  :: d a -> t
@@ -147,7 +143,7 @@ class Time t => Delayed t d where
 
    Minimal complete definition: either `split` or all except `split`.
 -}
-class Time t => Split t d where    
+class Time t => Split t d | d -> t where    
     split   :: t -> d a -> (d a, d a) 
     before  :: t -> d a -> d a
     after   :: t -> d a -> d a

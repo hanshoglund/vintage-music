@@ -9,7 +9,6 @@
 
 {-# LANGUAGE 
     MultiParamTypeClasses, 
-    FunctionalDependencies, 
     FlexibleInstances, 
     DeriveFunctor, 
     DeriveFoldable #-}
@@ -40,7 +39,14 @@ import Music.Time.EventList
 import qualified Music.Time.EventList as E
 
 
--- | The Score type.
+{-|
+    A discrete temporal structure, generalising standard music notation.            
+
+    > melody [1, 2, 3]
+    
+    Useful monadic functions:
+        'join', 'msum', 'mfilter', 'liftM', 'liftM2', 'liftM3' etc.
+-}
 data Score t a
     = Rest t
     | Note t a
@@ -54,43 +60,16 @@ data Score t a
     -- Foldable
     )
 
-
--- parallelNormalForm   = parNF
--- sequentialNormalForm = seqNF
--- 
--- -- TODO adjust durs
--- parNF (Seq (Par a b) (Par c d))             
---     | duration a  <   duration b    = undefined -- prolong a to be same length as b
---     | duration a  ==  duration b    = Par (Seq (parNF a) (parNF c)) (Seq (parNF b) (parNF d))
---     | duration a  >   duration b    = undefined -- prolong b to be same length as a
--- 
--- parNF (Seq x y) = Seq (parNF x) (parNF y)
--- parNF (Par x y) = Par (parNF x) (parNF y)
--- parNF x         = x
--- 
--- 
--- -- TODO adjust durations
--- -- This is actually not possible with non-truncating composition!
--- seqNF (Par (Seq a b) (Seq c d))
---     | duration a  <   duration c    = undefined
---     | duration a  ==  duration c    = (Seq (Par (seqNF a) (seqNF c)) (Par (seqNF b) (seqNF d)))
---     | duration a  >   duration c    = undefined
--- 
--- seqNF (Par x y) = Par (seqNF x) (seqNF y)
--- seqNF (Seq x y) = Seq (seqNF x) (seqNF y)
--- seqNF x         = x
-
-
 instance Time t => Temporal (Score t) where
     instant   = Rest 0
     x ||| y   = Par x y
     x >>> y   = Seq x y
 
 instance Time t => Timed t (Score t) where
-    duration (Rest d)        = d
-    duration (Note d x)      = d
-    duration (Seq  x y)      = duration x + duration y
-    duration (Par  x y)      = duration x `max` duration y
+    duration (Rest d)    = d
+    duration (Note d x)  = d
+    duration (Seq  x y)  = duration x + duration y
+    duration (Par  x y)  = duration x `max` duration y
 
     stretch t (Rest d)   = Rest (d * t)
     stretch t (Note d x) = Note (d * t) x
@@ -118,8 +97,8 @@ instance Time t => Monoid (Score t a) where
     mappend = Seq
                     
 instance Time t => Monad (Score t) where
-    return  = Note 1
-    s >>= f = (join' . fmap f) s
+    return  = note
+    s >>= f = (joinScore . fmap f) s
 
 instance Time t => Applicative (Score t) where
     pure  = return
@@ -139,8 +118,8 @@ note   = Note 1
 events :: Time t => Score t a -> [Event t a]
 events = E.val . render
     
-join' :: Time t => Score t (Score t a) -> Score t a
-join' = mconcat . fmap arrange . events
+joinScore :: Time t => Score t (Score t a) -> Score t a
+joinScore = mconcat . fmap arrange . events
     where arrange (Event t d x) = (delay t . stretch d) x
 
 render :: Time t => Score t a -> EventList t a
@@ -160,6 +139,16 @@ chord = mconcat . map note
 melody :: Time t => [a] -> Score t a
 melody = undefined
 
+homophonic :: Time t => Score t a -> [Score t a]
+homophonic = undefined                          
+
+polyphonic :: Time t => Score t a -> [Score t a]
+polyphonic = undefined
+
+
+
+
+
 
 -- instance (Time t, Eq a, Show a) => Num (Score t a) where
 --     x + y       = Rest $ duration x + duration y
@@ -170,5 +159,32 @@ melody = undefined
 --     fromInteger = Rest . fromInteger
 
 
+
+
+-- parallelNormalForm   = parNF
+-- sequentialNormalForm = seqNF
+-- 
+-- -- TODO adjust durs
+-- parNF (Seq (Par a b) (Par c d))             
+--     | duration a  <   duration b    = undefined -- prolong a to be same length as b
+--     | duration a  ==  duration b    = Par (Seq (parNF a) (parNF c)) (Seq (parNF b) (parNF d))
+--     | duration a  >   duration b    = undefined -- prolong b to be same length as a
+-- 
+-- parNF (Seq x y) = Seq (parNF x) (parNF y)
+-- parNF (Par x y) = Par (parNF x) (parNF y)
+-- parNF x         = x
+-- 
+-- 
+-- -- TODO adjust durations
+-- -- This is actually not possible with non-truncating composition!
+-- seqNF (Par (Seq a b) (Seq c d))
+--     | duration a  <   duration c    = undefined
+--     | duration a  ==  duration c    = (Seq (Par (seqNF a) (seqNF c)) (Par (seqNF b) (seqNF d)))
+--     | duration a  >   duration c    = undefined
+-- 
+-- seqNF (Par x y) = Par (seqNF x) (seqNF y)
+-- seqNF (Seq x y) = Seq (seqNF x) (seqNF y)
+-- seqNF x         = x
+                      
 
 
