@@ -55,12 +55,6 @@ infixr 8 |||
     > duration (a >>> b) = duration a + duration b
     > duration (a <<< b) = duration a + duration b
     > duration (a ||| b) = duration a `max` duration b
-    >
-    > a >>> b ||| c >>> d = (a ||| c) >>> (c ||| d) only if P, where P is one of
-    >   duration a = duration c
-    >   duration b = duration d
-    >   duration a = duration b = duration c = duration d
-
 
     Minimal complete definition: all except `>>>` or `<<<`.
 -}
@@ -158,7 +152,6 @@ class Time t => Timed t d | d -> t where
 class Time t => Delayed t d | d -> t where
     rest   :: t -> d a
     delay  :: t -> d a -> d a
-    -- offset :: d a -> t
 
 
 {-|

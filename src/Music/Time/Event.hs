@@ -35,13 +35,13 @@ data Event t a
     (
     Eq, 
     Show, 
-    Functor
-    -- Foldable
+    Functor,
+    Foldable
     )
 
 instance Time t => Timed t (Event t) where
     duration = dur
-    stretch a (Event t d x) = Event t (d * a) x
+    stretch a (Event t d x) = Event (t * a) (d * a) x
 
 instance Time t => Delayed t (Event t) where
     rest = undefined -- FIXME

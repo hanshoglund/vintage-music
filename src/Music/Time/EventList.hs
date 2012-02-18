@@ -39,14 +39,18 @@ data EventList t a
     (
     Eq,
     Show,
-    Functor
-    -- Foldable
+    Functor,
+    Foldable
     )
 
 instance Time t => Temporal (EventList t) where
     instant = EventList 0 []
-    x ||| y = EventList (dur x `max` dur y) (events x ++ events y)
-    x >>> y = EventList (dur x  +    dur y) (events x ++ map (delay $ dur x) (events y) )
+
+    EventList dx ex  |||  EventList dy ey  =  
+        EventList (dx `max` dy) (ex ++ ey)
+
+    EventList dx ex  >>>  EventList dy ey  =  
+        EventList (dx + dy) (ex ++ map (delay dx) ey)
 
 instance Time t => Timed t (EventList t) where
     duration = dur
@@ -56,10 +60,10 @@ instance Time t => Delayed t (EventList t) where
     rest d = EventList d []
     delay v (EventList d xs) = EventList (d + v) (map (delay v) xs)
 
--- instance Time t => Monoid (EventList t a) where
---     mempty  = instant
---     mappend = (>>>)
 
+{-|
+    Returns a normal form event list, with events sorted by position. 
+-}
 normalize :: Time t => EventList t a -> EventList t a
 normalize (EventList d xs) = EventList d (List.sortBy (comparing pos) xs)
 

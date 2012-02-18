@@ -47,7 +47,7 @@ import qualified Music.Time.EventList as EventList
     > melody [1, 2, 3]
     
     Useful monadic functions:
-        'join', 'msum', 'mfilter', 'liftM', 'liftM2', 'liftM3' etc.
+        'join', 'liftM', 'liftM2', 'liftM3' etc.
 -}
 data Score t a
     = RestS t
@@ -123,7 +123,14 @@ joinScore =
 -- Note and Render
 --
 
+{-|
+    Creates a score containing the given element. 
+-}
 note :: Time t => a -> Score t a
+
+{-|
+    Render the given score to a list of events with position and duration.
+-}
 render :: Time t => Score t a -> EventList t a
 
 note = NoteS 1
