@@ -56,8 +56,8 @@ data Score t a
     (
     -- Eq, 
     -- Show, 
-    Functor 
-    -- Foldable
+    Functor,
+    Foldable
     )
 
 instance Time t => Temporal (Score t) where
