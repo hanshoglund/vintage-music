@@ -19,10 +19,18 @@ module Music.Time.Score
     Score,
     
 -- * Creating scores
-    note,  
-    line,
-    chord,           
+    note,               -- :: Time t => a -> Score t a  
+    line,               -- :: Time t => [a] -> Score t a
+    chord,              -- :: Time t => [a] -> Score t a
+
+    lineStretch,        -- :: Time t => [(a, t)] -> Score t a
+    chordDelay,         -- :: Time t => [(a, t)] -> Score t a
+    arpeggio,           -- :: Time t => t -> [a] -> Score t a
     
+-- * Normal forms
+    homophonic,         -- :: Time t => Score t a -> [Score t a]
+    polyphonic,         --  :: Time t => Score t a -> [Score t a]
+
 -- * Exporting scores
     render
 )
@@ -41,14 +49,13 @@ import Music.Time.EventList ( EventList(..) )
 import qualified Music.Time.EventList as EventList
 
 
-{-|
-    A discrete temporal structure, generalising standard music notation.            
+-- | A discrete temporal structure, generalising standard music notation.            
+--
+--   > melody [1, 2, 3]
+--   
+--   Useful monadic functions:
+--       'join', 'liftM', 'liftM2', 'liftM3' etc.
 
-    > melody [1, 2, 3]
-    
-    Useful monadic functions:
-        'join', 'liftM', 'liftM2', 'liftM3' etc.
--}
 data Score t a
     = RestS t
     | NoteS t a
@@ -90,10 +97,6 @@ instance Time t => Delayed t (Score t) where
     rest       =  RestS
     delay t x  =  rest t >>> x
     
--- instance Time t => Monoid (Score t a) where
---     mempty   =  instant
---     mappend  =  (>>>)
-                    
 instance Time t => Applicative (Score t) where
     pure   =  return
     (<*>)  =  ap
@@ -102,53 +105,44 @@ instance Time t => Monad (Score t) where
     return   =  note
     s >>= f  =  (joinScore . fmap f) s
 
-
---  This is monadic join for (Score t)
--- 
---  Unfortunately we can not implement Monads in terms of join directly, so we
---  implement (>>=) in terms of joinScore and fmap instead. Users should call
---  join instead of this function as usual.
+--   Monadic join for (Score t)
+--
+--   Unfortunately we can not implement Monads in terms of join directly, so we
+--   implement (>>=) in terms of this function instead.
+--
+--   Control.Monad.join is equivalent and should be used outside this module.
 
 joinScore :: Time t => Score t (Score t a) -> Score t a
-joinScore = 
-    getPar
-    . mconcat
-    . fmap (Par . arrange) 
-    . EventList.events 
-    . render
-    where 
+joinScore = concatPar . map arrange . rendered
+    where                           
         arrange (Event t d x) = (delay t . stretch d) x
+        rendered = EventList.events . render
 
 
 --
 -- Note and Render
 --
 
-{-|
-    Creates a score containing the given element. 
--}
+-- | Creates a score containing the given element.
 note :: Time t => a -> Score t a
 note = NoteS 1
 
-
-{-|
-    Render the given score to a list of events with position and duration.
--}
+-- | Render the given score to a list of events with position and duration.
 render :: Time t => Score t a -> EventList t a
 
---  The basic implementation for render looks like this.
---  The actual implementation optimizes this by computing offsets before rendering, instead of after.
--- 
---  render (RestS d)   =  EventList d []
---  render (NoteS d x) =  EventList d [Event 0 d x]
---  render (ParS x y)  =  render x ||| render y
---  render (SeqS x y)  =  render x >>> render y
-
+--   The basic implementation for render looks like this:
+--   
+--   render (RestS d)   =  EventList d []
+--   render (NoteS d x) =  EventList d [Event 0 d x]
+--   render (ParS x y)  =  render x ||| render y
+--   render (SeqS x y)  =  render x >>> render y
+--   
+--   The actual implementation optimizes this by computing offsets before rendering, instead of after.
 
 render score = let (d, xs) = render' 0 score 
-                in EventList.normalize $ EventList d xs
+                   in EventList.normalize $ EventList d xs
 
--- offset -> score -> (dur, eventList)
+-- offset -> score -> (dur, events)
 render' t (RestS d)    =  (d, [])
 render' t (NoteS d x)  =  (d, [Event t d x])
 render' t (ParS x y)   =  
@@ -165,31 +159,31 @@ render' t (SeqS x y)   =
 -- Derived combinators 
 --
 
-{-|
-    Creates a score containing the given elements, composed in sequence.
--}
+-- | Creates a score containing the given elements, composed in sequence.
 line :: Time t => [a] -> Score t a
-line = getSeq . mconcat . map (Seq . note)
+line = concatSeq . map note
 
-{-|
-    Creates a score containing the given elements, composed in parallell.
--}
+-- | Creates a score containing the given elements, composed in parallel.
 chord :: Time t => [a] -> Score t a
-chord = getPar . mconcat . map (Par . note)
+chord = concatPar . map note
 
--- TODO names for these?
-
+-- | Like line, but stretching each note by the given factors.
 lineStretch :: Time t => [(a, t)] -> Score t a
-lineStretch = undefined
+lineStretch = concatSeq . map ( \(x, d) -> stretch d $ note x )
 
-chordDelays :: Time t => [(a, t)] -> Score t a
-chordDelays = undefined
+-- | Like chord, but delaying each note the given amounts.
+chordDelay :: Time t => [(a, t)] -> Score t a
+chordDelay = concatPar . map ( \(x, t) -> delay t $ note x )
 
+-- | Like chord, but delaying each note the given amount.
 arpeggio :: Time t => t -> [a] -> Score t a
-arpeggio = undefined
+arpeggio t xs = chordDelay (zip xs [0, t ..]) 
 
 
 
+--
+-- Normal forms
+--
 
 homophonic :: Time t => Score t a -> [Score t a]
 homophonic = undefined                          
@@ -197,39 +191,32 @@ homophonic = undefined
 polyphonic :: Time t => Score t a -> [Score t a]
 polyphonic = undefined
 
+-- TODO
+
+{-
+parallelNormalForm   = parNF
+sequentialNormalForm = seqNF
+
+-- TODO adjust durs
+parNF (SeqS(ParSa b) (ParSc d))             
+    | duration a  <   duration b    = undefined -- prolong a to be same length as b
+    | duration a  ==  duration b    = ParS(SeqS(parNF a) (parNF c)) (SeqS(parNF b) (parNF d))
+    | duration a  >   duration b    = undefined -- prolong b to be same length as a
+
+parNF (SeqSx y) = SeqS(parNF x) (parNF y)
+parNF (ParSx y) = ParS(parNF x) (parNF y)
+parNF x         = x
 
 
+-- TODO adjust durations
+-- This is actually not possible with non-truncating composition!
+seqNF (ParS(SeqSa b) (SeqSc d))
+    | duration a  <   duration c    = undefined
+    | duration a  ==  duration c    = (SeqS(ParS(seqNF a) (seqNF c)) (ParS(seqNF b) (seqNF d)))
+    | duration a  >   duration c    = undefined
 
+seqNF (ParSx y) = ParS(seqNF x) (seqNF y)
+seqNF (SeqSx y) = SeqS(seqNF x) (seqNF y)
+seqNF x         = x  -}
 
-
-
-
-
-
--- parallelNormalForm   = parNF
--- sequentialNormalForm = seqNF
--- 
--- -- TODO adjust durs
--- parNF (SeqS(ParSa b) (ParSc d))             
---     | duration a  <   duration b    = undefined -- prolong a to be same length as b
---     | duration a  ==  duration b    = ParS(SeqS(parNF a) (parNF c)) (SeqS(parNF b) (parNF d))
---     | duration a  >   duration b    = undefined -- prolong b to be same length as a
--- 
--- parNF (SeqSx y) = SeqS(parNF x) (parNF y)
--- parNF (ParSx y) = ParS(parNF x) (parNF y)
--- parNF x         = x
--- 
--- 
--- -- TODO adjust durations
--- -- This is actually not possible with non-truncating composition!
--- seqNF (ParS(SeqSa b) (SeqSc d))
---     | duration a  <   duration c    = undefined
---     | duration a  ==  duration c    = (SeqS(ParS(seqNF a) (seqNF c)) (ParS(seqNF b) (seqNF d)))
---     | duration a  >   duration c    = undefined
--- 
--- seqNF (ParSx y) = ParS(seqNF x) (seqNF y)
--- seqNF (SeqSx y) = SeqS(seqNF x) (seqNF y)
--- seqNF x         = x
                       
-
-

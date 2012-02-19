@@ -20,7 +20,6 @@ import Music.Time.Score
 import Music.Time.Segment
 
 
-{-
 type Amplitude = Rational
 
 class TemporalDynamic t d where
@@ -33,10 +32,10 @@ class TemporalTrans t where
     liftTemporal :: Temporal d => d a -> t d a
         
 type Dynamic t a = DynamicT t (Score t) a
-newtype DynamicT t d a = DynamicT { runDynamic :: d (a, t -> Amplitude) }
+newtype DynamicT t d a = DynamicT { runDynamic :: d a }
 
 instance TemporalTrans (DynamicT t) where
-    liftTemporal x = DynamicT (x, const 0)
+    liftTemporal x = DynamicT x
                                          
 
 {-|
@@ -56,7 +55,7 @@ renderDynamicT = undefined
 --
 
 instance (Time t, Monad d) => Monad (DynamicT t d) where
-    return x          =  DynamicT (return (x, const 0))
+    return x          =  DynamicT (return x)
     DynamicT x >>= f  =  DynamicT (x >>= runDynamic . f)
 
 
@@ -82,7 +81,6 @@ instance (Time t, Delayed t d) => Delayed t (DynamicT t d) where
 instance (Time t, Split t d) => Split t (DynamicT t d) where
     before t (DynamicT x)  =  DynamicT (before t x)
     after  t (DynamicT x)  =  DynamicT (after  t x)
-                                                      -}
 
 
 
