@@ -33,6 +33,7 @@ Library
         
         Data.Trivial
         Data.Undefined
+--        Data.Bijection
 
         Music
 

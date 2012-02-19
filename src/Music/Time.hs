@@ -125,10 +125,9 @@ class Temporal d => Reverse d where
 {-|
     Time values must be ordered and support numeric operations.
 -}
-class (Ord t, Num t) => Time t where
+class (Ord t, Fractional t) => Time t where
 
 instance Time Double
-instance Time Integer
 instance Time Rational
 
 

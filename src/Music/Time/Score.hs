@@ -20,7 +20,7 @@ module Music.Time.Score
     
 -- * Creating scores
     note,  
-    melody,
+    line,
     chord,           
     
 -- * Exporting scores
@@ -90,9 +90,9 @@ instance Time t => Delayed t (Score t) where
     rest       =  RestS
     delay t x  =  rest t >>> x
     
-instance Time t => Monoid (Score t a) where
-    mempty   =  RestS 0
-    mappend  =  SeqS
+-- instance Time t => Monoid (Score t a) where
+--     mempty   =  instant
+--     mappend  =  (>>>)
                     
 instance Time t => Applicative (Score t) where
     pure   =  return
@@ -111,8 +111,9 @@ instance Time t => Monad (Score t) where
 
 joinScore :: Time t => Score t (Score t a) -> Score t a
 joinScore = 
-    mconcat 
-    . fmap arrange 
+    getPar
+    . mconcat
+    . fmap (Par . arrange) 
     . EventList.events 
     . render
     where 
@@ -127,42 +128,68 @@ joinScore =
     Creates a score containing the given element. 
 -}
 note :: Time t => a -> Score t a
+note = NoteS 1
+
 
 {-|
     Render the given score to a list of events with position and duration.
 -}
 render :: Time t => Score t a -> EventList t a
 
-note = NoteS 1
-
---  The basic implementation for render looks like this, but the one below is more efficient.
+--  The basic implementation for render looks like this.
+--  The actual implementation optimizes this by computing offsets before rendering, instead of after.
 -- 
 --  render (RestS d)   =  EventList d []
---  render (NoteS d x) =  EventList d [Event t d x]
+--  render (NoteS d x) =  EventList d [Event 0 d x]
 --  render (ParS x y)  =  render x ||| render y
 --  render (SeqS x y)  =  render x >>> render y
 
-render score = 
-    let (d, xs) = render' 0 score in 
-        EventList.normalize (EventList d xs)
 
+render score = let (d, xs) = render' 0 score 
+                in EventList.normalize $ EventList d xs
+
+-- offset -> score -> (dur, eventList)
 render' t (RestS d)    =  (d, [])
-
 render' t (NoteS d x)  =  (d, [Event t d x])
+render' t (ParS x y)   =  
+    let (dx, ex) = render' t x
+        (dy, ey) = render' t y 
+                       in (dx `max` dy, ex ++ ey)
+render' t (SeqS x y)   =
+    let (dx, ex) = render' t x
+        (dy, ey) = render' (t + dx) y
+                       in (dx + dy, ex ++ ey)
 
-render' t (ParS x y)   =  let (dx, ex) = render' t x
-                              (dy, ey) = render' t y         in  (dx `max` dy, ex ++ ey)
 
-render' t (SeqS x y)   =  let (dx, ex) = render' t x
-                              (dy, ey) = render' (t + dx) y  in  (dx + dy, ex ++ ey)
+--
+-- Derived combinators 
+--
 
+{-|
+    Creates a score containing the given elements, composed in sequence.
+-}
+line :: Time t => [a] -> Score t a
+line = getSeq . mconcat . map (Seq . note)
 
-
+{-|
+    Creates a score containing the given elements, composed in parallell.
+-}
 chord :: Time t => [a] -> Score t a
-chord = mconcat . map note
+chord = getPar . mconcat . map (Par . note)
 
-melody :: Time t => [a] -> Score t a
-melody = undefined
+-- TODO names for these?
+
+lineStretch :: Time t => [(a, t)] -> Score t a
+lineStretch = undefined
+
+chordDelays :: Time t => [(a, t)] -> Score t a
+chordDelays = undefined
+
+arpeggio :: Time t => t -> [a] -> Score t a
+arpeggio = undefined
+
+
+
 
 homophonic :: Time t => Score t a -> [Score t a]
 homophonic = undefined                          
@@ -175,13 +202,6 @@ polyphonic = undefined
 
 
 
--- instance (Time t, Eq a, Show a) => Num (Score t a) where
---     x + y       = RestS $ duration x + duration y
---     x * y       = RestS $ duration x + duration y
---     x - y       = RestS $ duration x + duration y
---     abs         = RestS . abs . duration
---     signum      = RestS . signum . duration
---     fromInteger = RestS . fromInteger
 
 
 

@@ -22,7 +22,9 @@ module Music.Time.Segment
 )
 where
 
+import Control.Applicative    
 import Data.Monoid    
+
 import Music.Time
 
 
@@ -30,7 +32,7 @@ data Segment t a
     = Segment 
     { 
         segmentDuration :: t,
-        segmentValue    :: Monoid a => t -> a 
+        segmentValue    :: Monoid a => t -> a
     }
     deriving
     (
@@ -59,19 +61,24 @@ instance Time t => Reverse (Segment t) where
     reverse (Segment d f) = Segment d (\x -> f $ negate x + d)
 
 instance Time t => Timed t (Segment t) where
-    duration  (Segment d xs) = d
-    stretch t (Segment d xs) = Segment (d * t) xs
+    duration  (Segment d f) = d
+    stretch t (Segment d f) = Segment (d * t) (\x -> f $ x / t)
 
 instance Time t => Delayed t (Segment t) where
     rest d   = Segment d (\x -> mempty)
-    delay t x = rest t >>> x
-    
+    delay t x = rest t >>> x   
+
+
+-- TODO a signature like this would be necessary to implement functor, applicative etc.
+-- Could be nice to use with Monoid wrappers such as Sum, All etc (?)
+ 
+-- (Monoid m, Time t) => (t -> a) -> (a -> m) -> (m -> a) -> Segment t a
+
 segment :: (Monoid a, Time t) => (t -> a) -> Segment t a
 segment f = Segment 1 f
 
 at :: (Monoid a, Time t) => Segment t a -> t -> a
 at (Segment d f) t = if (t > d) then mempty else f t
-
 
 test = segment (\x -> Sum 1) :: Segment Double (Sum Int)
 
