@@ -20,7 +20,6 @@ import Music.Time.Score
 import Music.Time.Segment
 
 
-{-
 type Amplitude = Rational
 
 class TemporalDynamic t d where
@@ -35,8 +34,8 @@ class TemporalTrans t where
 type Dynamic t a = DynamicT t (Score t) a
 newtype DynamicT t d a = DynamicT { runDynamic :: d (a, t -> Amplitude) }
 
-instance TemporalTrans (DynamicT t) where
-    liftTemporal x = DynamicT (x, const 0)
+-- instance TemporalTrans (DynamicT t) where
+--     liftTemporal x = DynamicT (x, const 0)
                                          
 
 {-|
@@ -55,34 +54,33 @@ renderDynamicT = undefined
 -- Temporal instances
 --
 
-instance (Time t, Monad d) => Monad (DynamicT t d) where
-    return x          =  DynamicT (return (x, const 0))
-    DynamicT x >>= f  =  DynamicT (x >>= runDynamic . f)
-
-
-instance Temporal d => Temporal (DynamicT t d) where
-    instant                    =   DynamicT instant
-    DynamicT x >>> DynamicT y  =   DynamicT (x >>> y)
-    DynamicT x ||| DynamicT y  =   DynamicT (x ||| y)
-
-instance Loop d => Loop (DynamicT t d) where
-    loop (DynamicT x)  =  DynamicT (loop x)
-
-instance Reverse d => Reverse (DynamicT t d) where
-    reverse (DynamicT x)  =  DynamicT (reverse x)
-
-instance (Time t, Timed t d) => Timed t (DynamicT t d) where
-    duration (DynamicT x)   =  duration x
-    stretch d (DynamicT x)  =  DynamicT (stretch d x)
-
-instance (Time t, Delayed t d) => Delayed t (DynamicT t d) where
-    rest d                =  DynamicT (rest d)
-    delay d (DynamicT x)  =  DynamicT (delay d x)
-
-instance (Time t, Split t d) => Split t (DynamicT t d) where
-    before t (DynamicT x)  =  DynamicT (before t x)
-    after  t (DynamicT x)  =  DynamicT (after  t x)
-                                                      -}
-
-
+-- instance (Time t, Monad d) => Monad (DynamicT t d) where
+--     return x          =  DynamicT (return (x, const 0))
+--     DynamicT x >>= f  =  DynamicT (x >>= runDynamic . f)
+-- 
+-- 
+-- instance Temporal d => Temporal (DynamicT t d) where
+--     instant                    =   DynamicT instant
+--     DynamicT x >>> DynamicT y  =   DynamicT (x >>> y)
+--     DynamicT x ||| DynamicT y  =   DynamicT (x ||| y)
+-- 
+-- instance Loop d => Loop (DynamicT t d) where
+--     loop (DynamicT x)  =  DynamicT (loop x)
+-- 
+-- instance Reverse d => Reverse (DynamicT t d) where
+--     reverse (DynamicT x)  =  DynamicT (reverse x)
+-- 
+-- instance (Time t, Timed t d) => Timed t (DynamicT t d) where
+--     duration (DynamicT x)   =  duration x
+--     stretch d (DynamicT x)  =  DynamicT (stretch d x)
+-- 
+-- instance (Time t, Delayed t d) => Delayed t (DynamicT t d) where
+--     rest d                =  DynamicT (rest d)
+--     delay d (DynamicT x)  =  DynamicT (delay d x)
+-- 
+-- instance (Time t, Split t d) => Split t (DynamicT t d) where
+--     before t (DynamicT x)  =  DynamicT (before t x)
+--     after  t (DynamicT x)  =  DynamicT (after  t x)
+-- 
+--                                                              
 

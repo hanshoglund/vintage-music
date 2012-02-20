@@ -27,9 +27,9 @@ module Music.Time.Score
     chordDelay,         -- :: Time t => [(a, t)] -> Score t a
     arpeggio,           -- :: Time t => t -> [a] -> Score t a
     
--- * Normal forms
-    homophonic,         -- :: Time t => Score t a -> [Score t a]
-    polyphonic,         --  :: Time t => Score t a -> [Score t a]
+-- -- * Normal forms
+--    homophonic,         -- :: Time t => Score t a -> [Score t a]
+--    polyphonic,         --  :: Time t => Score t a -> [Score t a]
 
 -- * Exporting scores
     render
@@ -63,8 +63,6 @@ data Score t a
     | SeqS (Score t a) (Score t a)
     deriving 
     (
-    -- Eq, 
-    -- Show, 
     Functor,
     Foldable
     )
@@ -168,22 +166,25 @@ chord :: Time t => [a] -> Score t a
 chord = concatPar . map note
 
 -- | Like line, but stretching each note by the given factors.
-lineStretch :: Time t => [(a, t)] -> Score t a
-lineStretch = concatSeq . map ( \(x, d) -> stretch d $ note x )
+lineStretch :: Time t => [(t, a)] -> Score t a
+lineStretch = concatSeq . map ( \(d, x) -> stretch d $ note x )
 
 -- | Like chord, but delaying each note the given amounts.
-chordDelay :: Time t => [(a, t)] -> Score t a
-chordDelay = concatPar . map ( \(x, t) -> delay t $ note x )
+chordDelay :: Time t => [(t, a)] -> Score t a
+chordDelay = concatPar . map ( \(t, x) -> delay t $ note x )
 
 -- | Like chord, but delaying each note the given amount.
 arpeggio :: Time t => t -> [a] -> Score t a
-arpeggio t xs = chordDelay (zip xs [0, t ..]) 
+arpeggio t xs = chordDelay (zip [0, t ..] xs)
 
 
+{-
 
 --
 -- Normal forms
 --
+
+-- TODO
 
 homophonic :: Time t => Score t a -> [Score t a]
 homophonic = undefined                          
@@ -191,9 +192,6 @@ homophonic = undefined
 polyphonic :: Time t => Score t a -> [Score t a]
 polyphonic = undefined
 
--- TODO
-
-{-
 parallelNormalForm   = parNF
 sequentialNormalForm = seqNF
 
