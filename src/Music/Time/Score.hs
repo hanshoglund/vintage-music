@@ -44,6 +44,7 @@ import Data.Monoid
 import Data.Foldable
 
 import Music.Time
+import Music.Time.Functors
 import Music.Time.Event ( Event(..) )
 import Music.Time.EventList ( EventList(..) )
 import qualified Music.Time.EventList as EventList
@@ -111,10 +112,28 @@ instance Time t => Monad (Score t) where
 --   Control.Monad.join is equivalent and should be used outside this module.
 
 joinScore :: Time t => Score t (Score t a) -> Score t a
-joinScore = concatPar . map arrange . rendered
+joinScore = concatPar . map arrange . toEvents
     where                           
         arrange (Event t d x) = (delay t . stretch d) x
-        rendered = EventList.events . render
+
+instance Time t => TimeFunctor t (Score t) where
+    tdmap f s = let (d, s') = tdmap' f 0 s in s'
+
+-- function -> offset -> score -> (dur, events)
+tdmap' f t (RestS d)      =  (d, RestS d)
+tdmap' f t (NoteS d x)    =  (d, NoteS d $ f t d x)
+tdmap' f t (ParS x y)     =  
+    let (dx, sx) = tdmap' f t x
+        (dy, sy) = tdmap' f t y
+                          in (dx `max` dy, ParS sx sy)
+tdmap' f t (SeqS x y)     =
+    let (dx, sx) = tdmap' f t x
+        (dy, sy) = tdmap' f (t + dx) y
+                          in (dx + dy, SeqS sx sy)
+
+         
+toEvents :: Time t => Score t a -> [Event t a]
+toEvents = EventList.events . render
 
 
 --

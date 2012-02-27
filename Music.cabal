@@ -33,12 +33,13 @@ Library
         
         Data.Trivial
         Data.Undefined
---        Data.Bijection
+        Data.Bijection
 
         Music
 
+
         Music.Time
-        Music.Space
+        Music.Time.Functors
         Music.Time.Event
         Music.Time.EventList
         Music.Time.Score
@@ -46,6 +47,7 @@ Library
         Music.Pitch
         Music.Dynamics
         Music.Phrasing
+        Music.Space
         
         -- Music.Render.Graphics.Diagrams
     
@@ -60,22 +62,22 @@ Library
 
         -- Music.Model.Temporal.Media
         -- Music.Model.GUIDO
-        -- Music.Model.MIDI
+        Music.Model.MIDI
 
-        -- Music.Model.MusicXML
-        -- Music.Model.MusicXML.Base
-        -- Music.Model.MusicXML.Articulations
-        -- Music.Model.MusicXML.Attributes
-        -- Music.Model.MusicXML.Harmony
-        -- Music.Model.MusicXML.Image
-        -- Music.Model.MusicXML.Layout
-        -- Music.Model.MusicXML.Note
-        -- Music.Model.MusicXML.Opus
-        -- Music.Model.MusicXML.Score
-        -- Music.Model.MusicXML.Sound
-        -- Music.Model.MusicXML.Text
-        -- Music.Model.MusicXML.Tuplet
-        -- Music.Model.MusicXML.Write
+        Music.Model.MusicXML
+        Music.Model.MusicXML.Base
+        Music.Model.MusicXML.Articulations
+        Music.Model.MusicXML.Attributes
+        Music.Model.MusicXML.Harmony
+        Music.Model.MusicXML.Image
+        Music.Model.MusicXML.Layout
+        Music.Model.MusicXML.Note
+        Music.Model.MusicXML.Opus
+        Music.Model.MusicXML.Score
+        Music.Model.MusicXML.Sound
+        Music.Model.MusicXML.Text
+        Music.Model.MusicXML.Tuplet
+        Music.Model.MusicXML.Write
         -- 
         -- Music.Projects.MusicaVitae
         -- Music.Projects.StringQuartet

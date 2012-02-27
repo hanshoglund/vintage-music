@@ -10,6 +10,10 @@
 module Music.Phrasing where
 
 
--- type Phrasing = (Start, Middle, Stop)
--- 
--- class Phrased p where
+import Prelude hiding ( reverse )
+import Music.Time
+import Music.Dynamics
+import Music.Time.Score
+import Music.Time.Segment
+
+

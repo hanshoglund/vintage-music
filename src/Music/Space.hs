@@ -14,9 +14,10 @@
 module Music.Space
 where
 
+import Music.Time
+
+
 type Location = (Rational, Rational, Rational)
 
-type Frequency = Rational    
-
-class Spacial p where
-    toLocation :: p -> Location
+class Spacial a where
+    location :: Time t => a -> t -> Location

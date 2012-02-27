@@ -15,27 +15,49 @@ module Data.Bijection
 where
 
 import Control.Applicative
+import Data.Monoid       
+import Prelude hiding (id, (.))
+import Control.Category (Category, id, (.))
+
+class Bijective bi where
+    inverse :: bi a b -> bi b a
+    
+-- |
+--   Bijective function, represented as a function with its inverse.
+--
+newtype Bijection a b = Bijection (a -> b, b -> a)
+
+instance Bijective Bijection where
+    inverse (Bijection (f, f')) = Bijection (f', f)
+
+instance Category Bijection where
+    id = idB
+    (.) = composeB
 
 
-{-|
-    Bijective function, represented as a function with its inverse.
--}
-newtype Bijection a b = Bijection (b, a)
+idB :: Bijection a a
+idB = Bijection (id, id)
 
-newtype Permutation a = Permutation (a, a)
+composeB :: Bijection b c -> Bijection a b -> Bijection a c
+composeB (Bijection (g, g')) (Bijection (f, f')) = Bijection (g . f, f' . g')
 
-inverse :: Permutation a -> Permutation a
-inverse (Permutation (f, g)) = Permutation (g, f)
+applyB :: Bijection a b -> a -> b
+applyB (Bijection (f, f')) = f
+
+succB :: Enum a => Bijection a a
+predB :: Enum a => Bijection a a
+succB = Bijection (succ, pred)
+predB = inverse succB            
+
+addB :: Num a => a -> Bijection a a
+subB :: Num a => a -> Bijection a a
+mulB :: Fractional a => a -> Bijection a a
+divB :: Fractional a => a -> Bijection a a
+addB n = Bijection ((+) n, (-) n)
+subB n = inverse (addB n)                                
+mulB n = Bijection ((*) n, (/) n)
+divB n = inverse (mulB n)                                
 
 
-instance Functor (Bijection a) where
-    fmap f (Bijection (b, a)) = Bijection (f b, a)
-instance Applicative (Bijection a) where
-    pure f = Bijection (f, undefined)                           -- FIXME does not work out!
-    Bijection (g, f) <*> Bijection (b, a) = Bijection (g b, a)
 
-instance Functor (Permutation) where
-    fmap f (Permutation (a, b)) = Permutation (f a, f b)
-instance Applicative (Permutation) where
-    pure f = Permutation (f, f)
-    Permutation (f, g) <*> Permutation (a, b) = Permutation (f a, g b)
+

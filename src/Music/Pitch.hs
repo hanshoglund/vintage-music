@@ -12,9 +12,11 @@
     FunctionalDependencies #-}
 
 module Music.Pitch where
+import Music.Time
     
-
 type Frequency = Rational
 
-class Pitched p where
-    toFrequency :: p -> Rational
+class Pitched t p where
+    composePitch :: (t -> Frequency) -> (Frequency -> Frequency -> Frequency) -> p -> p
+    frequency :: p -> t -> Frequency
+

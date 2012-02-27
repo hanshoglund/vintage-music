@@ -68,16 +68,18 @@ instance Time t => Delayed t (Segment t) where
     rest d   = Segment d (\x -> mempty)
     delay t x = rest t >>> x   
 
+-- instance (Time t, Monoid m) => Functor (SegmentWith t m) where
+--     fmap g (SegmentWith (f, t, s)) = SegmentWith (undefined, undefined, undefined)
+-- 
+-- instance (Time t, Monoid m) => Monad (SegmentWith t m) where
+--     return = undefined
+--     SegmentWith (f, t, s) >>= g = undefined
 
--- TODO a signature like this would be necessary to implement functor, applicative etc.
--- Could be nice to use with Monoid wrappers such as Sum, All etc (?)
- 
--- (Monoid m, Time t) => (t -> a) -> (a -> m) -> (m -> a) -> Segment t a
 
-segment :: (Monoid a, Time t) => (t -> a) -> Segment t a
+segment :: (Time t, Monoid a) => (t -> a) -> Segment t a
 segment f = Segment 1 f
 
-at :: (Monoid a, Time t) => Segment t a -> t -> a
+at :: (Time t, Monoid a) => Segment t a -> t -> a
 at (Segment d f) t = if (t > d) then mempty else f t
 
 test = segment (\x -> Sum 1) :: Segment Double (Sum Int)

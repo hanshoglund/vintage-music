@@ -4,16 +4,16 @@
 *Music* is a Haskell library for music representation and manipulation. It is partially 
 a development of the ideas outlined in *An Algebraic Theory of Polymorphic Temporal Media* 
 by Paul Hudak, which has previously been implemented by libraries such as *Haskore* and 
-*Euterpia*. *Music* is entirely separate these libraries, however.
+*Euterpia*. *Music* is entirely separate from these libraries, however.
 
 The main goal of *Music* is to generalise standard music notation, allowing the user
-to express any kind of music, including Western, non-Western, classical, traditional, popular,
-instrumental, vocal and electronic using a common, semantically well-behaved representation.
+to express any kind of music, including Western, non-Western, classical, popular, traditional, 
+instrumental, vocal and electronic music, using a common, semantically well-behaved representation.
 
-To achieve this goal, *Music* avoids depending on specific rhythmical patterns, pitch names,
-tuning systems, and instructions; instead provides types representing common representations
-of these concepts which can be combined into a coherent musical language. More importantly,
-it provides a set of polymorphic types and functions which can be used in conjunction
+To achieve this goal, *Music* avoids depending on specific pitch names, tuning systems, rhythms
+and instructions; instead provides multiple common representations of these concepts which can be 
+combinedinto a coherent musical language. 
+More importantly, it provides a set of polymorphic types and functions which can be used in conjunction
 with the musical representation of choice. This way *Music* is able to express a proper superset 
 of the music expressible in standard notation.
 
@@ -185,8 +185,8 @@ As `render` is overloaded, it is necessary to provide a full type signature:
 
 Like time, pitch is represented using relative values.
 
-
-
+TODO linear (for hertz) and logarithmic (for octaves, equal temperament, cents etc) newtype wrapper
+TODO scales
 
 
 \pagebreak
