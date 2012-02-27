@@ -44,7 +44,7 @@ the reference documentation, however.
 
 ### Relative values
 
-TODO Emphasis on *relative* values and scaling rather than *absolute* values and positioning 
+TODO Emphasis on *relative* values rather than *absolute* 
 
 TODO Unit values and binary operations are heavily used in this style.
 
@@ -73,8 +73,7 @@ TODO Other properties are treated *Temporal* transformers
 ## Terminology
 
 *Music* use standard music terminology where appropriate. The meaning of terms such as 
-*pitch*, *dynamics*, *duration*, *intonation*, *phrase* should be straightforward for most
-musicians. 
+*pitch*, *dynamics*, *duration*, *intonation*, *phrase* should be straightforward. 
 
 It is worth noting that standard music theory concepts may often be understood in a both
 a general and a more specific sense. For example, *pitch* may refer to property of having 
@@ -94,13 +93,20 @@ general sense is used unless otherwise noted.
 
 In *Music*, the property of *temporality* (being able to be composed in sequence and parallel)
 is separated from that of *duration* (having a known extent in time) and *position*
-(having a known position in time). 
+(having a known position in time).
+
+TODO temporal values 
 
     class Temporal d where
         instant :: d a
         (|||)   :: d a -> d a -> d a
         (>>>)   :: d a -> d a -> d a
         (<<<)   :: d a -> d a -> d a
+
+
+*Music* also provides two subclasses of `Temporal`, providing operations supported by many, but
+not all of the temporal implementations. These are `loop`, which repeats a temporal value and
+reverse, which retrogrades it.
 
     class Temporal d => Loop d where
         loop :: d a -> d a
@@ -131,7 +137,36 @@ by selecting it.
 
 ### Score
 
+A *Score* is a a container of discrete events. It implements all the temporal type classes, and 
+provides the constructor `note`, which lifts a single value into a temporal value. Several derived 
+combinators for constructing scores are provided, but these can all be defined in terms of `note`.
+
+The `note` constructor creates temporal values of duration one. To get another duration, the `stretch`
+function should be used. 
+
+    auld = g 
+       >> stretch 3 $ c >> c >> stretch 2 (c >> e) 
+       >> stretch 3 $ d >> c >> stretch 2 (d >> e) 
+       >> stretch 3 $ c >> c >> stretch 2 (e >> f) 
+       >> stretch 6 $ a
+
+There is also a module providing instances of the standard numeric type classes
+for `Score` (implemented in terms of `stretch`), which allows for a more concise syntax:
+
+    auld' = g 
+       >> 3 * c >> c >> 2 * (c >> e) 
+       >> 3 * d >> c >> 2 * (d >> e) 
+       >> 3 * c >> c >> 2 * (e >> f) 
+       >> 6 * a
+
 ### Event list
+
+For each score there is a corresponding `EventList`, which can be created by the `render` function.
+As `render` is overloaded, it is necessary to provide a full type signature:
+    
+    p :: Score Double StdNote
+    el = render p :: EventList Double StdNote
+    
 
 ### Segment
 
@@ -148,6 +183,7 @@ by selecting it.
 
 # Pitch
 
+Like time, pitch is represented using relative values.
 
 
 
