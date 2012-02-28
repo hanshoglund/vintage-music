@@ -16,7 +16,7 @@
 module Music.Time.Score
 (
 -- * Score type
-    Score,
+    Score(..), -- TODO move to internal
     
 -- * Creating scores
     note,               -- :: Time t => a -> Score t a  

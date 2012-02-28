@@ -4,6 +4,7 @@
 :load src/Music/Pitch.hs
 :load src/Music/Space.hs
 :load src/Music/Time/Score.hs
+:load src/Music/Render/Graphics/Diagrams.hs
 -- :load src/Music/Time/Segment.hs
 -- :load test.hs
 

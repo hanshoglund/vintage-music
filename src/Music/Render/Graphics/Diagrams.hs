@@ -7,37 +7,112 @@
     Portability :  portable
 -}
 
-module Music.Render.Graphics.Diagrams where
+module Music.Render.Graphics.Diagrams
+-- (
+-- )
+where
 
-{-# LANGUAGE 
+{-# LANGUAGE    
+    FlexibleContexts,
+    TypeFamilies,
     NoMonomorphismRestriction #-}
 
-import Diagrams.Prelude hiding (width, height)
+import Prelude hiding (reverse)
+import Diagrams.Prelude hiding ((|||), (===), render)
+import qualified Diagrams.Prelude as D
 import Diagrams.Backend.Cairo
 
+import Diagrams.TwoD.Types
+import Diagrams.TwoD.Vector (unitX, unitY)
+import Diagrams.Combinators
+import Data.VectorSpace
+
+import Music.Time
+import Music.Time.Score
+import Music.Time.Event
+import qualified Music.Time.EventList as EventList
 import Music.Utilities
 
+type Graphic = Diagram Cairo R2
+                             
+-- ver = beside (negateV unitY)
+-- hor = beside unitX
+
+orig = showOrigin
+--orig = id
+
+phrase = line [60, 65, 67, 60, 55, 62] :: Score Double Int
+
+test :: Score Double Int
+test =  
+    line [1..3] ||| line [1..2] ||| reverse (line [1..3])
+
+
+--    lineStretch (zip (map cos [1..10]) [0..10])
+--    ||| lineStretch (zip (map sin [1..10]) [0..10])
+    -- note 3
+    -- ||| note 4 >>> note 5
+    -- ||| line [1..10]
+    -- ||| line [10..16]
+    -- ||| reverse (line [11,12,13,14] ||| line [22,23])
+    -- ||| stretch 1.3 (line [5,6,7])
+    -- ||| note 1
+    -- ||| stretch 2 (note 2)  
+    -- ||| concatSeq [line [1,2,3], chord [4,5], line [6,7,8]]
+    -- ||| note 1
+    -- ||| concatSeq [line [1,2,3], chord [4,5], line [6,7,8]]
+--    loop phrase ||| (stretch 1.01 $ loop phrase)
+
+t2d :: Time t => t -> Double
+t2d = time2Double
+
+horiz = beside (negateV unitY)
+vert = beside unitX
+
+renderScore :: (Show a, Time t) => Score t a -> Graphic
+renderScore s = let (d, s') = renderScore' 0 s in s'
+
+renderScore' t (RestS d)      =  (d, 
+    if (d == 0) then mempty else hrule (t2d d) 
+    # orig)
+
+renderScore' t (NoteS d x)    =  (d, 
+       text (show x) 
+    <> (scaleX (t2d d) (square 1)) 
+    # orig)
+
+renderScore' t (ParS x y)     =
+    let (dx, sx) = renderScore' t x
+        (dy, sy) = renderScore' t y
+                              in (dx `max` dy, 
+    sx `horiz` sy 
+    # showOrigin)
+
+renderScore' t (SeqS x y)     =
+    let (dx, sx) = renderScore' t x
+        (dy, sy) = renderScore' (t + dx) y
+                              in (dx + dy, 
+    sx `vert` sy 
+    # orig)
 
 
 
-
-
-
-
-
--- 
+-- renderScoreGraphic :: Time t => Score t a -> Graphic
+-- renderScoreGraphic =
+--     mconcat . map renderEvent . EventList.events . render
+--
+-- renderEvent (Event t d x) =
+--     square (t2d d) # alignX (t2d t)
+--
 -- Imperative test stuff
 --
 
-writeGraphics :: FilePath -> Diagram Cairo R2 -> IO ()
-writeGraphics file diagram = do 
+writeGraphics :: FilePath -> Graphic -> IO ()
+writeGraphics file diagram = do
     fst $ renderDia Cairo ( CairoOptions file $ PDF (500, 500) ) diagram
     return ()
 
-example :: Diagram Cairo R2                        
-example = circle 1 <> centerX (text "hans")
-
 main = do
-    writeGraphics "test.pdf" example
+    writeGraphics "test.pdf" (renderScore test)
     openFile "test.pdf"
     return ()
