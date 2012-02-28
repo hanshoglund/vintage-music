@@ -16,7 +16,12 @@ Library
     Build-Depends:      base, 
                         unix, 
                         hxt, 
-                        containers,
+                        containers,         
+                        split,
+                        diagrams >= 0.4,
+                        diagrams-cairo >= 0.4,
+                        diagrams-core >= 0.4,
+                        diagrams-lib >= 0.4,
                         
                         temporal-media, 
                         temporal-music-notation, 
@@ -49,7 +54,7 @@ Library
         Music.Phrasing
         Music.Space
         
-        -- Music.Render.Graphics.Diagrams
+        Music.Render.Graphics.Diagrams
     
         -- Music.Model
         -- Music.Model.Abc
