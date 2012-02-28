@@ -38,62 +38,71 @@ type Graphic = Diagram Cairo R2
 -- ver = beside (negateV unitY)
 -- hor = beside unitX
 
-orig = showOrigin
---orig = id
-
 phrase = line [60, 65, 67, 60, 55, 62] :: Score Double Int
 
 test :: Score Double Int
 test =  
-    line [1..3] ||| line [1..2] ||| reverse (line [1..3])
+        lineStretch (zip (map cos [0..20]) [0..20])
+    ||| lineStretch (zip (map sin [0..20]) [0..20])
 
 
---    lineStretch (zip (map cos [1..10]) [0..10])
---    ||| lineStretch (zip (map sin [1..10]) [0..10])
-    -- note 3
-    -- ||| note 4 >>> note 5
-    -- ||| line [1..10]
-    -- ||| line [10..16]
-    -- ||| reverse (line [11,12,13,14] ||| line [22,23])
-    -- ||| stretch 1.3 (line [5,6,7])
-    -- ||| note 1
-    -- ||| stretch 2 (note 2)  
-    -- ||| concatSeq [line [1,2,3], chord [4,5], line [6,7,8]]
-    -- ||| note 1
-    -- ||| concatSeq [line [1,2,3], chord [4,5], line [6,7,8]]
+--     line [1..3] ||| line [1..2] ||| reverse (line [1..3])
+-- 
+-- 
+-- --    lineStretch (zip (map cos [1..10]) [0..10])
+-- --    ||| lineStretch (zip (map sin [1..10]) [0..10])
+--     -- note 3
+    ||| rest pi >>> note 5
+    ||| arpeggio 0.1 [0..5]
+    ||| line [1..10]
+    ||| line [10..16]
+    ||| reverse (line [11,12,13,14] ||| line [22,23])
+    ||| stretch 1.3 (line [5,6,7])
+    ||| note 1
+    ||| stretch 2 (note 2)  
+    ||| concatSeq [line [1,2,3], chord [4,5], line [6,7,8]]
+    ||| note 1
+    ||| concatSeq [line [1,2,3], chord [4,5], line [6,7,8]]
 --    loop phrase ||| (stretch 1.01 $ loop phrase)
 
 t2d :: Time t => t -> Double
 t2d = time2Double
 
-horiz = beside (negateV unitY)
-vert = beside unitX
+horiz = append (negateV unitY)
+vert = append unitX
+--orig  = showOrigin
+
 
 renderScore :: (Show a, Time t) => Score t a -> Graphic
 renderScore s = let (d, s') = renderScore' 0 s in s'
 
 renderScore' t (RestS d)      =  (d, 
-    if (d == 0) then mempty else hrule (t2d d) 
-    # orig)
+    if (d == 0) 
+        then mempty 
+        else moveOriginBy ((t2d d) * (-1), 0) (strutX $ t2d d * 2)
+    # id)
 
-renderScore' t (NoteS d x)    =  (d, 
-       text (show x) 
-    <> (scaleX (t2d d) (square 1)) 
-    # orig)
+renderScore' t (NoteS d x)    =  (d,                  
+    if (d == 0)
+        then mempty
+        else
+           moveOriginBy ((t2d d) * (-1), 0) 
+            (text (show x) <> (scaleX (t2d d) (square 2))) 
+    # id)
 
 renderScore' t (ParS x y)     =
     let (dx, sx) = renderScore' t x
         (dy, sy) = renderScore' t y
                               in (dx `max` dy, 
     sx `horiz` sy 
-    # showOrigin)
+    # id)
 
 renderScore' t (SeqS x y)     =
     let (dx, sx) = renderScore' t x
         (dy, sy) = renderScore' (t + dx) y
                               in (dx + dy, 
     sx `vert` sy 
-    # orig)
+    # id)
 
 
 
