@@ -46,8 +46,8 @@ data Score t a
 
 instance Time t => Temporal (Score t) where
     instant  =  RestS 0
-    x ||| y  =  x `ParS` y
-    x >>> y  =  x `SeqS` y
+    (|||)    =  ParS
+    (>>>)    =  SeqS
 
 instance Time t => Loop (Score t) where
     loop x  =  x >>> loop x
@@ -77,6 +77,12 @@ instance Time t => Delayed t (Score t) where
            | otherwise  =  negativeError "Music.Time.Timed.rest"
     delay t x | t >= 0     =  rest t >>> x
               | otherwise  =  negativeError "Music.Time.Timed.delay"
+
+instance Time t => Split t (Score t) where
+    before z = filterScore (\t d   -> t < z)
+                           (\t d x -> t < z)
+    after  z = filterScore (\t d   -> t >= z)
+                           (\t d x -> t >= z)
 
 instance Time t => Applicative (Score t) where
     pure   =  return
@@ -183,6 +189,16 @@ arpeggio t xs = chordDelay (zip [0, t ..] xs)
 -- Internals
 --
 
+filterScore :: Time t =>
+    (t -> t -> Bool) ->
+    (t -> t -> a -> Bool) ->
+    Score t a ->
+    Score t a
+filterScore r n = foldScore (\t d   -> if (r t d)   then RestS d else instant)
+                            (\t d x -> if (n t d x) then NoteS d x else instant)
+                            (\x y   -> ParS x y)
+                            (\x y   -> SeqS x y)
+
 foldScore :: Time t =>
     (t -> t -> b) ->
     (t -> t -> a -> b) ->
@@ -190,8 +206,8 @@ foldScore :: Time t =>
     (b -> b -> b) ->
     Score t a ->
     b
-foldScore rc nc pc sc s =
-    let (d, s') = foldScore' rc nc pc sc 0 s in s'
+foldScore r n p s score =
+    let (d, score') = foldScore' r n p s 0 score in score'
 
 foldScore' :: Time t =>
     (t -> t -> b) ->
@@ -210,7 +226,7 @@ foldScore' r n p s t (ParS x y)   =
                                       in (dx `max` dy, p sx sy)
 foldScore' r n p s t (SeqS x y)   =
     let (dx, sx) = foldScore' r n p s t x
-        (dy, sy) = foldScore' r n p s t y
+        (dy, sy) = foldScore' r n p s (t + dx) y
                                       in (dx + dy, s sx sy)
 
 assureEqualDur :: Time t => Score t a -> Score t a -> (Score t a, Score t a)
@@ -228,7 +244,7 @@ toEvents :: Time t => Score t a -> [Event t a]
 toEvents = eventListEvents . render
 
 negativeError :: String -> a
-negativeError name = error $ "*** Exception: " ++ name ++ ": negative value"
+negativeError name = error $ name ++ ": negative value"
 
 
 
