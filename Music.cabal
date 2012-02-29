@@ -41,7 +41,8 @@ Library
         -- Data.Trivial
         -- Data.Undefined
         -- Data.Bijection
-
+        Data.Convert
+        
         Music
 
         Music.Time
