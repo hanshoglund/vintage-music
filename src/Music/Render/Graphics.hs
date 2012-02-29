@@ -44,8 +44,8 @@ renderScore' :: (Show a, Time t) => Score t a -> Diagram Cairo R2
 renderScore' = 
     foldScore (\t d   -> renderRest d)
               (\t d x -> renderNote d x)
-              renderPar
-              renderSeq
+              (\t x y -> renderPar x y)
+              (\t x y -> renderSeq x y)
     where
         renderRest d   | d == 0     =  mempty
                        | otherwise  =  moveOriginBy (negate (t2d d), 0) (renderEmpty (t2d d * 2))

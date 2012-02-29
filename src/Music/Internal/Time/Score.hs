@@ -44,49 +44,65 @@ data Score t a
     | SeqS (Score t a) (Score t a)
     deriving (Functor, Foldable)
 
+
 instance Time t => Temporal (Score t) where
     instant  =  RestS 0
     (|||)    =  ParS
     (>>>)    =  SeqS
 
+
 instance Time t => Loop (Score t) where
     loop x  =  x >>> loop x
+
 
 instance Time t => Reverse (Score t) where
     reverse (ParS x y)  =  ParS (reverse x') (reverse y') where (x', y') = x `assureEqualDur` y
     reverse (SeqS x y)  =  SeqS (reverse y) (reverse x)
     reverse x           =  x
 
+
 instance Time t => Timed t (Score t) where
     duration (RestS d)    =  d
     duration (NoteS d x)  =  d
     duration (SeqS x y)   =  duration x + duration y
     duration (ParS x y)   =  duration x `max` duration y
-    
+
     stretch t (RestS d)   | t >= 0    =  RestS (d * t)
                           | otherwise = negativeError "Music.Time.Timed.stretch"
+
     stretch t (NoteS d x) | t >= 0    =  NoteS (d * t) x
                           | otherwise = negativeError "Music.Time.Timed.stretch"
+
     stretch t (ParS x y)  | t >= 0    =  ParS (stretch t x) (stretch t y)
                           | otherwise = negativeError "Music.Time.Timed.stretch"
+
     stretch t (SeqS x y)  | t >= 0    =  SeqS (stretch t x) (stretch t y)
                           | otherwise = negativeError "Music.Time.Timed.stretch"
+
 
 instance Time t => Delayed t (Score t) where
     rest t | t >= 0     =  RestS t
            | otherwise  =  negativeError "Music.Time.Timed.rest"
+
     delay t x | t >= 0     =  rest t >>> x
               | otherwise  =  negativeError "Music.Time.Timed.delay"
+
 
 instance Time t => Split t (Score t) where
     before z = filterScore (\t d   -> t < z)
                            (\t d x -> t < z)
+                           (\t     -> t < z)
+                           (\t     -> t < z)
     after  z = filterScore (\t d   -> t >= z)
                            (\t d x -> t >= z)
+                           (const True)
+                           (const True)
+
 
 instance Time t => Applicative (Score t) where
     pure   =  return
     (<*>)  =  ap
+
 
 instance Time t => Monad (Score t) where
     return   =  note
@@ -107,8 +123,8 @@ joinScore = concatPar . map arrange . toEvents
 instance Time t => TimeFunctor t (Score t) where
     tdmap f = foldScore (\t d   -> RestS d)
                         (\t d x -> NoteS d $ f t d x)
-                        (\x y   -> ParS x y)
-                        (\x y   -> SeqS x y)
+                        (\t x y -> ParS x y)
+                        (\t x y -> SeqS x y)
 
 
 --
@@ -143,11 +159,10 @@ render' t (ParS x y)   =
                        in (dx `max` dy, ex ++ ey)
 render' t (SeqS x y)   =
     let (dx, ex) = render' t x
-        (dy, ey) = render' (t + dx) y                -- TODO see below
+        (dy, ey) = render' (t + dx) y
                        in (dx + dy, ex ++ ey)
 
--- TODO one single expression above (t + dx) prevents us from reimplementing in terms of foldScore
--- Can we generalize foldScore to include this?
+-- TODO reimplement in terms of foldScore (?)
 
 
 -- | Unrender the given `EventList` back to a score.
@@ -192,18 +207,20 @@ arpeggio t xs = chordDelay (zip [0, t ..] xs)
 filterScore :: Time t =>
     (t -> t -> Bool) ->
     (t -> t -> a -> Bool) ->
+    (t -> Bool) ->
+    (t -> Bool) ->
     Score t a ->
     Score t a
-filterScore r n = foldScore (\t d   -> if (r t d)   then RestS d else instant)
-                            (\t d x -> if (n t d x) then NoteS d x else instant)
-                            (\x y   -> ParS x y)
-                            (\x y   -> SeqS x y)
+filterScore r n p s = foldScore (\t d   -> if (r t d)   then RestS d else instant)
+                                (\t d x -> if (n t d x) then NoteS d x else instant)
+                                (\t x y -> if (p t)     then ParS x y else instant)
+                                (\t x y -> if (s t)     then SeqS x y else instant)
 
 foldScore :: Time t =>
     (t -> t -> b) ->
     (t -> t -> a -> b) ->
-    (b -> b -> b) ->
-    (b -> b -> b) ->
+    (t -> b -> b -> b) ->
+    (t -> b -> b -> b) ->
     Score t a ->
     b
 foldScore r n p s score =
@@ -212,8 +229,8 @@ foldScore r n p s score =
 foldScore' :: Time t =>
     (t -> t -> b) ->
     (t -> t -> a -> b) ->
-    (b -> b -> b) ->
-    (b -> b -> b) ->
+    (t -> b -> b -> b) ->
+    (t -> b -> b -> b) ->
     t ->
     Score t a ->
     (t, b)
@@ -223,11 +240,11 @@ foldScore' r n p s t (NoteS d x)  =  (d, n t d x)
 foldScore' r n p s t (ParS x y)   =
     let (dx, sx) = foldScore' r n p s t x
         (dy, sy) = foldScore' r n p s t y
-                                      in (dx `max` dy, p sx sy)
+                                      in (dx `max` dy, p t sx sy)
 foldScore' r n p s t (SeqS x y)   =
     let (dx, sx) = foldScore' r n p s t x
         (dy, sy) = foldScore' r n p s (t + dx) y
-                                      in (dx + dy, s sx sy)
+                                      in (dx + dy, s t sx sy)
 
 assureEqualDur :: Time t => Score t a -> Score t a -> (Score t a, Score t a)
 assureEqualDur x y | dx <  dy  =  (assureDur dy x, y)
