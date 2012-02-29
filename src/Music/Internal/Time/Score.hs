@@ -53,46 +53,27 @@ instance Time t => Loop (Score t) where
     loop x  =  x >>> loop x
 
 instance Time t => Reverse (Score t) where
-    reverse (ParS x y)  =  ParS (reverse x') (reverse y')
-        where
-            (x', y') = x `assureEqualDur` y
-
+    reverse (ParS x y)  =  ParS (reverse x') (reverse y') where (x', y') = x `assureEqualDur` y
     reverse (SeqS x y)  =  SeqS (reverse y) (reverse x)
-
     reverse x           =  x
-
-assureEqualDur x y | dx <  dy  =  (assureDur dy x, y)
-                   | dx == dy  =  (x, y)
-                   | dx >  dy  =  (x, assureDur dx y)
-    where dx = duration x
-          dy = duration y
-
-assureDur t s | duration s < t  =  s >>> rest (t - duration s)
-              | otherwise       =  s
-
 
 instance Time t => Timed t (Score t) where
     duration (RestS d)    =  d
     duration (NoteS d x)  =  d
     duration (SeqS x y)   =  duration x + duration y
     duration (ParS x y)   =  duration x `max` duration y
-
-
-    stretch t (RestS d)   | t >= 0    =  RestS (d * t)
+    
+    stretch t (RestS d)   | t >= 0    =  RestS (d * t)
                           | otherwise = negativeError "Music.Time.Timed.stretch"
-
-    stretch t (NoteS d x) | t >= 0    =  NoteS (d * t) x
+    stretch t (NoteS d x) | t >= 0    =  NoteS (d * t) x
                           | otherwise = negativeError "Music.Time.Timed.stretch"
-
-    stretch t (ParS x y)  | t >= 0    =  ParS (stretch t x) (stretch t y)
+    stretch t (ParS x y)  | t >= 0    =  ParS (stretch t x) (stretch t y)
                           | otherwise = negativeError "Music.Time.Timed.stretch"
-
-    stretch t (SeqS x y)  | t >= 0    =  SeqS (stretch t x) (stretch t y)
+    stretch t (SeqS x y)  | t >= 0    =  SeqS (stretch t x) (stretch t y)
                           | otherwise = negativeError "Music.Time.Timed.stretch"
-
 
 instance Time t => Delayed t (Score t) where
-    rest t | t >= 0     =  RestS t
+    rest t | t >= 0     =  RestS t
            | otherwise  =  negativeError "Music.Time.Timed.rest"
     delay t x | t >= 0     =  rest t >>> x
               | otherwise  =  negativeError "Music.Time.Timed.delay"
@@ -117,53 +98,12 @@ joinScore = concatPar . map arrange . toEvents
     where
         arrange (Event t d x) = (delay t . stretch d) x
 
-
 instance Time t => TimeFunctor t (Score t) where
     tdmap f = foldScore (\t d   -> RestS d)
                         (\t d x -> NoteS d $ f t d x)
                         (\x y   -> ParS x y)
                         (\x y   -> SeqS x y)
 
-
---
--- Internals
---
-
-foldScore :: Time t =>
-    (t -> t -> b) ->
-    (t -> t -> a -> b) ->
-    (b -> b -> b) ->
-    (b -> b -> b) ->
-    Score t a ->
-    b
-foldScore rc nc pc sc s =
-    let (d, s') = foldScore' rc nc pc sc 0 s in s'
-
-foldScore' :: Time t =>
-    (t -> t -> b) ->
-    (t -> t -> a -> b) ->
-    (b -> b -> b) ->
-    (b -> b -> b) ->
-    t ->
-    Score t a ->
-    (t, b)
-
-foldScore' r n p s t (RestS d)    =  (d, r t d)
-foldScore' r n p s t (NoteS d x)  =  (d, n t d x)
-foldScore' r n p s t (ParS x y)   =
-    let (dx, sx) = foldScore' r n p s t x
-        (dy, sy) = foldScore' r n p s t y
-                                      in (dx `max` dy, p sx sy)
-foldScore' r n p s t (SeqS x y)   =
-    let (dx, sx) = foldScore' r n p s t x
-        (dy, sy) = foldScore' r n p s t y
-                                      in (dx + dy, s sx sy)
-
-toEvents :: Time t => Score t a -> [Event t a]
-toEvents = eventListEvents . render
-
-negativeError :: String -> a
-negativeError name = error $ "*** Exception: " ++ name ++ ": negative value"
 
 --
 -- Note and Render
@@ -209,6 +149,7 @@ unrender :: Time t => EventList t a -> Score t a
 unrender = chordStretchDelay . map (\(Event t d x) -> (t, d, x)). eventListEvents
 
 
+
 --
 -- Derived combinators
 --
@@ -236,6 +177,59 @@ chordStretchDelay = concatPar . map ( \(t, d, x) -> delay t . stretch d $ note x
 -- | Like chord, but delaying each note the given amount.
 arpeggio :: Time t => t -> [a] -> Score t a
 arpeggio t xs = chordDelay (zip [0, t ..] xs)
+
+
+--
+-- Internals
+--
+
+foldScore :: Time t =>
+    (t -> t -> b) ->
+    (t -> t -> a -> b) ->
+    (b -> b -> b) ->
+    (b -> b -> b) ->
+    Score t a ->
+    b
+foldScore rc nc pc sc s =
+    let (d, s') = foldScore' rc nc pc sc 0 s in s'
+
+foldScore' :: Time t =>
+    (t -> t -> b) ->
+    (t -> t -> a -> b) ->
+    (b -> b -> b) ->
+    (b -> b -> b) ->
+    t ->
+    Score t a ->
+    (t, b)
+
+foldScore' r n p s t (RestS d)    =  (d, r t d)
+foldScore' r n p s t (NoteS d x)  =  (d, n t d x)
+foldScore' r n p s t (ParS x y)   =
+    let (dx, sx) = foldScore' r n p s t x
+        (dy, sy) = foldScore' r n p s t y
+                                      in (dx `max` dy, p sx sy)
+foldScore' r n p s t (SeqS x y)   =
+    let (dx, sx) = foldScore' r n p s t x
+        (dy, sy) = foldScore' r n p s t y
+                                      in (dx + dy, s sx sy)
+
+assureEqualDur :: Time t => Score t a -> Score t a -> (Score t a, Score t a)
+assureEqualDur x y | dx <  dy  =  (assureDur dy x, y)
+                   | dx == dy  =  (x, y)
+                   | dx >  dy  =  (x, assureDur dx y)
+    where dx = duration x
+          dy = duration y
+
+assureDur :: Time t => t -> Score t a -> Score t a
+assureDur t s | duration s < t  =  s >>> rest (t - duration s)
+              | otherwise       =  s
+
+toEvents :: Time t => Score t a -> [Event t a]
+toEvents = eventListEvents . render
+
+negativeError :: String -> a
+negativeError name = error $ "*** Exception: " ++ name ++ ": negative value"
+
 
 
 {-
