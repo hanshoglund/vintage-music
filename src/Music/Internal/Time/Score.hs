@@ -13,13 +13,13 @@
     DeriveFunctor, 
     DeriveFoldable #-}
 
-module Music.Internal.Time.Score
-where
+module Music.Internal.Time.Score where
 
 import Prelude hiding ( reverse )
 
 import Control.Monad
 import Control.Applicative
+
 import Data.Monoid
 import Data.Foldable
 
@@ -132,8 +132,12 @@ tdmap' f t (SeqS x y)     =
                           in (dx + dy, SeqS sx sy)
 
          
+--
+-- Internals
+--
+
 toEvents :: Time t => Score t a -> [Event t a]
-toEvents = EventList.events . render
+toEvents = eventListEvents . render
 
 checkNonNegative :: (Num a, Ord a) => a -> String -> b -> b
 checkNonNegative expr name value = 
@@ -150,7 +154,7 @@ checkNonNegative expr name value =
 note :: Time t => a -> Score t a
 note = NoteS 1
 
--- | Render the given score to a list of events with position and duration.
+-- | Render the given score to an `EventList`.
 render :: Time t => Score t a -> EventList t a
 
 --   The basic implementation for render looks like this:
@@ -177,6 +181,10 @@ render' t (SeqS x y)   =
         (dy, ey) = render' (t + dx) y
                        in (dx + dy, ex ++ ey)
 
+-- | Unrender the given `EventList` back to a score.
+unrender :: Time t => EventList t a -> Score t a
+unrender = chordStretchDelay . map (\(Event t d x) -> (t, d, x)). eventListEvents
+
 
 --
 -- Derived combinators 
@@ -197,6 +205,10 @@ lineStretch = concatSeq . map ( \(d, x) -> stretch d $ note x )
 -- | Like chord, but delaying each note the given amounts.
 chordDelay :: Time t => [(t, a)] -> Score t a
 chordDelay = concatPar . map ( \(t, x) -> delay t $ note x )
+
+-- | Like chord, but delays and stretches each note the given amounts.
+chordStretchDelay :: Time t => [(t, t, a)] -> Score t a
+chordStretchDelay = concatPar . map ( \(t, d, x) -> delay t . stretch d $ note x )
 
 -- | Like chord, but delaying each note the given amount.
 arpeggio :: Time t => t -> [a] -> Score t a

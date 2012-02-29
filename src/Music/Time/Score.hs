@@ -32,7 +32,8 @@ module Music.Time.Score
 --    polyphonic,         --  :: Time t => Score t a -> [Score t a]
 
 -- * Exporting scores
-    render
+    render,
+    unrender
 )
 where
 

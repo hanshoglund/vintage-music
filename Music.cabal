@@ -38,9 +38,9 @@ Library
 
     Exposed-Modules:
         
-        Data.Trivial
-        Data.Undefined
-        Data.Bijection
+        -- Data.Trivial
+        -- Data.Undefined
+        -- Data.Bijection
 
         Music
 
@@ -55,10 +55,8 @@ Library
         Music.Phrasing
         Music.Space
         
-        Music.Render.Graphics.Diagrams
+        Music.Render.Graphics
     
-        Music.Internal.Time.Score
-
         -- Music.Model
         -- Music.Model.Abc
         -- Music.Model.General
@@ -70,7 +68,7 @@ Library
 
         -- Music.Model.Temporal.Media
         -- Music.Model.GUIDO
-        Music.Model.MIDI
+        -- Music.Model.MIDI
 
         -- Music.Model.MusicXML
         -- Music.Model.MusicXML.Base
@@ -88,7 +86,11 @@ Library
         -- Music.Model.MusicXML.Write           
         -- 
         -- Music.Projects.MusicaVitae
-        -- Music.Projects.StringQuartet
+        -- Music.Projects.StringQuartet 
 
         Music.Utilities
+
+
+   Other-Modules:
+        Music.Internal.Time.Score
 

@@ -22,26 +22,20 @@ where
 
 import Data.Monoid
 import Data.Foldable
-import Data.Ord (comparing)
+import Data.Ord ( comparing )
 import qualified Data.List as List
 
 import Music.Time
-import Music.Time.Event hiding (dur)
+import Music.Time.Event ( Event(..) )
 
 
 data EventList t a
     = EventList
     {
-        dur    :: t,
-        events :: [Event t a]
+        eventListDuration :: t,
+        eventListEvents   :: [Event t a]
     }
-    deriving
-    (
-    Eq,
-    Show,
-    Functor,
-    Foldable
-    )
+    deriving (Eq, Show, Functor, Foldable)
 
 instance Time t => Temporal (EventList t) where
     instant = EventList 0 []
@@ -53,7 +47,7 @@ instance Time t => Temporal (EventList t) where
         EventList (dx + dy) (ex ++ map (delay dx) ey)
 
 instance Time t => Timed t (EventList t) where
-    duration = dur
+    duration (EventList d xs) = d
     stretch t (EventList d xs) = EventList (d * t) (map (stretch t) xs)
 
 instance Time t => Delayed t (EventList t) where
@@ -61,9 +55,9 @@ instance Time t => Delayed t (EventList t) where
     delay v (EventList d xs) = EventList (d + v) (map (delay v) xs)
 
 
-{-|
-    Returns a normal form event list, with events sorted by position. 
--}
+-- | Returns a normal form event list, with events sorted by position. 
 normalize :: Time t => EventList t a -> EventList t a
-normalize (EventList d xs) = EventList d (List.sortBy (comparing pos) xs)
+normalize (EventList d xs) = EventList d (List.sortBy (comparing eventOffset) xs)
+
+
 

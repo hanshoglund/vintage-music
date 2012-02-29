@@ -27,20 +27,14 @@ import Music.Time
 data Event t a
     = Event 
     {
-        pos   :: t,
-        dur   :: t,
-        value :: a
+        eventOffset   :: t,
+        eventDuration :: t,
+        eventValue    :: a
     }
-    deriving 
-    (
-    Eq, 
-    Show, 
-    Functor,
-    Foldable
-    )
+    deriving (Eq, Show, Functor, Foldable)
 
 instance Time t => Timed t (Event t) where
-    duration = dur
+    duration (Event t d x) = d
     stretch a (Event t d x) = Event (t * a) (d * a) x
 
 instance Time t => Delayed t (Event t) where
