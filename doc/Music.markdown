@@ -2,20 +2,19 @@
 # Introduction
 
 *Music* is a Haskell library for music representation and manipulation. It is partially 
-a development of the ideas outlined in *An Algebraic Theory of Polymorphic Temporal Media* 
-by Paul Hudak, which has previously been implemented by libraries such as *Haskore* and 
-*Euterpia*. *Music* is entirely separate from these libraries, however.
+a development of the ideas outlined by Paul Hudak
+^[Hudak, Paul (2003) *An Algebraic Theory of Polymorphic Temporal Media*],
+which has previously been implemented by libraries such as *Haskore*, *Euterpia* and *temporal-media*. 
+*Music* is entirely separate from these libraries, however.
 
 The main goal of *Music* is to generalise standard music notation, allowing the user
 to express any kind of music, including Western, non-Western, classical, popular, traditional, 
 instrumental, vocal and electronic music, using a common, semantically well-behaved representation.
-
-To achieve this goal, *Music* avoids depending on specific pitch names, tuning systems, rhythms
+To achieve this goal, the library avoids depending on specific pitch names, tuning systems, rhythms
 and instructions; instead provides multiple common representations of these concepts which can be 
-combinedinto a coherent musical language. 
-More importantly, it provides a set of polymorphic types and functions which can be used in conjunction
-with the musical representation of choice. This way *Music* is able to express a proper superset 
-of the music expressible in standard notation.
+combinedinto a coherent musical language. More importantly, it provides a set of polymorphic types 
+and functions which can be used in conjunction with the musical representation of choice. 
+This way *Music* is able to express a proper superset of the music expressible in standard notation.
 
 This flexibility is attained by a somewhat involved use of the Haskell type system, 
 the details of which need not be known precisely by users of the library. Tentative 
@@ -91,11 +90,21 @@ general sense is used unless otherwise noted.
 
 # Time
 
-In *Music*, the property of *temporality* (being able to be composed in sequence and parallel)
+In *Music*, the property of *temporality* (being able to be composed in time) 
 is separated from that of *duration* (having a known extent in time) and *position*
-(having a known position in time).
+(having a known position in time). This separation allows for representation of a wider
+range of musical structures. Temporal values can be though of as moments in time in which
+some *event* occurs. The purpose of the temporal abstraction is to describe just the temporal
+properties, leaving other properties, such as pitch, timbre etc abstract.
 
-TODO temporal values 
+## Basic composition
+
+### Temporal
+
+Temporal values are captured by the `Temporal` type class. Each implementation of temporal
+is a type constructor parameterized on its content, i.e. if `t` is a temporal type constructor
+and `a` is a concrete type, `t a` is a temporal structure of `a` values which can be composed
+in time.
 
     class Temporal d where
         instant :: d a
@@ -103,6 +112,18 @@ TODO temporal values
         (>>>)   :: d a -> d a -> d a
         (<<<)   :: d a -> d a -> d a
 
+As can be seen, `Temporal` defines three binary operations for parallel, sequential and reverse sequential composition. 
+Intuitively, reverse sequential composition is a synonym for ordinary sequential composition with 
+its arguments reversed, so `a >>> b` (read as *a* followed by *b*) is equivalent to `b <<< a` 
+(read as *b* preceded by *a*). Both parallel and sequential composition is associative, mening 
+that `(a >>> b) >>> c` is equivalent to `a >>> (b >>> c)`. Parallel composition is also commutative, 
+meaning that `a ||| b` (read as *a* with *b*) is equivalent to `b ||| a`.
+
+`Temporal` also defines `instant`, which is the unit value for both parallel and sequential
+composition. It can be thought of as an infinitely brief moment in time. Both sequential and
+parallel composition form a monoid with instant.
+
+### Loop and reverse
 
 *Music* also provides two subclasses of `Temporal`, providing operations supported by many, but
 not all of the temporal implementations. These are `loop`, which repeats a temporal value and
@@ -114,12 +135,19 @@ reverse, which retrogrades it.
     class Temporal d => Reverse d where
         reverse :: d a -> d a
     
+
+## Timed values
+
+TODO restrictions on time values:
+
+    class (Enum t, Ord t, Real t, Fractional t) => Time t Source
+
 The main characteristic of durational values is their ability to be prolonged, shortened or scaled.
 In standard notation, duration is represented by a combination of divisivion into bars and beats,
 represented by vertical barlines and beaming, and note values, represented by note head shape and
 number of flags or beams.
 
-    class Time t => Timed t d | d -> t where
+    class Time t => Timed t d where
         duration :: d a -> t
         stretch  :: t -> d a -> d a
 
@@ -128,9 +156,14 @@ Position is implicit in standard notation, but is often encountered in audio edi
 Some scorewriting software such as Sibelius of Finale allow the user to view to position of a note
 by selecting it.
 
-    class Time t => Delayed t d | d -> t where
+    class Time t => Delayed t d where
         rest   :: t -> d a
         delay  :: t -> d a -> d a
+
+### The meaning of Time
+
+In the definition of `Timed` and `Delayed`, we left the representation of time itself in
+the abstract, save for the restrictions grouped together under the `Time` type class.
 
 
 ## Implementations 

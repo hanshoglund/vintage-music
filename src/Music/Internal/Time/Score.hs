@@ -7,10 +7,10 @@
     Portability :  portable
 -}
 
-{-# LANGUAGE     
-    MultiParamTypeClasses, 
-    FlexibleInstances, 
-    DeriveFunctor, 
+{-# LANGUAGE
+    MultiParamTypeClasses,
+    FlexibleInstances,
+    DeriveFunctor,
     DeriveFoldable #-}
 
 module Music.Internal.Time.Score where
@@ -30,10 +30,10 @@ import Music.Time.EventList ( EventList(..) )
 import qualified Music.Time.EventList as EventList
 
 
--- | A discrete temporal structure, generalising standard music notation.            
+-- | A discrete temporal structure, generalising standard music notation.
 --
 --   > melody [1, 2, 3]
---   
+--
 --   Useful monadic functions:
 --       'join', 'liftM', 'liftM2', 'liftM3' etc.
 
@@ -53,22 +53,22 @@ instance Time t => Loop (Score t) where
     loop x  =  x >>> loop x
 
 instance Time t => Reverse (Score t) where
-    reverse (ParS x y)  =  ParS (reverse x') (reverse y')  where  (x', y') = assureEqualDuration x y
+    reverse (ParS x y)  =  ParS (reverse x') (reverse y')
+        where
+            (x', y') = x `assureEqualDur` y
+
     reverse (SeqS x y)  =  SeqS (reverse y) (reverse x)
+
     reverse x           =  x
 
-assureEqualDuration x y =
-    let dx = duration x
-        dy = duration y
-        in case (dx `compare` dy) of
-            LT -> (assureDuration dy x, y)
-            EQ -> (x, y)
-            GT -> (x, assureDuration dx y)
+assureEqualDur x y | dx <  dy  =  (assureDur dy x, y)
+                   | dx == dy  =  (x, y)
+                   | dx >  dy  =  (x, assureDur dx y)
+    where dx = duration x
+          dy = duration y
 
-assureDuration t s = 
-    if (duration s < t) 
-        then s >>> rest (t - duration s)
-        else s 
+assureDur t s | duration s < t  =  s >>> rest (t - duration s)
+              | otherwise       =  s
 
 
 instance Time t => Timed t (Score t) where
@@ -77,24 +77,25 @@ instance Time t => Timed t (Score t) where
     duration (SeqS x y)   =  duration x + duration y
     duration (ParS x y)   =  duration x `max` duration y
 
-    stretch t s = checkNonNegative t "Music.Time.Timed.stretch" 
-                $ stretch' t s 
-        where
-            stretch' t (RestS d)   =  RestS (d * t)
-            stretch' t (NoteS d x) =  NoteS (d * t) x
-            stretch' t (ParS x y)  =  ParS (stretch t x) (stretch t y)
-            stretch' t (SeqS x y)  =  SeqS (stretch t x) (stretch t y)
-    
+
+    stretch t (RestS d)   | t >= 0    =  RestS (d * t)
+                          | otherwise = negativeError "Music.Time.Timed.stretch"
+
+    stretch t (NoteS d x) | t >= 0    =  NoteS (d * t) x
+                          | otherwise = negativeError "Music.Time.Timed.stretch"
+
+    stretch t (ParS x y)  | t >= 0    =  ParS (stretch t x) (stretch t y)
+                          | otherwise = negativeError "Music.Time.Timed.stretch"
+
+    stretch t (SeqS x y)  | t >= 0    =  SeqS (stretch t x) (stretch t y)
+                          | otherwise = negativeError "Music.Time.Timed.stretch"
+
 
 instance Time t => Delayed t (Score t) where
-    rest t = checkNonNegative t "Music.Time.Temporal.rest" 
-           $ rest' t
-        where rest'      = RestS    
-
-    delay t x  = checkNonNegative t "Music.Time.Temporal.delay" 
-               $ delay' t x
-        where delay' t x = rest t >>> x
-    
+    rest t | t >= 0     =  RestS t
+           | otherwise  =  negativeError "Music.Time.Timed.rest"
+    delay t x | t >= 0     =  rest t >>> x
+              | otherwise  =  negativeError "Music.Time.Timed.delay"
 
 instance Time t => Applicative (Score t) where
     pure   =  return
@@ -113,38 +114,56 @@ instance Time t => Monad (Score t) where
 
 joinScore :: Time t => Score t (Score t a) -> Score t a
 joinScore = concatPar . map arrange . toEvents
-    where                           
+    where
         arrange (Event t d x) = (delay t . stretch d) x
 
+
 instance Time t => TimeFunctor t (Score t) where
-    tdmap f s = let (d, s') = tdmap' f 0 s in s'
+    tdmap f = foldScore (\t d   -> RestS d)
+                        (\t d x -> NoteS d $ f t d x)
+                        (\x y   -> ParS x y)
+                        (\x y   -> SeqS x y)
 
--- function -> offset -> score -> (dur, events)
-tdmap' f t (RestS d)      =  (d, RestS d)
-tdmap' f t (NoteS d x)    =  (d, NoteS d $ f t d x)
-tdmap' f t (ParS x y)     =  
-    let (dx, sx) = tdmap' f t x
-        (dy, sy) = tdmap' f t y
-                          in (dx `max` dy, ParS sx sy)
-tdmap' f t (SeqS x y)     =
-    let (dx, sx) = tdmap' f t x
-        (dy, sy) = tdmap' f (t + dx) y
-                          in (dx + dy, SeqS sx sy)
 
-         
 --
 -- Internals
 --
 
+foldScore :: Time t =>
+    (t -> t -> b) ->
+    (t -> t -> a -> b) ->
+    (b -> b -> b) ->
+    (b -> b -> b) ->
+    Score t a ->
+    b
+foldScore rc nc pc sc s =
+    let (d, s') = foldScore' rc nc pc sc 0 s in s'
+
+foldScore' :: Time t =>
+    (t -> t -> b) ->
+    (t -> t -> a -> b) ->
+    (b -> b -> b) ->
+    (b -> b -> b) ->
+    t ->
+    Score t a ->
+    (t, b)
+
+foldScore' r n p s t (RestS d)    =  (d, r t d)
+foldScore' r n p s t (NoteS d x)  =  (d, n t d x)
+foldScore' r n p s t (ParS x y)   =
+    let (dx, sx) = foldScore' r n p s t x
+        (dy, sy) = foldScore' r n p s t y
+                                      in (dx `max` dy, p sx sy)
+foldScore' r n p s t (SeqS x y)   =
+    let (dx, sx) = foldScore' r n p s t x
+        (dy, sy) = foldScore' r n p s t y
+                                      in (dx + dy, s sx sy)
+
 toEvents :: Time t => Score t a -> [Event t a]
 toEvents = eventListEvents . render
 
-checkNonNegative :: (Num a, Ord a) => a -> String -> b -> b
-checkNonNegative expr name value = 
-    if (expr < 0)
-        then error $ "*** Exception: " ++ name ++ ": negative value" 
-        else value
-    
+negativeError :: String -> a
+negativeError name = error $ "*** Exception: " ++ name ++ ": negative value"
 
 --
 -- Note and Render
@@ -158,28 +177,32 @@ note = NoteS 1
 render :: Time t => Score t a -> EventList t a
 
 --   The basic implementation for render looks like this:
---   
+--
 --   render (RestS d)   =  EventList d []
 --   render (NoteS d x) =  EventList d [Event 0 d x]
 --   render (ParS x y)  =  render x ||| render y
 --   render (SeqS x y)  =  render x >>> render y
---   
+--
 --   The actual implementation optimizes this by computing offsets before rendering, instead of after.
 
-render score = let (d, xs) = render' 0 score 
+render score = let (d, xs) = render' 0 score
                    in EventList.normalize $ EventList d xs
 
 -- offset -> score -> (dur, events)
 render' t (RestS d)    =  (d, [])
 render' t (NoteS d x)  =  (d, [Event t d x])
-render' t (ParS x y)   =  
+render' t (ParS x y)   =
     let (dx, ex) = render' t x
-        (dy, ey) = render' t y 
+        (dy, ey) = render' t y
                        in (dx `max` dy, ex ++ ey)
 render' t (SeqS x y)   =
     let (dx, ex) = render' t x
-        (dy, ey) = render' (t + dx) y
+        (dy, ey) = render' (t + dx) y                -- TODO see below
                        in (dx + dy, ex ++ ey)
+
+-- TODO one single expression above (t + dx) prevents us from reimplementing in terms of foldScore
+-- Can we generalize foldScore to include this?
+
 
 -- | Unrender the given `EventList` back to a score.
 unrender :: Time t => EventList t a -> Score t a
@@ -187,7 +210,7 @@ unrender = chordStretchDelay . map (\(Event t d x) -> (t, d, x)). eventListEvent
 
 
 --
--- Derived combinators 
+-- Derived combinators
 --
 
 -- | Creates a score containing the given elements, composed in sequence.
@@ -224,7 +247,7 @@ arpeggio t xs = chordDelay (zip [0, t ..] xs)
 -- TODO
 
 homophonic :: Time t => Score t a -> [Score t a]
-homophonic = undefined                          
+homophonic = undefined
 
 polyphonic :: Time t => Score t a -> [Score t a]
 polyphonic = undefined
@@ -233,7 +256,7 @@ parallelNormalForm   = parNF
 sequentialNormalForm = seqNF
 
 -- TODO adjust durs
-parNF (SeqS(ParSa b) (ParSc d))             
+parNF (SeqS(ParSa b) (ParSc d))
     | duration a  <   duration b    = undefined -- prolong a to be same length as b
     | duration a  ==  duration b    = ParS(SeqS(parNF a) (parNF c)) (SeqS(parNF b) (parNF d))
     | duration a  >   duration b    = undefined -- prolong b to be same length as a
@@ -254,4 +277,4 @@ seqNF (ParSx y) = ParS(seqNF x) (seqNF y)
 seqNF (SeqSx y) = SeqS(seqNF x) (seqNF y)
 seqNF x         = x  -}
 
-                      
+

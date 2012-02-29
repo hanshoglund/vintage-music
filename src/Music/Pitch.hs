@@ -36,8 +36,8 @@ newtype Cent   = Cent   Frequency
 instance Convert Frequency Octave  where  convert f          = Octave (logBase 2 f)
 instance Convert Octave Frequency  where  convert (Octave f) = 2 ** f
 instance Convert Cent Octave       where  convert (Cent f)   = Octave (f / 1200)
-instance Convert Octave Cent       where  convert (Octave f) = Cent (f * 1200)
-instance Convert Frequency Cent    where  convert f          = Cent (logBase 2 f * 1200)
+instance Convert Octave Cent       where  convert (Octave f) = Cent   (f * 1200)
+instance Convert Frequency Cent    where  convert f          = Cent   (logBase 2 f * 1200)
 instance Convert Cent Frequency    where  convert (Cent f)   = 2 ** (f / 1200)
 
 

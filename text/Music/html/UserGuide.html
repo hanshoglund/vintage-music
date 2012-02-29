@@ -1,0 +1,229 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+</head>
+<body>
+<div id="TOC">
+<ul>
+<li><a href="#introduction">Introduction</a><ul>
+<li><a href="#design-principles">Design principles</a><ul>
+<li><a href="#relative-values">Relative values</a></li>
+<li><a href="#continous-values">Continous values</a></li>
+<li><a href="#time-as-the-central-musical-parameter">Time as the central musical parameter</a></li>
+<li><a href="#use-of-standard-type-classes">Use of standard type classes</a></li>
+</ul></li>
+<li><a href="#terminology">Terminology</a></li>
+</ul></li>
+<li><a href="#time">Time</a><ul>
+<li><a href="#basic-composition">Basic composition</a><ul>
+<li><a href="#temporal">Temporal</a></li>
+<li><a href="#loop-and-reverse">Loop and reverse</a></li>
+</ul></li>
+<li><a href="#timed-values">Timed values</a><ul>
+<li><a href="#the-meaning-of-time">The meaning of Time</a></li>
+</ul></li>
+<li><a href="#implementations">Implementations</a><ul>
+<li><a href="#score">Score</a></li>
+<li><a href="#event-list">Event list</a></li>
+<li><a href="#segment">Segment</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#pitch">Pitch</a></li>
+<li><a href="#dynamics">Dynamics</a></li>
+<li><a href="#phrasing">Phrasing</a></li>
+<li><a href="#space">Space</a></li>
+<li><a href="#rendering">Rendering</a><ul>
+<li><a href="#sound">Sound</a><ul>
+<li><a href="#midi">MIDI</a></li>
+<li><a href="#opensoundcontrol">OpenSoundControl</a></li>
+</ul></li>
+<li><a href="#graphics">Graphics</a></li>
+<li><a href="#standard-notation">Standard notation</a><ul>
+<li><a href="#musicxml">MusicXML</a></li>
+<li><a href="#abc-notation">Abc Notation</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</div>
+<h1 id="introduction"><a href="#TOC">Introduction</a></h1>
+<p><em>Music</em> is a Haskell library for music representation and manipulation. It is partially a development of the ideas outlined by Paul Hudak <sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup>, which has previously been implemented by libraries such as <em>Haskore</em>, <em>Euterpia</em> and <em>temporal-media</em>. <em>Music</em> is entirely separate from these libraries, however.</p>
+<p>The main goal of <em>Music</em> is to generalise standard music notation, allowing the user to express any kind of music, including Western, non-Western, classical, popular, traditional, instrumental, vocal and electronic music, using a common, semantically well-behaved representation. To achieve this goal, the library avoids depending on specific pitch names, tuning systems, rhythms and instructions; instead provides multiple common representations of these concepts which can be combinedinto a coherent musical language. More importantly, it provides a set of polymorphic types and functions which can be used in conjunction with the musical representation of choice. This way <em>Music</em> is able to express a proper superset of the music expressible in standard notation.</p>
+<p>This flexibility is attained by a somewhat involved use of the Haskell type system, the details of which need not be known precisely by users of the library. Tentative users are probably better of reading this reference documentation and adapting its examples as a starting point, before trying to fully digest the type signatures of the reference documentation, however.</p>
+<!-- ### Design principles
+
+  * Emphasis on *relative* values and scaling rather than *absolute* values and positioning 
+    * Unit values and binary operations are heavily used in this style.
+  * Emphasis on *continous values*, postponing sampling to the final rendering phase
+    * This is similar to the approach taken in vector graphics, but dissimilar
+      to traditional computer music systems.  
+  * Emphasis on *time* as the central musical parameter               
+    * The library is organized around the *Temporal* type class and its subclasses *Timed* and *Delayed*
+    * Other properties are treated *Temporal* transformers
+  * Use of standard type classes
+    * *Monoids* for composition
+    * *Functors* for transforming structures without respect to time
+    * *Applicatives* for transforming structures with respect to time
+    * *Monads* for transforming and flattening nested structures      -->
+
+<h2 id="design-principles"><a href="#TOC">Design principles</a></h2>
+<h3 id="relative-values"><a href="#TOC">Relative values</a></h3>
+<p>TODO Emphasis on <em>relative</em> values rather than <em>absolute</em></p>
+<p>TODO Unit values and binary operations are heavily used in this style.</p>
+<h3 id="continous-values"><a href="#TOC">Continous values</a></h3>
+<p>TODO Emphasis on <em>continous values</em>, postponing sampling to the final rendering phase</p>
+<p>TODO This is similar to the approach taken in vector graphics, but dissimilar to traditional computer music systems.</p>
+<h3 id="time-as-the-central-musical-parameter"><a href="#TOC">Time as the central musical parameter</a></h3>
+<p>TODO The library is organized around the <em>Temporal</em> type class and its subclasses <em>Timed</em> and <em>Delayed</em></p>
+<p>TODO Other properties are treated <em>Temporal</em> transformers</p>
+<h3 id="use-of-standard-type-classes"><a href="#TOC">Use of standard type classes</a></h3>
+<ul>
+<li>Use of standard type classes
+<ul>
+<li><em>Monoids</em> for composition</li>
+<li><em>Functors</em> for transforming structures without respect to time</li>
+<li><em>Applicatives</em> for transforming structures with respect to time</li>
+<li><em>Monads</em> for transforming and flattening nested structures</li>
+</ul></li>
+</ul>
+<h2 id="terminology"><a href="#TOC">Terminology</a></h2>
+<p><em>Music</em> use standard music terminology where appropriate. The meaning of terms such as <em>pitch</em>, <em>dynamics</em>, <em>duration</em>, <em>intonation</em>, <em>phrase</em> should be straightforward.</p>
+<p>It is worth noting that standard music theory concepts may often be understood in a both a general and a more specific sense. For example, <em>pitch</em> may refer to property of having a discernible frequency, or to a set of values such as <em>A5</em> and <em>Eb4</em>. In <em>Music</em> the more general sense is used unless otherwise noted.</p>
+<p></p>
+<h1 id="time"><a href="#TOC">Time</a></h1>
+<p>In <em>Music</em>, the property of <em>temporality</em> (being able to be composed in time) is separated from that of <em>duration</em> (having a known extent in time) and <em>position</em> (having a known position in time). This separation allows for representation of a wider range of musical structures. Temporal values can be though of as moments in time in which some <em>event</em> occurs. The purpose of the temporal abstraction is to describe just the temporal properties, leaving other properties, such as pitch, timbre etc abstract.</p>
+<h2 id="basic-composition"><a href="#TOC">Basic composition</a></h2>
+<h3 id="temporal"><a href="#TOC">Temporal</a></h3>
+<p>Temporal values are captured by the <code>Temporal</code> type class. Each implementation of temporal is a type constructor parameterized on its content, i.e. if <code>t</code> is a temporal type constructor and <code>a</code> is a concrete type, <code>t a</code> is a temporal structure of <code>a</code> values which can be composed in time.</p>
+<pre><code>class Temporal d where
+    instant :: d a
+    (|||)   :: d a -&gt; d a -&gt; d a
+    (&gt;&gt;&gt;)   :: d a -&gt; d a -&gt; d a
+    (&lt;&lt;&lt;)   :: d a -&gt; d a -&gt; d a
+</code></pre>
+<p>As can be seen, <code>Temporal</code> defines three binary operations for parallel, sequential and reverse sequential composition. Intuitively, reverse sequential composition is a synonym for ordinary sequential composition with its arguments reversed, so <code>a &gt;&gt;&gt; b</code> (read as <em>a</em> followed by <em>b</em>) is equivalent to <code>b &lt;&lt;&lt; a</code> (read as <em>b</em> preceded by <em>a</em>). Both parallel and sequential composition is associative, mening that <code>(a &gt;&gt;&gt; b) &gt;&gt;&gt; c</code> is equivalent to <code>a &gt;&gt;&gt; (b &gt;&gt;&gt; c)</code>. Parallel composition is also commutative, meaning that <code>a ||| b</code> (read as <em>a</em> with <em>b</em>) is equivalent to <code>b ||| a</code>.</p>
+<p><code>Temporal</code> also defines <code>instant</code>, which is the unit value for both parallel and sequential composition. It can be thought of as an infinitely brief moment in time. Both sequential and parallel composition form a monoid with instant.</p>
+<h3 id="loop-and-reverse"><a href="#TOC">Loop and reverse</a></h3>
+<p><em>Music</em> also provides two subclasses of <code>Temporal</code>, providing operations supported by many, but not all of the temporal implementations. These are <code>loop</code>, which repeats a temporal value and reverse, which retrogrades it.</p>
+<pre><code>class Temporal d =&gt; Loop d where
+    loop :: d a -&gt; d a
+
+class Temporal d =&gt; Reverse d where
+    reverse :: d a -&gt; d a
+</code></pre>
+<h2 id="timed-values"><a href="#TOC">Timed values</a></h2>
+<p>TODO restrictions on time values:</p>
+<pre><code>class (Enum t, Ord t, Real t, Fractional t) =&gt; Time t Source
+</code></pre>
+<p>The main characteristic of durational values is their ability to be prolonged, shortened or scaled. In standard notation, duration is represented by a combination of divisivion into bars and beats, represented by vertical barlines and beaming, and note values, represented by note head shape and number of flags or beams.</p>
+<pre><code>class Time t =&gt; Timed t d where
+    duration :: d a -&gt; t
+    stretch  :: t -&gt; d a -&gt; d a
+</code></pre>
+<p>A characteristic of positional values is their ability to be moved forward and backwards in time. Position is implicit in standard notation, but is often encountered in audio editing software. Some scorewriting software such as Sibelius of Finale allow the user to view to position of a note by selecting it.</p>
+<pre><code>class Time t =&gt; Delayed t d where
+    rest   :: t -&gt; d a
+    delay  :: t -&gt; d a -&gt; d a
+</code></pre>
+<h3 id="the-meaning-of-time"><a href="#TOC">The meaning of Time</a></h3>
+<p>In the definition of <code>Timed</code> and <code>Delayed</code>, we left the representation of time itself in the abstract, save for the restrictions grouped together under the <code>Time</code> type class.</p>
+<h2 id="implementations"><a href="#TOC">Implementations</a></h2>
+<h3 id="score"><a href="#TOC">Score</a></h3>
+<p>A <em>Score</em> is a a container of discrete events. It implements all the temporal type classes, and provides the constructor <code>note</code>, which lifts a single value into a temporal value. Several derived combinators for constructing scores are provided, but these can all be defined in terms of <code>note</code>.</p>
+<p>The <code>note</code> constructor creates temporal values of duration one. To get another duration, the <code>stretch</code> function should be used.</p>
+<pre><code>auld = g 
+   &gt;&gt; stretch 3 $ c &gt;&gt; c &gt;&gt; stretch 2 (c &gt;&gt; e) 
+   &gt;&gt; stretch 3 $ d &gt;&gt; c &gt;&gt; stretch 2 (d &gt;&gt; e) 
+   &gt;&gt; stretch 3 $ c &gt;&gt; c &gt;&gt; stretch 2 (e &gt;&gt; f) 
+   &gt;&gt; stretch 6 $ a
+</code></pre>
+<p>There is also a module providing instances of the standard numeric type classes for <code>Score</code> (implemented in terms of <code>stretch</code>), which allows for a more concise syntax:</p>
+<pre><code>auld' = g 
+   &gt;&gt; 3 * c &gt;&gt; c &gt;&gt; 2 * (c &gt;&gt; e) 
+   &gt;&gt; 3 * d &gt;&gt; c &gt;&gt; 2 * (d &gt;&gt; e) 
+   &gt;&gt; 3 * c &gt;&gt; c &gt;&gt; 2 * (e &gt;&gt; f) 
+   &gt;&gt; 6 * a
+</code></pre>
+<h3 id="event-list"><a href="#TOC">Event list</a></h3>
+<p>For each score there is a corresponding <code>EventList</code>, which can be created by the <code>render</code> function. As <code>render</code> is overloaded, it is necessary to provide a full type signature:</p>
+<pre><code>p :: Score Double StdNote
+el = render p :: EventList Double StdNote
+</code></pre>
+<h3 id="segment"><a href="#TOC">Segment</a></h3>
+<p></p>
+<h1 id="pitch"><a href="#TOC">Pitch</a></h1>
+<p>Like time, pitch is represented using relative values.</p>
+<p>TODO linear (for hertz) and logarithmic (for octaves, equal temperament, cents etc) newtype wrapper TODO scales</p>
+<p></p>
+<h1 id="dynamics"><a href="#TOC">Dynamics</a></h1>
+<p></p>
+<h1 id="phrasing"><a href="#TOC">Phrasing</a></h1>
+<p></p>
+<h1 id="space"><a href="#TOC">Space</a></h1>
+<p></p>
+<h1 id="rendering"><a href="#TOC">Rendering</a></h1>
+<h2 id="sound"><a href="#TOC">Sound</a></h2>
+<h3 id="midi"><a href="#TOC">MIDI</a></h3>
+<h3 id="opensoundcontrol"><a href="#TOC">OpenSoundControl</a></h3>
+<h2 id="graphics"><a href="#TOC">Graphics</a></h2>
+<h2 id="standard-notation"><a href="#TOC">Standard notation</a></h2>
+<h3 id="musicxml"><a href="#TOC">MusicXML</a></h3>
+<h3 id="abc-notation"><a href="#TOC">Abc Notation</a></h3>
+<!-- ## Basic composition
+
+A *temporal structure* is a structure that can be composed in *sequence* and in *parallel*. The
+canonical form of such values is a *melody*, which consists of a set of notes
+composed in sequence, and a *chord*, which consists of a set of notes composed in parallel.
+More elaborate musical structures can easily be constructed by nested compositions of
+sequential of parallel structures.
+
+In standard music notation, composition is usually restricted to three levels. The outermost level is the
+score, which is a parallel composition of voices. Each voice in turn is a sequential 
+composition of chords, and each chord is a parallel
+compositions of notes. (Note that to keep things simple we refer to single notes and rests as
+chords here, allthough they are typically not thought of as such).
+
+In *Music*, the concept of *temporality* (being able to be arranged sequentially and parallelly)
+is separated from that of *durationality* (having a known extent in time) and *positionality*
+(having a known position in time). A characteristic of durational values is their ability to be
+prolonged, shortened or scaled. A characteristic of positional values is their ability to be moved
+forward and backwards in time.
+
+## Instant
+
+# Time and duration
+
+## Relative time and duration
+
+In *Music*, the function `note` returns a score of duration one. This does not imply that all notes must
+be of equal duration, as the duration of a score can easily be changed with `stretch`. However, the 
+idiomatic way of working with *Music* is to use relative durations, which are only scaled when required. -->
+
+
+<!-- ## Index
+
+## Temporal values
+Values that supports composition in sequence and in parallel, but not necessarily
+have a duration.
+
+## Timed and delayed values
+Elements that can be timed, stretched and delayed.
+
+## Pitch
+Elements that have a frequency.
+
+## Dynamics
+Elements that have a velocity. -->
+
+
+
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Hudak, Paul (2003) <em>An Algebraic Theory of Polymorphic Temporal Media</em> <a href="#fnref1" class="footnoteBackLink">↩</a></p></li>
+</ol>
+</div>
+</body>
+</html>

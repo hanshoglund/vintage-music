@@ -16,73 +16,59 @@ module Music.Render.Graphics
 where
 
 {-# LANGUAGE
-    FlexibleContexts,
     TypeFamilies,
-    NoMonomorphismRestriction #-}
+    NoMonoMorphismRestriction #-}
 
-import Prelude hiding (reverse)
-import Diagrams.Prelude hiding ((|||), (===), render)
-import qualified Diagrams.Prelude as D
+import Prelude hiding ( reverse )
+
+import Data.Colour ( withOpacity )
+import Data.Colour.SRGB ( sRGB24read )
+
+import Diagrams.Prelude hiding ( (|||), (===), render )
 import Diagrams.Backend.Cairo
-
-import Diagrams.TwoD.Types
-import Diagrams.TwoD.Vector (unitX, unitY)
-import Diagrams.Combinators
-import Data.VectorSpace
 
 import Music.Time
 import Music.Time.Score
-import Music.Internal.Time.Score (Score(..))
+import Music.Internal.Time.Score ( foldScore )
 
-import Music.Time.Event
-import qualified Music.Time.EventList as EventList
-import Music.Utilities
-import Data.Colour (withOpacity)
-import Data.Colour.SRGB
 
 -- | Opaque type representing a graphic representation.
 newtype Graphic = Graphic (Diagram Cairo R2)
 
 
-t2d :: Time t => t -> Double
-t2d = time2Double
-
-vert  = beside (negateV unitY)
-horiz = append unitX
-
-
 -- | Renders the given score as a graphic.
 renderScore :: (Show a, Time t) => Score t a -> Graphic
-renderScore s = let (d, s') = renderScore' 0 s in Graphic s'
+renderScore = Graphic . renderScore'
 
-renderScore' t (RestS d)      =  (d,
-    if (d == 0)
-        then mempty
-        else moveOriginBy ((t2d d) * (-1), 0) ({-strutX-}hrule $ t2d d * 2))
+renderScore' :: (Show a, Time t) => Score t a -> Diagram Cairo R2
+renderScore' = 
+    foldScore (\t d   -> renderRest d)
+              (\t d x -> renderNote d x)
+              renderPar
+              renderSeq
+    where
+        renderRest d   | d == 0     =  mempty
+                       | otherwise  =  moveOriginBy (negate (t2d d), 0) (renderEmpty (t2d d * 2))
 
-renderScore' t (NoteS d x)    =  (d,
-    if (d == 0)
-        then mempty
-        else
-           moveOriginBy ((t2d d) * (-1), 0)
-            (text (show x) # font "Gill Sans" # fc white <> (scaleX (t2d d) (square 2 # fcA (sRGB24read "465FBD" `withOpacity` 0.6)))))
+        renderNote d x | d == 0     =  mempty
+                       | otherwise  =  moveOriginBy (negate (t2d d), 0) (renderText x <> renderBox (t2d d))
 
-renderScore' t (ParS x y)     =
-    let (dx, sx) = renderScore' t x
-        (dy, sy) = renderScore' t y
-                              in (dx `max` dy,
-    sx `vert` sy)
-
-renderScore' t (SeqS x y)     =
-    let (dx, sx) = renderScore' t x
-        (dy, sy) = renderScore' (t + dx) y
-                              in (dx + dy,
-    sx `horiz` sy)
+        renderPar     =  beside (negateV unitY)
+        renderSeq     =  append unitX
+        renderEmpty   =  strutX
+        renderText x  =  text (show x) # font "Gill Sans"
+                                       # fc white
+        renderBox d   =  scaleX d . fcA boxColor $ square 2
+        boxColor      =  sRGB24read "465FBD" `withOpacity` 0.6
 
 
---
+
+t2d :: Time t => t -> Double
+t2d   = time2Double
+
+
+
 -- Imperative test stuff
---
 
 -- | Writes the given graphic to a Pdf file.
 writePdf :: FilePath -> Graphic -> IO ()

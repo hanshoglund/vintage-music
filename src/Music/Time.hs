@@ -178,10 +178,3 @@ class Time t => Split t d | d -> t where
 
     before t x = a where (a, b) = split t x
     after  t x = b where (a, b) = split t x
-
--- Transformers
--- TODO move to separate file (?)
-
--- class TemporalTrans t where
---     liftTemporal :: Temporal d => d a -> t d a
-
