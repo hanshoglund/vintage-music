@@ -34,8 +34,11 @@ import qualified Music.Time.EventList as EventList
 --
 --   > melody [1, 2, 3]
 --
+--   Useful applicative functions:
+--       'pure', '<*>', 'liftA', 'liftA2' etc.
+--
 --   Useful monadic functions:
---       'join', 'liftM', 'liftM2', 'liftM3' etc.
+--       'return', 'join', 'liftM', 'liftM2' etc.
 
 data Score t a
     = RestS t

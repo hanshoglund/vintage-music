@@ -23,13 +23,13 @@ type Frequency = Double
 
 -- | Logarithmic pitch reprentation.
 --
--- > f * 2 = convert f + Octave 1    
+-- > convert (f * 2) = convert f + Octave 1    
 newtype Octave = Octave Frequency
     deriving ( Show, Eq, Enum, Num, Ord, Fractional, Floating )
 
 -- | Logarithmic pitch reprentation.    
 --
--- > f * 2 = convert f + Cent 1200    
+-- > convert (f * 2) = convert f + Cent 1200    
 newtype Cent   = Cent   Frequency
     deriving ( Show, Eq, Enum, Num, Ord, Fractional, Floating )
 

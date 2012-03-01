@@ -14,7 +14,9 @@ module Data.Convert
 (
     Convert(..)
 )
-where
+where                
+    
+    
 class Convert a b where
     convert :: a -> b
-
+    
