@@ -70,17 +70,17 @@ instance Time t => Timed t (Score t) where
     duration (SeqS x y)   =  duration x + duration y
     duration (ParS x y)   =  duration x `max` duration y
 
-    stretch t (RestS d)   | t >= 0    =  RestS (d * t)
-                          | otherwise = negativeError "Music.Time.Timed.stretch"
+    stretch t (RestS d)   | t >= 0     =  RestS (d * t)
+                          | otherwise  =  negativeError "Music.Time.Timed.stretch"
 
-    stretch t (NoteS d x) | t >= 0    =  NoteS (d * t) x
-                          | otherwise = negativeError "Music.Time.Timed.stretch"
+    stretch t (NoteS d x) | t >= 0     =  NoteS (d * t) x
+                          | otherwise  =  negativeError "Music.Time.Timed.stretch"
 
-    stretch t (ParS x y)  | t >= 0    =  ParS (stretch t x) (stretch t y)
-                          | otherwise = negativeError "Music.Time.Timed.stretch"
+    stretch t (ParS x y)  | t >= 0     =  ParS (stretch t x) (stretch t y)
+                          | otherwise  =  negativeError "Music.Time.Timed.stretch"
 
-    stretch t (SeqS x y)  | t >= 0    =  SeqS (stretch t x) (stretch t y)
-                          | otherwise = negativeError "Music.Time.Timed.stretch"
+    stretch t (SeqS x y)  | t >= 0     =  SeqS (stretch t x) (stretch t y)
+                          | otherwise  =  negativeError "Music.Time.Timed.stretch"
 
 
 instance Time t => Delayed t (Score t) where

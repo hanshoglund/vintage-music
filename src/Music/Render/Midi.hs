@@ -56,7 +56,7 @@ data MidiNote = MidiNote
     deriving (Eq, Show)
 
 renderMidi :: EventList Seconds MidiNote -> Midi
-renderMidi = Midi MultiTrack (TicksPerBeat 1024) . removeEmptyTracks. renderMidiTracks . normalize
+renderMidi = Midi MultiTrack (TicksPerBeat division) . removeEmptyTracks. renderMidiTracks . normalize
 
 removeEmptyTracks = filter (not . null)
 
@@ -79,12 +79,13 @@ renderEvent (Event t d (MidiNote c p b v)) =
     ]
 
 renderTime :: Seconds -> Int
-renderTime t = round (t * fromIntegral 1024)
+renderTime t = round (t * fromIntegral division)
 
 
 writeMidi :: FilePath -> Midi -> IO ()
 writeMidi = exportFile
 
+division = 1024
 
 --
 -- Intonation
