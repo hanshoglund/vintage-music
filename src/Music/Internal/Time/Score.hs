@@ -56,8 +56,11 @@ instance Time t => Loop (Score t) where
 
 
 instance Time t => Reverse (Score t) where
-    reverse (ParS x y)  =  ParS (reverse x') (reverse y') where (x', y') = x `assureEqualDur` y
+    reverse (ParS x y)  =  ParS (reverse x') (reverse y') 
+                               where (x', y') = x `assureEqualDur` y
+    
     reverse (SeqS x y)  =  SeqS (reverse y) (reverse x)
+    
     reverse x           =  x
 
 
@@ -81,22 +84,23 @@ instance Time t => Timed t (Score t) where
 
 
 instance Time t => Delayed t (Score t) where
-    rest t | t >= 0     =  RestS t
-           | otherwise  =  negativeError "Music.Time.Timed.rest"
+    rest t    | t >= 0     =  RestS t
+              | otherwise  =  negativeError "Music.Time.Timed.rest"
 
     delay t x | t >= 0     =  rest t >>> x
               | otherwise  =  negativeError "Music.Time.Timed.delay"
 
 
 instance Time t => Split t (Score t) where
-    before z = filterScore (\t d   -> t < z)
-                           (\t d x -> t < z)
-                           (\t     -> t < z)
-                           (\t     -> t < z)
-    after  z = filterScore (\t d   -> t >= z)
-                           (\t d x -> t >= z)
-                           (const True)
-                           (const True)
+    before z = filterScore ( \t d   -> t < z )
+                           ( \t d x -> t < z )
+                           ( \t     -> t < z )
+                           ( \t     -> t < z )
+
+    after  z = filterScore ( \t d   -> t >= z )
+                           ( \t d x -> t >= z )
+                           ( const True )
+                           ( const True )
 
 
 instance Time t => Applicative (Score t) where
@@ -121,11 +125,10 @@ joinScore = concatPar . map arrange . toEvents
         arrange (Event t d x) = (delay t . stretch d) x
 
 instance Time t => TimeFunctor t (Score t) where
-    tdmap f = foldScore (\t d   -> RestS d)
-                        (\t d x -> NoteS d $ f t d x)
-                        (\t x y -> ParS x y)
-                        (\t x y -> SeqS x y)
-
+    tdmap f = foldScore ( \t d   -> RestS d )
+                        ( \t d x -> NoteS d $ f t d x )
+                        ( \t x y -> ParS x y )
+                        ( \t x y -> SeqS x y )
 
 --
 -- Note and Render
@@ -164,11 +167,9 @@ render' t (SeqS x y)   =
 
 -- TODO reimplement in terms of foldScore (?)
 
-
 -- | Unrender the given `EventList` back to a score.
 unrender :: Time t => EventList t a -> Score t a
 unrender = chordStretchDelay . map (\(Event t d x) -> (t, d, x)). eventListEvents
-
 
 
 --
@@ -211,10 +212,10 @@ filterScore :: Time t =>
     (t -> Bool) ->
     Score t a ->
     Score t a
-filterScore r n p s = foldScore (\t d   -> if (r t d)   then RestS d else instant)
-                                (\t d x -> if (n t d x) then NoteS d x else instant)
-                                (\t x y -> if (p t)     then ParS x y else instant)
-                                (\t x y -> if (s t)     then SeqS x y else instant)
+filterScore r n p s = foldScore ( \t d   -> if (r t d)   then RestS d   else instant )
+                                ( \t d x -> if (n t d x) then NoteS d x else instant )
+                                ( \t x y -> if (p t)     then ParS x y  else instant )
+                                ( \t x y -> if (s t)     then SeqS x y  else instant )
 
 foldScore :: Time t =>
     (t -> t -> b) ->
