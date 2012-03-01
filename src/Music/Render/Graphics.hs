@@ -10,7 +10,7 @@
 module Music.Render.Graphics
 (
     Graphic,
-    renderScore,
+    renderGraphics,
     writePdf
 )
 where
@@ -37,8 +37,8 @@ newtype Graphic = Graphic (Diagram Cairo R2)
 
 
 -- | Renders the given score as a graphic.
-renderScore :: (Show a, Time t) => Score t a -> Graphic
-renderScore = Graphic 
+renderGraphics :: (Show a, Time t) => Score t a -> Graphic
+renderGraphics = Graphic 
             . foldScore (\t d   -> renderRest d)
                         (\t d x -> renderNote d x)
                         (\t x y -> renderPar x y)

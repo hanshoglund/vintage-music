@@ -16,7 +16,8 @@
 module Music.Time.EventList
 (
     EventList(..),
-    normalize
+    normalize,
+    printEvents
 )
 where
 
@@ -59,5 +60,9 @@ instance Time t => Delayed t (EventList t) where
 normalize :: Time t => EventList t a -> EventList t a
 normalize (EventList d xs) = EventList d (List.sortBy (comparing eventOffset) xs)
 
+printEvents :: (Time t, Show t, Show a) => EventList t a -> String
+printEvents (EventList d xs) = 
+    "Total duration: " ++ show d ++ "\n" ++
+        List.concatMap ( \(Event t d x) -> "  " ++ show t ++ "  " ++ show d ++ "  " ++ show x ++ "\n" ) xs
 
 

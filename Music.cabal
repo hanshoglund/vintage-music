@@ -14,16 +14,21 @@ Build-Type:             Simple
 
 Library
     Build-Depends:      base, 
+
                         unix, 
                         hxt, 
                         containers,         
                         split,     
+
                         vector-space,
                         colour >= 2.3.1,
                         diagrams >= 0.4,
                         diagrams-cairo >= 0.4,
                         diagrams-core >= 0.4,
                         diagrams-lib >= 0.4,
+
+                        HCodecs >= 0.2.2,
+                        binary >= 0.5.0.2,
                         
                         temporal-media, 
                         temporal-music-notation, 
@@ -57,6 +62,7 @@ Library
         Music.Space
         
         Music.Render.Graphics
+        Music.Render.Midi
     
         -- Music.Model
         -- Music.Model.Abc
