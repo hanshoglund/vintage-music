@@ -64,7 +64,6 @@ Library
         Music.Render.Graphics
         Music.Render.Midi
     
-        -- Music.Model
         -- Music.Model.Abc
         -- Music.Model.General
         -- Music.Model.Standard

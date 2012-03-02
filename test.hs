@@ -1,7 +1,7 @@
 
 {-# LANGUAGE 
 --    MonadComprehensions,
-    TransformListComp,
+    TransformListComp,  
     NoMonomorphismRestriction #-}
 
 import Prelude hiding (reverse)
@@ -84,3 +84,8 @@ openPdf score = do
     return ()
 
 main = openScore test
+
+
+
+
+

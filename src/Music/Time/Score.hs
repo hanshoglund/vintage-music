@@ -7,9 +7,7 @@
     Portability :  portable
 -}
 
-{-# LANGUAGE     
-    MultiParamTypeClasses, 
-    FlexibleInstances, 
+{-# LANGUAGE
     DeriveFunctor, 
     DeriveFoldable #-}
 
@@ -38,4 +36,5 @@ module Music.Time.Score
 where
 
 import Music.Internal.Time.Score
-                      
+
+

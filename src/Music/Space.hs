@@ -9,7 +9,7 @@
 
 {-# LANGUAGE 
     MultiParamTypeClasses, 
-    FunctionalDependencies #-}
+    FlexibleInstances #-}
 
 module Music.Space
 where
@@ -17,7 +17,14 @@ where
 import Music.Time
 
 
-type Location = (Rational, Rational, Rational)
+-- | Location in an Euclidean space, measured in metres.
+type Location = (Double, Double, Double)
 
-class Spacial a where
-    location :: Time t => a -> t -> Location
+
+class Spacial t a where
+    -- | @location x t@ returns the location of the spacial value @x@ at the time @t@.
+    location :: Time t => a -> t -> Location        
+    
+
+instance (Time t, Temporal d, Spacial t p) => Spacial t (d p) where
+    location = undefined

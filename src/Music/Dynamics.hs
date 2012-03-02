@@ -9,8 +9,7 @@
 
 {-# LANGUAGE 
     MultiParamTypeClasses, 
-    FlexibleInstances,
-    RankNTypes #-}
+    FlexibleInstances #-}
 
 module Music.Dynamics
 where
@@ -22,11 +21,18 @@ import Music.Time.Functors
 import Music.Time.Score
 
 
-type Amplitude = Rational
+-- | Amplitude according to some reference level.
+type Amplitude = Double
 
 class Dynamic t a where   
-    composeDynamics  :: (t -> Amplitude) -> (Amplitude -> Amplitude -> Amplitude) -> a -> a
+    -- | @amplitude x t@ returns the amplitude of the dynamic value @x@ at the time @t@.
     amplitude        :: a -> t -> Amplitude
+                                             
+
+instance (Time t, Temporal d, Dynamic t p) => Dynamic t (d p) where
+    amplitude = undefined
+
+
 
 -- instance (Time t, Dynamic t a) => Dynamic t (t -> Amplitude, a) where
 --     composeDynamics g op (f, x) = (\t -> f t `op` g t, x)
@@ -59,8 +65,8 @@ class Dynamic t a where
 --     delay d (DynamicT _ x) = DynamicT (const 0) (delay d x)   
 
                                         
-restrict :: Time t => t -> t -> (t -> a) -> t -> a
-restrict t d f t' = f ((t' + t) * d)
-    
-renderDynamics :: (Time t, Dynamic t a) => (t -> Amplitude) -> Score t a -> Score t a
-renderDynamics f = tdmap $ \t d x -> composeDynamics (restrict t d f) (*) x
+-- restrict :: Time t => t -> t -> (t -> a) -> t -> a
+-- restrict t d f t' = f ((t' + t) * d)
+--     
+-- renderDynamics :: (Time t, Dynamic t a) => (t -> Amplitude) -> Score t a -> Score t a
+-- renderDynamics f = tdmap $ \t d x -> composeDynamics (restrict t d f) (*) x

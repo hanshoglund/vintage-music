@@ -9,7 +9,7 @@
 
 {-# LANGUAGE 
     MultiParamTypeClasses, 
-    FunctionalDependencies,
+    FlexibleInstances,
     GeneralizedNewtypeDeriving #-}
 
 module Music.Pitch 
@@ -50,7 +50,16 @@ unitOctave = Octave 0
 unitCent :: Cent
 unitCent = Cent 0
 
+
 class Pitched t p where
-    composePitch :: (t -> Frequency -> Frequency) -> p -> p
+--    composePitch :: (t -> Frequency -> Frequency) -> p -> p
+
+    -- | @frequency x t@ returns the frequency of the pitched value @x@ at the time @t@.
     frequency :: p -> t -> Frequency
+                             
+
+instance (Time t, Temporal d, Pitched t p) => Pitched t (d p) where
+    frequency = undefined
+
+
 
