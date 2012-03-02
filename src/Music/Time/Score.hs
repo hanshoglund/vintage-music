@@ -23,15 +23,7 @@ module Music.Time.Score
 
     lineStretch,        -- :: Time t => [(a, t)] -> Score t a
     chordDelay,         -- :: Time t => [(a, t)] -> Score t a
-    arpeggio,           -- :: Time t => t -> [a] -> Score t a
-    
--- -- * Normal forms
---    homophonic,         -- :: Time t => Score t a -> [Score t a]
---    polyphonic,         --  :: Time t => Score t a -> [Score t a]
-
--- * Exporting scores
-    render,
-    unrender
+    arpeggio,           -- :: Time t => t -> [a] -> Score t a    
 )
 where
 

@@ -39,7 +39,7 @@ Library
 
     Hs-Source-Dirs:     src
 
-    Default-Extensions: TypeSynonymInstances, OverlappingInstances
+    Default-Extensions: 
 
     Exposed-Modules:
         
@@ -63,7 +63,9 @@ Library
         
         Music.Render.Graphics
         Music.Render.Midi
-    
+
+        Music.Inspect 
+        
         -- Music.Model.Abc
         -- Music.Model.General
         -- Music.Model.Standard

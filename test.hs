@@ -1,16 +1,17 @@
 
 {-# LANGUAGE 
---    MonadComprehensions,
-    TransformListComp,  
+    FlexibleInstances,
+    MultiParamTypeClasses,
     NoMonomorphismRestriction #-}
 
 import Prelude hiding (reverse)
+import Data.Convert
 
 import Music                  
 import Music.Time.EventList
 import Music.Render.Midi
 import Music.Render.Graphics
-import Music.Utilities
+import Music.Inspect
 
 c, d, e, f, g, a, b :: Int
 cb = (-1)
@@ -63,29 +64,10 @@ chords = loop minor
 melody = loop . stretch (1/2) $ line [0,-1,0,-5,-3,-1]
 both   = stretch (1/2) . before 6 $ melody ||| chords
 
+instance Render (Score Double Int) Midi where
+    render = render . fmap (\p -> MidiNote 0 (p+60) 0 60)
+
 test :: Score Double Int
-test = reich
+test = frere'
 
-toMidiNotes :: Score Double Int -> Score Double MidiNote
-toMidiNotes = fmap (\p -> MidiNote 0 (p+60) 0 60)
-
-openScore score = do
-    openMidi score
-    openPdf score
-
-openMidi score = do
-    writeMidi "test.mid" (renderMidi . render . toMidiNotes $ score)
-    openMidiFile "test.mid"
-    return ()
-
-openPdf score = do
-    writePdf "test.pdf" (renderGraphics score)
-    openFile "test.pdf"
-    return ()
-
-main = openScore test
-
-
-
-
-
+main = inspect test

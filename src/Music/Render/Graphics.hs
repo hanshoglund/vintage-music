@@ -7,42 +7,48 @@
     Portability :  portable
 -}
 
+{-# LANGUAGE
+    MultiParamTypeClasses,
+    FlexibleInstances #-}
+
 module Music.Render.Graphics
 (
     Graphic,
-    renderGraphics,
-    writePdf
+    writeGraphics
 )
 where
 
-{-# LANGUAGE
-    TypeFamilies,
-    NoMonoMorphismRestriction #-}
-
 import Prelude hiding ( reverse )
 
+import Data.Monoid
 import Data.Colour ( withOpacity )
 import Data.Colour.SRGB ( sRGB24read )
+import Data.Convert
 
-import Diagrams.Prelude hiding ( (|||), (===), render )
+import Diagrams.Prelude hiding ( Render, render )
 import Diagrams.Backend.Cairo
 
 import Music.Time
 import Music.Time.Score
-import Music.Internal.Time.Score ( foldScore )
+import Music.Time.EventList
+import Music.Internal.Time.Score ( foldScore, unrenderScore )
 
 
 -- | Opaque type representing a graphic representation.
 newtype Graphic = Graphic (Diagram Cairo R2)
 
+instance (Time t, Show a) => Render (EventList t a) Graphic where
+    render = renderGraphics . unrenderScore
 
--- | Renders the given score as a graphic.
-renderGraphics :: (Show a, Time t) => Score t a -> Graphic
+instance (Time t, Show a) => Render (Score t a) Graphic where
+    render = renderGraphics
+
+renderGraphics :: (Time t, Show a) => Score t a -> Graphic
 renderGraphics = Graphic 
-            . foldScore (\t d   -> renderRest d)
-                        (\t d x -> renderNote d x)
-                        (\t x y -> renderPar x y)
-                        (\t x y -> renderSeq x y)
+        . foldScore (\t d   -> renderRest d)
+                    (\t d x -> renderNote d x)
+                    (\t x y -> renderPar x y)
+                    (\t x y -> renderSeq x y)
     where
         renderRest d   | d == 0     =  mempty
                        | otherwise  =  moveOriginBy (negate (t2d d), 0) (renderEmpty (t2d d * 2))
@@ -56,19 +62,18 @@ renderGraphics = Graphic
         renderText x  =  text (show x) # font "Gill Sans"
                                        # fc white
         renderBox d   =  scaleX d . fcA boxColor $ square 2
-        boxColor      =  sRGB24read "465FBD" `withOpacity` 0.6
-
+        boxColor      =  sRGB24read "465FBD" `withOpacity` 0.6    
 
 
 t2d :: Time t => t -> Double
 t2d   = time2Double
 
 
-
 -- Imperative test stuff
 
--- | Writes the given graphic to a Pdf file.
-writePdf :: FilePath -> Graphic -> IO ()
-writePdf file (Graphic diagram) = do
+-- | Writes the given graphic to a PDF file.
+writeGraphics :: FilePath -> Graphic -> IO ()
+writeGraphics file (Graphic diagram) = do
     fst $ renderDia Cairo ( CairoOptions file $ PDF (500, 500) ) diagram
-    return ()
+    return ()      
+            

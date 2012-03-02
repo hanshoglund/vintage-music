@@ -7,7 +7,9 @@
     Portability :  portable
 -}
 
-{-# LANGUAGE
+{-# LANGUAGE        
+    MultiParamTypeClasses,
+    FlexibleInstances,
     ExistentialQuantification #-}
 
 module Music.Render.Midi
@@ -16,7 +18,6 @@ module Music.Render.Midi
     Semitones,
     Midi(..),
     MidiNote(..),
-    renderMidi,
     writeMidi,
 )
 where
@@ -26,10 +27,11 @@ import Prelude hiding ( reverse )
 import Data.List(sortBy, partition)
 import Data.Function(on)
 
-import Data.Word
 import Data.Binary
+import Data.Convert
 import Data.Binary.Put
 import Data.Ord ( comparing )
+import Data.Word
 
 import Codec.Midi hiding (Time)
 
@@ -37,12 +39,14 @@ import Music.Time
 import Music.Time.Score
 import Music.Time.Event
 import Music.Time.EventList
+import Music.Internal.Time.Score ( renderScore )
 
 
 type Seconds   = Double
 type Semitones = Double
 
-data MidiNote = MidiNote
+data MidiNote 
+    = MidiNote
     {
         -- | Midi channel.
         midiNoteChannel  :: Int,
@@ -55,9 +59,18 @@ data MidiNote = MidiNote
     }  
     deriving (Eq, Show)
 
-renderMidi :: EventList Seconds MidiNote -> Midi
-renderMidi = Midi MultiTrack (TicksPerBeat division) . removeEmptyTracks. renderMidiTracks . normalize
+instance Render (Score Seconds MidiNote) Midi where
+    render = renderMidi . renderScore
 
+instance Render (EventList Seconds MidiNote) Midi where
+    render = renderMidi
+
+
+renderMidi :: EventList Seconds MidiNote -> Midi
+renderMidi = Midi MultiTrack (TicksPerBeat division) 
+           . removeEmptyTracks . renderMidiTracks . normalize
+
+removeEmptyTracks :: [[a]] -> [[a]]
 removeEmptyTracks = filter (not . null)
 
 controlTrack :: Seconds -> Track Ticks
@@ -82,6 +95,7 @@ renderTime :: Seconds -> Int
 renderTime t = round (t * fromIntegral division)
 
 
+-- | Writes the given graphic to a MIDI file.
 writeMidi :: FilePath -> Midi -> IO ()
 writeMidi = exportFile
 

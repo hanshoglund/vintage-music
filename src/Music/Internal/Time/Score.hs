@@ -22,6 +22,7 @@ import Control.Applicative
 
 import Data.Monoid
 import Data.Foldable
+import Data.Convert
 
 import Music.Time
 import Music.Time.Functors
@@ -133,51 +134,50 @@ instance Time t => TimeFunctor t (Score t) where
                         ( \t x y -> ParS x y )
                         ( \t x y -> SeqS x y )
 
+instance Time t => Render (Score t a) (EventList t a) where
+    render = renderScore
+
+instance Time t => Render (EventList t a) (Score t a) where
+    render = unrenderScore
+
+--  The basic implementation for render looks like this:
+--  
+--  render (RestS d)   =  EventList d []
+--  render (NoteS d x) =  EventList d [Event 0 d x]
+--  render (ParS x y)  =  render x ||| render y
+--  render (SeqS x y)  =  render x >>> render y
+--  
+--  The actual implementation optimizes this by computing offsets before rendering, instead of after.
+--  
+--  TODO reimplement in terms of foldScore (?)
+
+renderScore score = let (d, xs) = renderScore' 0 score
+                   in EventList.normalize $ EventList d xs
+
+-- offset -> score -> (dur, events)
+renderScore' t (RestS d)    =  (d, [])
+renderScore' t (NoteS d x)  =  (d, [Event t d x])
+renderScore' t (ParS x y)   =
+    let (dx, ex) = renderScore' t x
+        (dy, ey) = renderScore' t y
+                       in (dx `max` dy, ex ++ ey)
+renderScore' t (SeqS x y)   =
+    let (dx, ex) = renderScore' t x
+        (dy, ey) = renderScore' (t + dx) y
+                       in (dx + dy, ex ++ ey)
+
+
+unrenderScore :: Time t => EventList t a -> Score t a
+unrenderScore = chordStretchDelay . map (\(Event t d x) -> (t, d, x)). eventListEvents
+
+
 --
--- Note and Render
+-- Constrution
 --
 
 -- | Creates a score containing the given element.
 note :: Time t => a -> Score t a
 note = NoteS 1
-
--- | Render the given score to an `EventList`.
-render :: Time t => Score t a -> EventList t a
-
---   The basic implementation for render looks like this:
---
---   render (RestS d)   =  EventList d []
---   render (NoteS d x) =  EventList d [Event 0 d x]
---   render (ParS x y)  =  render x ||| render y
---   render (SeqS x y)  =  render x >>> render y
---
---   The actual implementation optimizes this by computing offsets before rendering, instead of after.
-
-render score = let (d, xs) = render' 0 score
-                   in EventList.normalize $ EventList d xs
-
--- offset -> score -> (dur, events)
-render' t (RestS d)    =  (d, [])
-render' t (NoteS d x)  =  (d, [Event t d x])
-render' t (ParS x y)   =
-    let (dx, ex) = render' t x
-        (dy, ey) = render' t y
-                       in (dx `max` dy, ex ++ ey)
-render' t (SeqS x y)   =
-    let (dx, ex) = render' t x
-        (dy, ey) = render' (t + dx) y
-                       in (dx + dy, ex ++ ey)
-
--- TODO reimplement in terms of foldScore (?)
-
--- | Unrender the given `EventList` back to a score.
-unrender :: Time t => EventList t a -> Score t a
-unrender = chordStretchDelay . map (\(Event t d x) -> (t, d, x)). eventListEvents
-
-
---
--- Derived combinators
---
 
 -- | Creates a score containing the given elements, composed in sequence.
 line :: Time t => [a] -> Score t a
@@ -262,7 +262,7 @@ assureDur t s | duration s < t  =  s >>> rest (t - duration s)
               | otherwise       =  s
 
 toEvents :: Time t => Score t a -> [Event t a]
-toEvents = eventListEvents . render
+toEvents = eventListEvents . renderScore
 
 negativeError :: String -> a
 negativeError name = error $ name ++ ": negative value"
