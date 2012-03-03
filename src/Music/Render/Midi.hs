@@ -19,6 +19,9 @@ module Music.Render.Midi
     Midi(..),
     MidiNote(..),
     writeMidi,
+    
+    renderMidi,
+    renderMidiTracks,
 )
 where
 
@@ -48,13 +51,13 @@ type Semitones = Double
 data MidiNote 
     = MidiNote
     {
-        -- | Midi channel.
+        -- | Midi channel (0-15).
         midiNoteChannel  :: Int,
-        -- | Midi pitch.
+        -- | Midi pitch (0-127).
         midiNotePitch    :: Int,
-        -- | Number of semitones (up or down).
+        -- | Midi pitch adjustment ((-1)-1).
         midiNoteBend     :: Semitones,
-        -- | Midi velocity.
+        -- | Midi velocity (0-127).
         midiNoteVelocity :: Int
     }  
     deriving (Eq, Show)
@@ -68,7 +71,9 @@ instance Render (EventList Seconds MidiNote) Midi where
 
 renderMidi :: EventList Seconds MidiNote -> Midi
 renderMidi = Midi MultiTrack (TicksPerBeat division) 
-           . removeEmptyTracks . renderMidiTracks . normalize
+           . removeEmptyTracks -- FIXME does not remove now as the TrackEnd event makes every track non-empty
+           . renderMidiTracks 
+           . normalize
 
 removeEmptyTracks :: [[a]] -> [[a]]
 removeEmptyTracks = filter (not . null)
@@ -77,10 +82,15 @@ controlTrack :: Seconds -> Track Ticks
 controlTrack totalDur = [(0, TempoChange 1000000), (renderTime (totalDur + 1), TrackEnd)]
 
 renderMidiTracks :: EventList Seconds MidiNote -> [Track Ticks]
-renderMidiTracks (EventList duration events) =
-    [controlTrack duration] ++
-        do  channel <- [0..16]
-            return $ fromAbsTime . sortBy (comparing fst) $ concatMap renderEvent (filter (on channel) events)
+renderMidiTracks (EventList totalDur events) =
+    [controlTrack totalDur] ++
+        do  channel <- [0..15] -- FIXME 0-15
+            return . fromAbsTime 
+                   . sortBy (comparing fst) 
+                   $ [(0, ProgramChange channel (40))]
+                     ++ map (\m -> (0, m)) (tuningProgramChange channel channel)
+                     ++ concatMap renderEvent (filter (on channel) events) 
+                     ++ [(renderTime (totalDur + 1), TrackEnd)]
             where
                 on channel  =  (== channel) . midiNoteChannel . eventValue
 
@@ -88,7 +98,7 @@ renderEvent :: Event Seconds MidiNote -> [(Ticks, Message)]
 renderEvent (Event t d (MidiNote c p b v)) =
     let (p', b') = adjustPitch (p, b) in
     [                
-        ( renderTime t       , tuneMessage $ tuneParams p' b' ),
+        ( renderTime t       , tuneMessage c $ tuneParams p' b' ),
         ( renderTime t       , NoteOn  c p' v ),
         ( renderTime (t + d) , NoteOff c p' v )
     ]
@@ -134,19 +144,25 @@ cents d = (fromIntegral c0, fromIntegral c1)
 deltaTune :: Double
 deltaTune = 0.000061
 
-tuneMessage :: TuneId -> Message
-tuneMessage (x, (a, b)) = Sysex 240 $
+
+tuningProgramChange :: Int -> Int -> [Message]
+tuningProgramChange ch pgm = 
+    [ ControlChange ch 0x64 0x03
+    , ControlChange ch 0x65 0x0
+    , ControlChange ch 0x06 pgm ]
+
+tuneMessage :: Int -> TuneId -> Message
+tuneMessage p (x, (a, b)) = Sysex 0xf0 $
     runPut $ do
-        putWord8 127
+        putWord8 0x7f   -- universal SysEx real-time
         putWord8 0      -- device id
         putWord8 8      -- midi tuning
         putWord8 2      -- note change
-        putWord8 0      -- tuning prog n
+        putWord8 p'     -- tuning prog n
         putWord8 1      -- number of changes
         putWord8 x      -- key
         putWord8 x      -- base midi note
         putWord8 a      -- low tuning bits
         putWord8 b      -- hi  tuning bits
-        putWord8 247
-
-
+        putWord8 0xf7
+    where p' = fromIntegral p

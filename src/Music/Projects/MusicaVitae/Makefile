@@ -1,6 +1,8 @@
 
 # Run from top level
 
+musica-vitae: musica-vitae-pdf musica-vitae-html
+
 musica-vitae-pdf:
 	markdown2pdf \
 		--template ~/Library/TeX/Templates/template.tex \
@@ -10,5 +12,6 @@ musica-vitae-pdf:
 musica-vitae-html:
 	pandoc \
 		--standalone \
+		--toc \
 		-o text/Projects/MusicaVitae/html/MusicaVitae.html \
 		src/Music/Projects/MusicaVitae.lhs

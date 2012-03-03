@@ -1,32 +1,73 @@
 % For string orchestra
 % Hans Höglund 2012
 
+
 Introduction
---------------------------------------------------------------------------------
+==========
 
 \begin{code}
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+
+{-# LANGUAGE 
+    TypeSynonymInstances, 
+    FlexibleInstances,
+    MultiParamTypeClasses #-}
 
 module Music.Projects.MusicaVitae
+(
+-- * Instruments and tuning
+    Part(..),
+    Section(..),
+    Tuning(..),
+    partSection,
+    sectionTuning,
+    partTuning,
+    ensemble,
+    sectionParts,
+    isViolin, isViola, isCello,
+    highParts, lowParts,
+    highViolinParts, highViolaParts, highCelloParts,
+    lowViolinParts, lowViolaParts, lowCelloParts,
+    Doubling(..),
+
+-- * Articulation and phrasing
+    Articulation(..),
+    Phrasing(..) ,
+
+-- * Playing techniques
+    Str(..),
+    Stopping(..),
+    RightHand(..),
+    LeftHand(..),
+    Stopped,
+    Technique,
+    Cue(..),
+
+-- * Intonation
+    Intonation(..),
+    intonation,
+
+-- * Rendering
+    renderCue
+)
 where
 
-import qualified Control.Concurrent as Concurrent
+import Music
+import Music.Inspect
+import Music.Render
+import Music.Render.Midi
+import Music.Time.EventList
 
-import Music.Utilities
-import Music.Model.Temporal.Media
-
-import Temporal.Music.Notation hiding (delay)
-
-import qualified Temporal.Music.Notation.Note as Note
-import qualified Temporal.Music.Notation.Scales as Scales
-import qualified Temporal.Music.Notation.Demo as Demo
-import qualified Temporal.Music.Notation.Demo.GeneralMidi as Midi
 \end{code}
 
+\pagebreak
 
 
-Instrumentation and tuning
---------------------------------------------------------------------------------
+
+Preliminaries
+==========
+
+Instruments and parts
+----------
 
 The instrumentation is as follows:
 
@@ -45,14 +86,12 @@ into three sections, each using a different tuning:
 
 The other strings should be tuned in relation to the A-string as usual.
 
-To represent this in Haskell, we must first define the data types to represent parts,
-sections and tunings:
-
 \begin{code}
+
 data Part
     = Violin Int 
-    | Viola Int 
-    | Cello Int 
+    | Viola  Int 
+    | Cello  Int 
     | DoubleBass
     deriving ( Eq, Show )
 
@@ -61,11 +100,13 @@ data Section
     deriving ( Eq, Show )
 
 type Tuning = Double
+
 \end{code}
 
-We then define the relation between these types as follows:
+We now define the relation between these types as follows:
 
 \begin{code}
+
 partSection   :: Part -> Section
 sectionTuning :: Section -> Tuning
 partTuning    :: Part -> Tuning
@@ -85,42 +126,49 @@ sectionTuning Middle = 440
 sectionTuning High   = 446
 
 partTuning = sectionTuning . partSection
+
 \end{code}
 
 Then add some utility definitions to quickly access the various parts:
 
 \begin{code}
+
 ensemble                                        :: [Part]
 sectionParts                                    :: Section -> [Part]
 
-isViolin, isViola, isCello                      :: Part -> Bool
+isViolin, isViola, isCello, isDoubleBass        :: Part -> Bool
 
 highParts, lowParts                             :: [Part]
 highViolinParts, highViolaParts, highCelloParts :: [Part]
 lowViolinParts, lowViolaParts, lowCelloParts    :: [Part]
+doubleBass                                      :: Part
 
 ensemble
     = [ Violin 1, Violin 2, Violin 3, Violin 4
       , Viola 1, Viola 2, Cello 1, Cello 2, DoubleBass ]
 
-sectionParts s = filter (\x -> partSection x == s) ensemble
+sectionParts s  =  filter (\x -> partSection x == s) ensemble
 
-highParts = sectionParts High
-lowParts  = sectionParts High
+highParts  =  sectionParts High
+lowParts   =  sectionParts High
 
-isViolin (Violin _) = True
-isViolin _          = False
-isViola  (Viola _)  = True
-isViola  _          = False
-isCello  (Cello _)  = True
-isCello  _          = False
+isViolin     (Violin _)    =  True
+isViolin     _             =  False
+isViola      (Viola _)     =  True
+isViola      _             =  False
+isCello      (Cello _)     =  True
+isCello      _             =  False
+isDoubleBass (DoubleBass)  =  True
+isDoubleBass _             =  True
 
-highViolinParts = filter isViolin (sectionParts High)
-highViolaParts  = filter isViola  (sectionParts High)
-highCelloParts  = filter isCello  (sectionParts High)
-lowViolinParts  = filter isViolin (sectionParts Low)
-lowViolaParts   = filter isViola  (sectionParts Low)
-lowCelloParts   = filter isCello  (sectionParts Low)
+highViolinParts  =  filter isViolin (sectionParts High)
+highViolaParts   =  filter isViola  (sectionParts High)
+highCelloParts   =  filter isCello  (sectionParts High)
+lowViolinParts   =  filter isViolin (sectionParts Low)
+lowViolaParts    =  filter isViola  (sectionParts Low)
+lowCelloParts    =  filter isCello  (sectionParts Low)
+doubleBass       =  DoubleBass
+
 \end{code}
 
 All parts may be doubled. If several parts are doubled but not all, the musicians should
@@ -132,72 +180,58 @@ doubled, which will be marked *solo*. These passages should be distributed evenl
 the musicians, instead of being played by designated soloists.
 
 \begin{code}
+
 data Doubling = Solo | Tutti
     deriving ( Eq, Show )
+
 \end{code}
+
+\pagebreak
+
+
 
 
 Pitch
---------------------------------------------------------------------------------
+----------
 
 
-Dynamics
---------------------------------------------------------------------------------
-
-\begin{code}
-data Dynamics = PPP | PP | P | MP | MF | F | FF | FFF
-    deriving ( Show, 
-               Eq, 
-               Enum, 
-               Bounded )
-
-instance Seg Dynamics
-
-instance Vol Dynamics where
-    volume = Volume (1e-5, 1)
-
--- short-cuts
-
-ppp', pp', p', mp', mf', f', ff', fff' :: LevelFunctor a => a -> a
-
-ppp' = setLevel PPP
-pp'  = setLevel PP
-p'   = setLevel P
-mp'  = setLevel MP
-mf'  = setLevel MF
-f'   = setLevel F
-ff'  = setLevel FF
-fff' = setLevel FFF
-
-dim :: LevelFunctor a => Accent -> Score a -> Score a
-dim v = dynamics ((-v) *)
-
-cresc :: LevelFunctor a => Accent -> Score a -> Score a
-cresc v = dynamics (v * )
-
-\end{code}
 
 
-Playing techniques
---------------------------------------------------------------------------------
 
-The piece makes use of different playing techniques in both hands. As the intonation
-will be different between open and stopped strings, we also define a function mapping
-each left-hand technique to a stopping.
+
+Articulation and dynamics
+----------
 
 \begin{code}
-data Str
-    = I
-    | II
-    | III
-    | IV
-    deriving ( Eq, Show )
 
-data Stopping
-    = Open
-    | QuarterStopped
-    | Stopped
-    deriving ( Eq, Show )
+-- data Dynamics = PPP | PP | P | MP | MF | F | FF | FFF
+--     deriving ( Show, 
+--                Eq, 
+--                Enum, 
+--                Bounded )
+-- 
+-- instance Vol Dynamics where
+--     volume = Volume (1e-5, 1)
+-- 
+-- -- short-cuts
+-- 
+-- ppp', pp', p', mp', mf', f', ff', fff' :: LevelFunctor a => a -> a
+-- 
+-- ppp' = setLevel PPP
+-- pp'  = setLevel PP
+-- p'   = setLevel P
+-- mp'  = setLevel MP
+-- mf'  = setLevel MF
+-- f'   = setLevel F
+-- ff'  = setLevel FF
+-- fff' = setLevel FFF
+-- 
+-- dim :: LevelFunctor a => Accent -> Score a -> Score a
+-- dim v = dynamics ((-v) *)
+-- 
+-- cresc :: LevelFunctor a => Accent -> Score a -> Score a
+-- cresc v = dynamics (v * )
+
 
 data Articulation = Articulation
     deriving ( Eq, Show )
@@ -211,39 +245,55 @@ data Phrasing
     deriving ( Eq, Show )
 
 
+\end{code}
+
+\pagebreak
 
 
-data RightHand a
-    = Pizz   a Articulation
-    | Single a Articulation
-    | Phrase [a] Phrasing
-    | Jete   [a] Phrasing
+
+
+Playing techniques
+----------
+
+The piece makes use of different playing techniques in both hands. 
+
+\begin{code}
+
+data Str = I | II | III | IV
     deriving ( Eq, Show )
 
+data Stopping = Open | QuarterStopped | Stopped
+    deriving ( Eq, Show )
 
+data RightHand a
+    = Pizz   Articulation a
+    | Single Articulation a
+    | Phrase Phrasing     [a]
+    | Jete   Phrasing     [a]
+    deriving ( Eq, Show )
 
 data LeftHand
     = OpenString Str
 
-    | NaturalHarmonic Int Str
-    | NaturalHarmonicTrem Int Int Str
-    | NaturalHarmonicGliss Int Int Str
+    | NaturalHarmonic       Int Str
+    | NaturalHarmonicTrem   Int Int Str
+    | NaturalHarmonicGliss  Int Int Str
 
-    | QuarterStoppedString Str
+    | QuarterStoppedString  Str
 
-    | StoppedString Int Str
-    | StoppedStringTrem Int Int Str
-    | StoppedStringGliss Int Int Str
+    | StoppedString         Int Str
+    | StoppedStringTrem     Int Int Str
+    | StoppedStringGliss    Int Int Str
     deriving ( Eq, Show )
 
-type Technique = RightHand LeftHand
+\end{code}
 
-data Cue
-    = Cue { cuePart      :: Part, 
-            cueDoubling  :: Doubling, 
-            cueTechnique :: Technique } 
-    deriving ( Eq, Show )
+As the intonation will be different between open and stopped strings, we define a 
+function mapping each left-hand technique to a stopping. This stopping also distributes
+over right-hand techniques (for example, an the intonation of a natural harmonic is open, 
+whether played *arco* or *pizz*).
 
+\begin{code}
 
 class Stopped a where
     stopping :: a -> Stopping
@@ -259,17 +309,39 @@ instance Stopped LeftHand where
     stopping ( StoppedStringGliss   _ _ _ ) = Stopped
 
 instance Stopped a => Stopped (RightHand a) where
-    stopping ( Pizz x _ ) = stopping x
-    stopping ( Single x _ ) = stopping x
-    stopping ( Phrase (x:xs) _ ) = stopping x
-    stopping ( Jete   (x:xs) _ ) = stopping x
-
+    stopping ( Pizz   _ x )       =  stopping x
+    stopping ( Single _ x )       =  stopping x
+    stopping ( Phrase _ (x:xs) )  =  stopping x
+    stopping ( Jete   _ (x:xs) )  =  stopping x
+    
 \end{code}
 
 
 
+Cues
+----------
+
+A *cue* (sv. *insats*) is an action taken by a performer on time.
+
+\begin{code}
+
+type Technique = RightHand LeftHand
+
+data Cue
+    = Cue { cuePart      :: Part, 
+            cueDoubling  :: Doubling, 
+            cueTechnique :: Technique } 
+    deriving ( Eq, Show )
+
+\end{code}
+
+\pagebreak
+
+
+
+
 Intonation
---------------------------------------------------------------------------------
+----------
 
 Many playing techiniques in the score calls for open strings. In this case intonation is
 determined solely by the tuning.
@@ -286,6 +358,7 @@ Where stopped strings are used, intonation is determined by context:
  * In unison passages, common intonation should be used.
 
 \begin{code}
+
 data Intonation
     = Tuning
     | Raised
@@ -307,110 +380,115 @@ intonation Solo t = case stopping t of
 
 \end{code}
 
+\pagebreak
+
+
 
 
 Rendering
---------------------------------------------------------------------------------
+==========
+
+We are going to compose the piece as a score of cues. In order to hear the piece
+and make musical decisions, we define a rendering function that renders a cue
+to a score of Midi notes.
+
+A caveat is that the Midi representation does not handle simultaneous tunins well.
+We must therefore separete the music based in intontation.
+
+1   violin low
+2   violin middle
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
 
 \begin{code}
-instance Seg Int where            
 
-renderCue :: Dur -> Cue -> Score (Note.Note Dynamics Int a)
-renderCue dur (Cue part doubl tech) =
-    case tech of
-        Pizz x attr ->
-            note dur $ Note.Note (volume $ level MF)
-                       (Pitch scale (tone 60))
-                       Nothing
+renderCue :: Cue -> Score Seconds MidiNote
+renderCue = undefined
+-- renderCue (Cue part doubl tech) =
+--     case tech of
+--         Pizz x attr ->
+--             note x
 
-        Single x attr ->
-            note dur $ Note.Note (volume $ level MF)
-                       (Pitch scale (tone $ pitch x))
-                       Nothing
-
-        Phrase xs attr ->
-            note dur $ Note.Note (volume $ level MF)
-                       (Pitch scale (tone 60))
-                       Nothing
-
-        Jete xs attr ->
-            note dur $ Note.Note (volume $ level MF)
-                       (Pitch scale (tone 60))
-                       Nothing
-
-    where tune = partTuning part
-          scale = makeScale tune
-          intone = intonation doubl tech
-          pitch (OpenString str) = undefined
-          pitch (NaturalHarmonic n str) = undefined
-          pitch (NaturalHarmonicTrem m n str) = undefined
-          pitch (NaturalHarmonicGliss m n str) = undefined
-          pitch (QuarterStoppedString str) = undefined
-          pitch (StoppedString p str) = p
-          pitch (StoppedStringTrem p q str) = undefined
-          pitch (StoppedStringGliss p q str) = undefined
-          makeScale = Scales.eqt 69
-
-renderCuesToMidi :: Score Cue -> Score Demo.MidiEvent
-renderCuesToMidi = Midi.acousticGrandPiano . dfoldMap renderCue
-
-exportCues :: FilePath -> Score Cue -> IO ()
-exportCues path = Demo.exportMidi path . renderCuesToMidi
-
-play score = do
-    exportCues "test.mid" score
-    openMidiFile "test.mid"
-
-export score = do
-    exportCues "test.mid" score
-    exportMidiFile "test.mid"
+--         Single x attr ->
+--             note dur $ Note.Note (volume $ level MF)
+--                        (Pitch scale (tone $ pitch x))
+--                        Nothing
+-- 
+--         Phrase xs attr ->
+--             note dur $ Note.Note (volume $ level MF)
+--                        (Pitch scale (tone 60))
+--                        Nothing
+-- 
+--         Jete xs attr ->
+--             note dur $ Note.Note (volume $ level MF)
+--                        (Pitch scale (tone 60))
+--                        Nothing
+-- 
+--     where tune = partTuning part
+--           scale = makeScale tune
+--           intone = intonation doubl tech
+--           pitch (OpenString str) = undefined
+--           pitch (NaturalHarmonic n str) = undefined
+--           pitch (NaturalHarmonicTrem m n str) = undefined
+--           pitch (NaturalHarmonicGliss m n str) = undefined
+--           pitch (QuarterStoppedString str) = undefined
+--           pitch (StoppedString p str) = p
+--           pitch (StoppedStringTrem p q str) = undefined
+--           pitch (StoppedStringGliss p q str) = undefined
+--           makeScale = Scales.eqt 69
+--                                                       
+-- renderCuesToMidi :: Score Cue -> Score Demo.MidiEvent
+-- renderCuesToMidi = Midi.acousticGrandPiano . dfoldMap renderCue
+-- 
+-- exportCues :: FilePath -> Score Cue -> IO ()
+-- exportCues path = Demo.exportMidi path . renderCuesToMidi
+-- 
+-- play score = do
+--     exportCues "test.mid" score
+--     openMidiFile "test.mid"
+-- 
+-- export score = do
+--     exportCues "test.mid" score
+--     exportMidiFile "test.mid"     
 
 \end{code}
 
+\pagebreak
 
 
-Form
---------------------------------------------------------------------------------
+
+
+Composing the piece
+==========
 
 \begin{code}
 
-note' p = note (1/8) $ Cue (Violin 1) Solo (Single (StoppedString p I) Articulation) 
-loop' = loop 500
+piece :: Score Double Cue
+piece = undefined
+
+test :: Score Double MidiNote
+test = note (MidiNote 0 60 0     80)
+   ||| note (MidiNote 1 60 0.9   80)
+
+instance Render (Score Double Cue) Midi where
+    render = render . (>>= renderCue)
 
 
 
 
 
-
-
-
-
-
---------------------------------------------------------------------------------
-
-test =  loop' phrase   |||    (stretch 1.01 $ loop' phrase)
-
-phrase = note' 60 >>> note' 65 >>> note' 67 >>> note' 60 >>> note' 55 >>> note' 62
-
-
-
-
-
-
---------------------------------------------------------------------------------
-
-            
-scale = line [ note (1/8) $ Cue (Violin 1) 
-                            Solo (Single (StoppedString p I) Articulation)
-             | p <- [60..72] ]
-
-
---------------------------------------------------------------------------------
-
-
-
-main = do play test
-          Concurrent.threadDelay (1000000 * 300)
 
 \end{code}
 

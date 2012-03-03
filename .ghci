@@ -1,4 +1,6 @@
 
 :load test.hs
+--  :load src/Music/Projects/MusicaVitae.lhs 
+
 
 :set prompt "Music> "

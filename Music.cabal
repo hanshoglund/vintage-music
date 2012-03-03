@@ -62,6 +62,7 @@ Library
         Music.Phrasing
         Music.Space
         
+        Music.Render
         Music.Render.Graphics
         Music.Render.Midi
 
@@ -94,7 +95,7 @@ Library
         -- Music.Model.MusicXML.Tuplet
         -- Music.Model.MusicXML.Write           
         -- 
-        -- Music.Projects.MusicaVitae
+        Music.Projects.MusicaVitae
         -- Music.Projects.StringQuartet 
 
         Music.Utilities
