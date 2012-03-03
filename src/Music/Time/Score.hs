@@ -28,7 +28,13 @@ module Music.Time.Score
     arpeggio,           -- :: Time t => t -> [a] -> Score t a
     
 -- * Folds
-    foldScore    
+    foldOffset,         -- :: (Time t, Monoid m) => (t -> m) -> Score t a -> m
+    foldDuration,       -- :: (Time t, Monoid m) => (t -> m) -> Score t a -> m
+    foldValue,          -- :: (Time t, Monoid m) => (a -> m) -> Score t a -> m
+
+    numberOfEvents,     -- :: Time t => Score t a -> Int
+    meanDuration,       -- :: Time t => Score t a -> t
+    normalizeDuration,  -- :: Time t => Score t a -> Score t a
 )
 where
 

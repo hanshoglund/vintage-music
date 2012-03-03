@@ -86,11 +86,20 @@ renderMidiTracks (EventList duration events) =
 
 renderEvent :: Event Seconds MidiNote -> [(Ticks, Message)]
 renderEvent (Event t d (MidiNote c p b v)) =
-    [
-        ( renderTime t       , NoteOn  c p v ),
-        ( renderTime (t + d) , NoteOff c p v )
+    let (p', b') = adjustPitch (p, b) in
+    [                
+        ( renderTime t       , tuneMessage $ tuneParams p' b' ),
+        ( renderTime t       , NoteOn  c p' v ),
+        ( renderTime (t + d) , NoteOff c p' v )
     ]
 
+adjustPitch :: (Int, Double) -> (Int, Double)
+adjustPitch (p, b) | b <  (-1)        =  (p - 1, 0)
+                   | b <  0           =  (p - 1, b + 1)
+                   | b == 0           =  (p, 0)
+                   | b >  0 && b < 1  =  (p, b)
+                   | otherwise        =  (p, 1)
+                   
 renderTime :: Seconds -> Int
 renderTime t = round (t * fromIntegral division)
 
@@ -113,11 +122,8 @@ type Cent1 = Word8
 
 type Cents = (Cent0, Cent1)
 
-tuneParams :: Int -> Double -> Maybe TuneId
-tuneParams p d = Just (fromIntegral p, c)
- --   | c == (0, 0) = Nothing
- --   | otherwise   = Just (fromIntegral p, c)
-    where c = cents d
+tuneParams :: Int -> Double -> TuneId
+tuneParams p d = (fromIntegral p, cents d)
 
 cents :: Double -> (Cent0, Cent1)
 cents d = (fromIntegral c0, fromIntegral c1)
@@ -128,20 +134,19 @@ cents d = (fromIntegral c0, fromIntegral c1)
 deltaTune :: Double
 deltaTune = 0.000061
 
-
 tuneMessage :: TuneId -> Message
 tuneMessage (x, (a, b)) = Sysex 240 $
     runPut $ do
         putWord8 127
-        putWord8 0
-        putWord8 8
-        putWord8 2
-        putWord8 0
-        putWord8 1
-        putWord8 x
-        putWord8 x
-        putWord8 a
-        putWord8 b
+        putWord8 0      -- device id
+        putWord8 8      -- midi tuning
+        putWord8 2      -- note change
+        putWord8 0      -- tuning prog n
+        putWord8 1      -- number of changes
+        putWord8 x      -- key
+        putWord8 x      -- base midi note
+        putWord8 a      -- low tuning bits
+        putWord8 b      -- hi  tuning bits
         putWord8 247
 
 

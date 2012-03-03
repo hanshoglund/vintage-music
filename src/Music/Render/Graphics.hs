@@ -49,6 +49,7 @@ renderGraphics = Graphic
                     (\t d x -> renderNote d x)
                     (\t x y -> renderPar x y)
                     (\t x y -> renderSeq x y)
+        . normalizeDuration
     where
         renderRest d   | d == 0     =  mempty
                        | otherwise  =  moveOriginBy (negate (t2d d), 0) (renderEmpty (t2d d * 2))

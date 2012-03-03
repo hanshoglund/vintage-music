@@ -69,6 +69,8 @@ phrase, reich :: Score Double Int
 phrase = stretch (1/6) $ line [0, 5, 7, 0, (-5), 2] 
 reich = (before 200) $ loop phrase ||| (stretch 1.01 (loop phrase))
 
+mean :: Fractional a => [a] -> a
+mean xs = sum xs / fromIntegral (length xs)
 
 
 --
@@ -81,8 +83,15 @@ minors = loop minor
 melody = loop . stretch (1/2) $ line [0,-1,0,-5,-3,-1]
 both   = stretch (1/2) . before 6 $ melody ||| minors
 
+playi :: Score Double Int -> IO ()
+playi = play
+playp :: Score Double (Int, Double) -> IO ()
+playp = play
 
 
+
+instance Render (Score Double (Int, Double)) Midi where
+    render = render . fmap (\(p,b) -> MidiNote 0 (p+60) b 60)
 
 instance Render (Score Double Int) Midi where
     render = render . fmap (\p -> MidiNote 0 (p+60) 0 60)

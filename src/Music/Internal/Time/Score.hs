@@ -218,20 +218,8 @@ arpeggio t xs = chordDelay (zip [0, t ..] xs)
 
 
 --
--- Internals
+-- Folds
 --
-
-filterScore :: Time t =>
-    (t -> t -> Bool) ->
-    (t -> t -> a -> Bool) ->
-    (t -> Bool) ->
-    (t -> Bool) ->
-    Score t a ->
-    Score t a
-filterScore r n p s = foldScore ( \t d   -> if (r t d)   then RestS d   else instant )
-                                ( \t d x -> if (n t d x) then NoteS d x else instant )
-                                ( \t x y -> if (p t)     then ParS x y  else instant )
-                                ( \t x y -> if (s t)     then SeqS x y  else instant )
 
 foldScore :: Time t =>
     (t -> t -> b) ->
@@ -262,6 +250,51 @@ foldScore' r n p s t (SeqS x y)   =
     let (dx, sx) = foldScore' r n p s t x
         (dy, sy) = foldScore' r n p s (t + dx) y
                                       in (dx + dy, s t sx sy)
+
+filterScore :: Time t =>
+    (t -> t -> Bool) ->
+    (t -> t -> a -> Bool) ->
+    (t -> Bool) ->
+    (t -> Bool) ->
+    Score t a ->
+    Score t a
+filterScore r n p s = foldScore ( \t d   -> if (r t d)   then RestS d   else instant )
+                                ( \t d x -> if (n t d x) then NoteS d x else instant )
+                                ( \t x y -> if (p t)     then ParS x y  else instant )
+                                ( \t x y -> if (s t)     then SeqS x y  else instant )
+
+foldOffset :: (Time t, Monoid m) => (t -> m) -> Score t a -> m
+foldOffset f = foldScore ( \t d   -> f t )
+                         ( \t d x -> f t )
+                         ( \t x y -> x `mappend` y )
+                         ( \t x y -> x `mappend` y )
+
+foldDuration :: (Time t, Monoid m) => (t -> m) -> Score t a -> m
+foldDuration f = foldScore ( \t d   -> f d )
+                           ( \t d x -> f d )
+                           ( \t x y -> x `mappend` y )
+                           ( \t x y -> x `mappend` y )
+
+foldValue :: (Time t, Monoid m) => (a -> m) -> Score t a -> m
+foldValue f = foldScore ( \t d   -> mempty )
+                        ( \t d x -> f x )
+                        ( \t x y -> x `mappend` y )
+                        ( \t x y -> x `mappend` y )
+
+numberOfEvents :: Time t => Score t a -> Int
+numberOfEvents = foldScore (\t d -> 0) (\t d x -> 1) (const (+)) (const (+))
+
+meanDuration :: Time t => Score t a -> t
+meanDuration score = (getSum . foldDuration Sum) score / fromIntegral (numberOfEvents score)
+
+normalizeDuration :: Time t => Score t a -> Score t a
+normalizeDuration score = stretch (1 / meanDuration score) score
+
+
+--
+-- Internals
+--
+
 
 assureEqualDur :: Time t => Score t a -> Score t a -> (Score t a, Score t a)
 assureEqualDur x y | dx <  dy  =  (assureDur dy x, y)

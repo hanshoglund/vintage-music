@@ -146,7 +146,7 @@ time2Double = fromRational . toRational
 class Time t => Timed t d | d -> t where
     duration :: d a -> t
     stretch  :: t -> d a -> d a
-
+        
 
 -- | Values with an offset.
 --
