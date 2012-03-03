@@ -36,7 +36,14 @@ bb = 10
 b  = 11
 b' = 12
 
-frere =     line [c, d, e, c] 
+
+--
+-- Frère Jaques variation
+--
+frere, frere' :: Score Double Int
+frere =     
+        loop . stretch (1/3) $
+            line [c, d, e, c] 
         >>> line [c, d, e, c]
         >>> line [e, f] >>> stretch 2 (note g)
         >>> line [e, f] >>> stretch 2 (note g)
@@ -54,15 +61,28 @@ frere' =  canon 4 8 1 frere
     ||| (fmap (- 12) . delay 60) (canon 4 7.9 1.1 frere)
     ||| (fmap (+ 16) . delay 75) (canon 4 4.5 0.5 frere)
 
+--
+-- Steve Reich style example
+--
 
+phrase, reich :: Score Double Int
 phrase = stretch (1/6) $ line [0, 5, 7, 0, (-5), 2] 
 reich = (before 200) $ loop phrase ||| (stretch 1.01 (loop phrase))
 
 
+
+--
+-- Romantic example
+--
+
+both :: Score Double Int
 minor  = chord [0,3,7]
-chords = loop minor
+minors = loop minor
 melody = loop . stretch (1/2) $ line [0,-1,0,-5,-3,-1]
-both   = stretch (1/2) . before 6 $ melody ||| chords
+both   = stretch (1/2) . before 6 $ melody ||| minors
+
+
+
 
 instance Render (Score Double Int) Midi where
     render = render . fmap (\p -> MidiNote 0 (p+60) 0 60)

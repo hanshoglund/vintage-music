@@ -7,7 +7,8 @@
     Portability :  portable
 -}
 
-{-# LANGUAGE
+{-# LANGUAGE               
+    TypeSynonymInstances,
     MultiParamTypeClasses,
     FunctionalDependencies #-}
 

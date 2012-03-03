@@ -33,7 +33,12 @@ import qualified Music.Time.EventList as EventList
 
 -- | A discrete temporal structure, generalising standard music notation.
 --
---   > melody [1, 2, 3]
+--   Values are lifted to score level using the unit constructor function 'note'.
+--   There are several utility construction functions, implemented in terms of 'note', notably
+--   'line' and 'chord'. Durations are specified by using 'delay' and 'stretch'.
+--
+--   >     melody [1, 2, 3]
+--   >     chord  [0, 3, 5]
 --
 --   Useful applicative functions:
 --       'pure', '<*>', 'liftA', 'liftA2' etc.
@@ -186,6 +191,14 @@ line = concatSeq . map note
 -- | Creates a score containing the given elements, composed in parallel.
 chord :: Time t => [a] -> Score t a
 chord = concatPar . map note
+
+-- | Creates a from a group of parallel lines.
+lines :: Time t => [[a]] -> Score t a
+lines = concatPar . map line
+
+-- | Creates a from a sequence of chords.
+chords :: Time t => [[a]] -> Score t a
+chords = concatSeq . map chord
 
 -- | Like line, but stretching each note by the given factors.
 lineStretch :: Time t => [(t, a)] -> Score t a

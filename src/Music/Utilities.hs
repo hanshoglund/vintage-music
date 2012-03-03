@@ -28,6 +28,6 @@ openFileWith application path = execute "open" [path, "-a", application]
 openMidiFile   :: FilePath -> IO ()
 exportMidiFile :: FilePath -> IO ()
 
-openMidiFile name = execute "timidity" [name]
+openMidiFile name = execute "timidity" ["--quiet", name]
 exportMidiFile    = openFileWith "/Applications/Sibelius 6.app/Contents/MacOS/Sibelius 6"
 

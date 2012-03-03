@@ -10,6 +10,7 @@
 {-# LANGUAGE 
     MultiParamTypeClasses, 
     FlexibleInstances,
+    TypeSynonymInstances,
     GeneralizedNewtypeDeriving #-}
 
 module Music.Pitch 
@@ -42,8 +43,8 @@ instance Convert Cent Octave       where
     reconvert (Octave f)  =  Cent   (f * 1200)
 
 instance Convert Frequency Cent    where
-    convert f           =  Cent   (logBase 2 f * 1200)
-    reconvert (Cent f)  =  2 ** (f / 1200)
+    convert f             =  Cent   (logBase 2 f * 1200)
+    reconvert (Cent f)    =  2 ** (f / 1200)
 
 
 
@@ -62,7 +63,9 @@ class Pitched t p where
 
     -- | @frequency x t@ returns the frequency of the pitched value @x@ at the time @t@.
     frequency :: p -> t -> Frequency
-                             
+     
+instance Time t => Pitched t Double where
+    frequency = const
 
 instance (Time t, Temporal d, Pitched t p) => Pitched t (d p) where
     frequency = undefined
