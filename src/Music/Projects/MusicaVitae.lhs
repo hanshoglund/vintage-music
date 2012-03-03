@@ -51,6 +51,8 @@ module Music.Projects.MusicaVitae
 )
 where
 
+import Data.Convert ( convert )
+
 import Music
 import Music.Inspect
 import Music.Render
@@ -99,7 +101,7 @@ data Section
     = High | Low | Middle
     deriving ( Eq, Show )
 
-type Tuning = Double
+type Tuning = Frequency
 
 \end{code}
 
@@ -378,6 +380,12 @@ intonation Solo t = case stopping t of
     QuarterStopped -> Raised
     Stopped        -> Individual
 
+cueIntonation :: Cue -> Intonation
+cueIntonation (Cue p d t) = intonation d t
+
+raisedIntonation :: Cent
+raisedIntonation = 23 Cent
+
 \end{code}
 
 \pagebreak
@@ -392,27 +400,53 @@ We are going to compose the piece as a score of cues. In order to hear the piece
 and make musical decisions, we define a rendering function that renders a cue
 to a score of Midi notes.
 
-A caveat is that the Midi representation does not handle simultaneous tunins well.
-We must therefore separete the music based in intontation.
-
-1   violin low
-2   violin middle
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16
+A caveat is that the Midi representation does not handle simultaneous tunings well.
+We must therefore separete the music into different Midi channels based on part, section 
+and intontation.
 
 \begin{code}
+
+type MidiChannel    = Int
+type MidiInstrument = Maybe Int
+type MidiBend       = Semitones
+
+midiChannel :: Cue -> MidiChannel
+midiChannel (Cue part doubling technique) = case (part, section, intonation') of
+    ( Violin _,    High,  Tuning )     -> 0
+    ( Viola  _,    High,  Tuning )     -> 1
+    ( Cello  _,    High,  Tuning )     -> 2
+    ( Violin _,    Low,   Tuning )     -> 3
+    ( Viola  _,    Low,   Tuning )     -> 4
+    ( Cello  _,    Low,   Tuning )     -> 5
+    ( Violin _,    _,     Common )     -> 6
+    ( Viola  _,    _,     Common )     -> 7
+    ( Cello  _,    _,     Common )     -> 8
+    ( DoubleBass,  _,     _      )     -> 10
+    ( Violin _,    _,     Raised )     -> 11
+    ( Viola _,     _,     Raised )     -> 11
+    ( Cello _,     _,     Raised )     -> 13        
+    -- TODO individual           
+    where section     = partSection part
+          intonation' = intonation doubling technique
+
+midiInstrument :: Cue -> MidiInstrument
+midiInstrument (Cue part doubling technique) = case part of
+    ( Violin _ )    -> Just 40
+    ( Viola _ )     -> Just 41
+    ( Cello _ )     -> Just 42
+    DoubleBass      -> Just 43
+
+
+midiBend :: Cue -> MidiBend
+midiBend (Cue part doubling technique) = case (intonation', cents') of
+    ( Raised, c )       -> getCent (c + raisedIntonation) / 100
+    ( Tuning, c )       -> getCent c / 100
+    ( Common, c )       -> 0
+    -- TODO individual
+    where intonation'   = intonation doubling technique
+          tuning'       = partTuning part       
+          cents'        = cents tuning' - cents 440
+          
 
 renderCue :: Cue -> Score Seconds MidiNote
 renderCue = undefined
@@ -420,7 +454,7 @@ renderCue = undefined
 --     case tech of
 --         Pizz x attr ->
 --             note x
-
+-- 
 --         Single x attr ->
 --             note dur $ Note.Note (volume $ level MF)
 --                        (Pitch scale (tone $ pitch x))
@@ -447,21 +481,8 @@ renderCue = undefined
 --           pitch (StoppedString p str) = p
 --           pitch (StoppedStringTrem p q str) = undefined
 --           pitch (StoppedStringGliss p q str) = undefined
---           makeScale = Scales.eqt 69
---                                                       
--- renderCuesToMidi :: Score Cue -> Score Demo.MidiEvent
--- renderCuesToMidi = Midi.acousticGrandPiano . dfoldMap renderCue
--- 
--- exportCues :: FilePath -> Score Cue -> IO ()
--- exportCues path = Demo.exportMidi path . renderCuesToMidi
--- 
--- play score = do
---     exportCues "test.mid" score
---     openMidiFile "test.mid"
--- 
--- export score = do
---     exportCues "test.mid" score
---     exportMidiFile "test.mid"     
+--           makeScale = Scales.eqt 69  
+
 
 \end{code}
 
@@ -479,8 +500,17 @@ piece :: Score Double Cue
 piece = undefined
 
 test :: Score Double MidiNote
-test = note (MidiNote 0 60 0     80)
-   ||| note (MidiNote 1 60 0.9   80)
+test =             
+        (before 10 . loop . stretch 0.5  $ line [ MidiNote c (Just 40) 60 0.0 30 | c <- [0..5] ])
+    
+    -- stretch (3) $ 
+    -- chordDelay
+    -- [ ( 0,      MidiNote 0 (Just 44) 72 0.0 60   )
+    -- , ( 0.3,    MidiNote 0 (Just 45) 72 0.8 60   )
+    -- , ( 0.5,    MidiNote 0 (Just 45) 72 0.5 60   )
+    -- , ( 0.6,    MidiNote 0 (Just 45) 72 0.3 60   )
+    -- , ( 1.2,      MidiNote 0 (Just 44) 72 0.8 60 ) ]
+    where instr = 44
 
 instance Render (Score Double Cue) Midi where
     render = render . (>>= renderCue)

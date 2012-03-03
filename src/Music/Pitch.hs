@@ -25,13 +25,13 @@ type Frequency = Double
 -- | Logarithmic pitch reprentation.
 --
 -- > convert (f * 2) = convert f + Octave 1    
-newtype Octave = Octave Frequency
+newtype Octave = Octave { getOctave :: Frequency }
     deriving ( Show, Eq, Enum, Num, Ord, Fractional, Floating )
 
 -- | Logarithmic pitch reprentation.    
 --
 -- > convert (f * 2) = convert f + Cent 1200    
-newtype Cent   = Cent   Frequency
+newtype Cent   = Cent { getCent :: Frequency }
     deriving ( Show, Eq, Enum, Num, Ord, Fractional, Floating )
 
 instance Convert Frequency Octave where
@@ -59,6 +59,11 @@ instance Convert Cent Frequency where
     reconvert = convert
     
 
+cents :: Frequency -> Cent
+cents = convert 
+
+octaves :: Frequency -> Octave
+octaves = convert 
 
 unitFrequency :: Frequency
 unitFrequency = 1

@@ -53,6 +53,10 @@ data MidiNote
     {
         -- | Midi channel (0-15).
         midiNoteChannel  :: Int,
+        
+        -- | Midi instrument (0-127).
+        midiNoteInstrument :: Maybe Int,
+        
         -- | Midi pitch (0-127).
         midiNotePitch    :: Int,
         -- | Midi pitch adjustment ((-1)-1).
@@ -87,21 +91,22 @@ renderMidiTracks (EventList totalDur events) =
         do  channel <- [0..15] -- FIXME 0-15
             return . fromAbsTime 
                    . sortBy (comparing fst) 
-                   $ [(0, ProgramChange channel (40))]
-                     ++ map (\m -> (0, m)) (tuningProgramChange channel channel)
+                   $ map (\m -> (0, m)) (tuningProgramChange channel channel)
                      ++ concatMap renderEvent (filter (on channel) events) 
                      ++ [(renderTime (totalDur + 1), TrackEnd)]
             where
                 on channel  =  (== channel) . midiNoteChannel . eventValue
 
 renderEvent :: Event Seconds MidiNote -> [(Ticks, Message)]
-renderEvent (Event t d (MidiNote c p b v)) =
+renderEvent (Event t d (MidiNote c i p b v)) =
     let (p', b') = adjustPitch (p, b) in
-    [                
-        ( renderTime t       , tuneMessage c $ tuneParams p' b' ),
-        ( renderTime t       , NoteOn  c p' v ),
-        ( renderTime (t + d) , NoteOff c p' v )
-    ]
+        case i of 
+            Nothing  -> []
+            (Just pgm) -> [(renderTime t, ProgramChange c pgm)]
+        ++
+        [ ( renderTime t       , tuneMessage c $ tuneParams p' b' )
+        , ( renderTime t       , NoteOn  c p' v )
+        , ( renderTime (t + d) , NoteOff c p' v ) ]
 
 adjustPitch :: (Int, Double) -> (Int, Double)
 adjustPitch (p, b) | b <  (-1)        =  (p - 1, 0)
