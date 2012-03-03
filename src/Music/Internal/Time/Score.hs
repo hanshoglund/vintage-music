@@ -134,10 +134,10 @@ joinScore = concatPar . map arrange . toEvents
         arrange (Event t d x) = (delay t . stretch d) x
 
 instance Time t => TimeFunctor t (Score t) where
-    tdmap f = foldScore ( \t d   -> RestS d )
+    tdmap f = foldScore (const RestS)
                         ( \t d x -> NoteS d $ f t d x )
-                        ( \t x y -> ParS x y )
-                        ( \t x y -> SeqS x y )
+                        (const ParS)
+                        (const SeqS)
 
 instance Time t => Render (Score t a) (EventList t a) where
     render = renderScore
@@ -173,7 +173,7 @@ renderScore' t (SeqS x y)   =
 
 
 unrenderScore :: Time t => EventList t a -> Score t a
-unrenderScore = chordStretchDelay . map (\(Event t d x) -> (t, d, x)). eventListEvents
+unrenderScore = chordDelayStretch . map (\(Event t d x) -> (t, d, x)). eventListEvents
 
 
 --
@@ -181,6 +181,7 @@ unrenderScore = chordStretchDelay . map (\(Event t d x) -> (t, d, x)). eventList
 --
 
 -- | Creates a score containing the given element.
+--   Equivalent to 'pure' and 'return'.
 note :: Time t => a -> Score t a
 note = NoteS 1
 
@@ -192,11 +193,11 @@ line = concatSeq . map note
 chord :: Time t => [a] -> Score t a
 chord = concatPar . map note
 
--- | Creates a from a group of parallel lines.
+-- | Creates a score from a the given lines, composed in parallel.
 lines :: Time t => [[a]] -> Score t a
 lines = concatPar . map line
 
--- | Creates a from a sequence of chords.
+-- | Creates a score from a the given chords, composed in sequence.
 chords :: Time t => [[a]] -> Score t a
 chords = concatSeq . map chord
 
@@ -204,13 +205,13 @@ chords = concatSeq . map chord
 lineStretch :: Time t => [(t, a)] -> Score t a
 lineStretch = concatSeq . map ( \(d, x) -> stretch d $ note x )
 
--- | Like chord, but delaying each note the given amounts.
+-- | Like chord, but delays each note the given amounts.
 chordDelay :: Time t => [(t, a)] -> Score t a
 chordDelay = concatPar . map ( \(t, x) -> delay t $ note x )
 
 -- | Like chord, but delays and stretches each note the given amounts.
-chordStretchDelay :: Time t => [(t, t, a)] -> Score t a
-chordStretchDelay = concatPar . map ( \(t, d, x) -> delay t . stretch d $ note x )
+chordDelayStretch :: Time t => [(t, t, a)] -> Score t a
+chordDelayStretch = concatPar . map ( \(t, d, x) -> delay t . stretch d $ note x )
 
 -- | Like chord, but delaying each note the given amount.
 arpeggio :: Time t => t -> [a] -> Score t a
@@ -274,12 +275,6 @@ foldDuration f = foldScore ( \t d   -> f d )
                            ( \t d x -> f d )
                            ( \t x y -> x `mappend` y )
                            ( \t x y -> x `mappend` y )
-
-foldValue :: (Time t, Monoid m) => (a -> m) -> Score t a -> m
-foldValue f = foldScore ( \t d   -> mempty )
-                        ( \t d x -> f x )
-                        ( \t x y -> x `mappend` y )
-                        ( \t x y -> x `mappend` y )
 
 numberOfEvents :: Time t => Score t a -> Int
 numberOfEvents = foldScore (\t d -> 0) (\t d x -> 1) (const (+)) (const (+))

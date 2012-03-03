@@ -25,6 +25,7 @@ module Music.Time.Score
 
     lineStretch,        -- :: Time t => [(a, t)] -> Score t a
     chordDelay,         -- :: Time t => [(a, t)] -> Score t a
+--    chordDelayStretch,  -- :: Time t => [(t, t, a)] -> Score t a
     arpeggio,           -- :: Time t => t -> [a] -> Score t a
     
 -- * Miscellaneous

@@ -25,9 +25,11 @@ openFile path = execute "open" [path]
 openFileWith :: FilePath -> FilePath -> IO ()
 openFileWith application path = execute "open" [path, "-a", application]
 
+-- | Open the given Midi file using Timidity.
 openMidiFile   :: FilePath -> IO ()
-exportMidiFile :: FilePath -> IO ()
-
 openMidiFile name = execute "timidity" ["--quiet", name]
+
+-- | Open the given Midi file using Sibelius.
+exportMidiFile :: FilePath -> IO ()
 exportMidiFile    = openFileWith "/Applications/Sibelius 6.app/Contents/MacOS/Sibelius 6"
 

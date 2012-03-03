@@ -47,6 +47,7 @@ Library
         -- Data.Undefined
         -- Data.Bijection
         Data.Convert
+        Data.Relation
         
         Music
 
