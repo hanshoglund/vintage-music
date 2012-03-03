@@ -33,11 +33,11 @@ inspect score = do
     draw score
 
 play score = do
-    writeMidi "test.mid" (render score)
+    writeMidi    "test.mid" (render score)
     openMidiFile "test.mid"
     return ()
 
 draw score = do
     writeGraphics "test.pdf" (render score)
-    openFile "test.pdf"
+    openFile      "test.pdf"
     return ()

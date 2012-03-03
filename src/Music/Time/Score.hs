@@ -27,13 +27,7 @@ module Music.Time.Score
     chordDelay,         -- :: Time t => [(a, t)] -> Score t a
     arpeggio,           -- :: Time t => t -> [a] -> Score t a
     
--- * Folds
-    foldOffset,         -- :: (Time t, Monoid m) => (t -> m) -> Score t a -> m
-    foldDuration,       -- :: (Time t, Monoid m) => (t -> m) -> Score t a -> m
-    foldValue,          -- :: (Time t, Monoid m) => (a -> m) -> Score t a -> m
-
-    numberOfEvents,     -- :: Time t => Score t a -> Int
-    meanDuration,       -- :: Time t => Score t a -> t
+-- * Miscellaneous
     normalizeDuration,  -- :: Time t => Score t a -> Score t a
 )
 where

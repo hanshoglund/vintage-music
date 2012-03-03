@@ -25,6 +25,7 @@ class Convert a b where
     convert   :: a -> b
     reconvert :: b -> a
 
+
 -- instance Convert a b => Render a b where
 --     render = convert
 

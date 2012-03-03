@@ -42,24 +42,26 @@ b' = 12
 --
 frere, frere' :: Score Double Int
 frere =     
-        loop . stretch (1/3) $
-            line [c, d, e, c] 
-        >>> line [c, d, e, c]
-        >>> line [e, f] >>> stretch 2 (note g)
-        >>> line [e, f] >>> stretch 2 (note g)
-        >>> stretch (1/2) (line [g, a, g, f]) >>> line [e, c]
-        >>> stretch (1/2) (line [g, a, g, f]) >>> line [e, c]
+            line [c, d, eb, c] 
+        >>> line [c, d, eb, c]
+        >>> line [eb, f] >>> stretch 2 (note g)
+        >>> line [eb, f] >>> stretch 2 (note g)
+        >>> stretch (1/2) (line [g, ab, g, f]) >>> line [eb, c]
+        >>> stretch (1/2) (line [g, ab, g, f]) >>> line [eb, c]
         >>> note c >>> note (g - 12) >>> stretch 2 (note c)
         >>> note c >>> note (g - 12) >>> stretch 2 (note c)
 
+canon :: Time t => Int -> t -> t -> Score t a -> Score t a
 canon 0 t x s = instant
 canon n t x s = s ||| delay t (stretch x (canon (n - 1) t x s))
 
-frere' =  canon 4 8 1 frere 
-    ||| delay 28 (canon 4  7.9 0.9 frere)
-    ||| (fmap (+ 12) . delay 46) (canon 4 7.9 0.9 frere)
-    ||| (fmap (- 12) . delay 60) (canon 4 7.9 1.1 frere)
-    ||| (fmap (+ 16) . delay 75) (canon 4 4.5 0.5 frere)
+frere' =      
+        stretch (1/2) $
+            canon 4 8 1 frere 
+        ||| delay 28 (canon 4  7.9 0.9 frere)
+        ||| (fmap (+ 12) . delay 46) (canon 4 7.9 0.9 frere)
+        ||| (fmap (- 12) . delay 60) (canon 4 7.9 1.1 frere)
+        ||| (fmap (+ 16) . delay 75) (canon 4 4.5 0.5 frere)
 
 --
 -- Steve Reich style example
@@ -67,7 +69,7 @@ frere' =  canon 4 8 1 frere
 
 phrase, reich :: Score Double Int
 phrase = stretch (1/6) $ line [0, 5, 7, 0, (-5), 2] 
-reich = (before 200) $ loop phrase ||| (stretch 1.01 (loop phrase))
+reich = before 200 $ loop phrase ||| (stretch 1.01 (loop phrase))
 
 mean :: Fractional a => [a] -> a
 mean xs = sum xs / fromIntegral (length xs)
