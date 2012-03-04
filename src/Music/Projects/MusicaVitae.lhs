@@ -5,6 +5,13 @@
 Introduction
 ==========
 
+This document describes a piece for string orchestra. It is a literate program, which may
+be read as well as executed.
+
+To run the program, install the Haskell platform and the `Music.Time` module. For correct
+Midi playback, use a sampler that support Standard Midi Tuning, such as Timidity.
+
+
 \begin{code}
 
 {-# LANGUAGE
@@ -55,10 +62,11 @@ where
 import Data.Convert ( convert )
 
 import Music
-import Music.Inspect
+import Music.Time.Functors
+import Music.Time.EventList
 import Music.Render
 import Music.Render.Midi
-import Music.Time.EventList
+import Music.Inspect
 
 \end{code}
 
@@ -235,23 +243,44 @@ data Str = I | II | III | IV
 
 
 
-Articulation and dynamics
+Dynamics and articulation
 ----------
+ 
+We use a simple linear representation for dynamics. Level 0 corresponds to some medium level
+dynamic, level 1 to extremely loud and level -1 to extremely soft. A dynamic is a function
+from time to level, generalizing crescendo, diminuendo and so on.
 
 \begin{code}
+type Level = Double
+type Dynamics = Dur -> Level
+
+ppp, pp, p, mf, f, ff, fff :: Dynamics
+ppp = const (-0.8)
+pp  = const (-0.6)
+p   = const (-0.3)
+mf  = const 0
+f   = const 0.25
+ff  = const 0.5
+fff = const 0.7
+
+cresc, dim :: Dynamics
+cresc = id
+dim   = (+ 1) . negate
+
+-- instance Num Dynamics where
+--     x + y       = undefined
+--     x * y       = undefined
+--     abs         = id
+--     signum      = id
+--     fromInteger = const . fromInteger
+
+
 data Articulation
     = Straight
-    -- | Stacc Articulation
-    -- | Tenuto Articulation
-    -- | Accent Articulation
     deriving ( Eq, Show )
 
 data Phrasing
     = NoPhrasing
-    -- | Phrasing { attackVel  :: Double
-    --            , sustainVel :: [Double]
-    --            , releaseVel :: Double
-    --            , staccatto  :: Double }
     deriving ( Eq, Show )
 
 
@@ -268,13 +297,14 @@ Playing techniques
 The piece makes use of different playing techniques in both hands.
 
 The `RightHand` type is parameterized over time, articulation, phrasing and content.
+The `LeftHand` type is parameterized over pitch and string.
 
 \begin{code}
-data RightHand t ar ph a
-    = Pizz   ar a
-    | Single ar a
-    | Phrase ph [(t, a)]
-    | Jete   ph [a]
+data RightHand t c r a
+    = Pizz   c a
+    | Single c a
+    | Phrase r [(t, a)]
+    | Jete   r [a]
     deriving ( Eq, Show )
 
 data LeftHand p s
@@ -282,10 +312,8 @@ data LeftHand p s
     | QuarterStoppedString  s
     | NaturalHarmonic       p s
     | NaturalHarmonicTrem   p p s
-    | NaturalHarmonicGliss  p p s
     | StoppedString         p s
     | StoppedStringTrem     p p s
-    | StoppedStringGliss    p p s
     deriving ( Eq, Show )
     
 
@@ -307,11 +335,11 @@ instance Stopped (LeftHand p s) where
     stopping ( OpenString           _     ) = Open
     stopping ( NaturalHarmonic      _ _   ) = Open
     stopping ( NaturalHarmonicTrem  _ _ _ ) = Open
-    stopping ( NaturalHarmonicGliss _ _ _ ) = Open
+--    stopping ( NaturalHarmonicGliss _ _ _ ) = Open
     stopping ( QuarterStoppedString _     ) = QuarterStopped
     stopping ( StoppedString        _ _   ) = Stopped
     stopping ( StoppedStringTrem    _ _ _ ) = Stopped
-    stopping ( StoppedStringGliss   _ _ _ ) = Stopped
+--    stopping ( StoppedStringGliss   _ _ _ ) = Stopped
 
 instance Stopped a => Stopped (RightHand t r p a) where
     stopping ( Pizz   _ x )       =  stopping x
@@ -345,7 +373,8 @@ data Cue
     { 
         cuePart      :: Part,
         cueDoubling  :: Doubling,
-        cueTechnique :: Technique 
+        cueDynamics  :: Dynamics,
+        cueTechnique :: Technique
     }
     deriving ( Eq, Show )
 
@@ -394,7 +423,7 @@ intonation Solo t = case stopping t of
     Stopped        -> Individual
 
 cueIntonation :: Cue -> Intonation
-cueIntonation (Cue p d t) = intonation d t
+cueIntonation (Cue p d n t) = intonation d t
 
 raisedIntonation :: Cent
 raisedIntonation = 23 Cent
@@ -425,7 +454,7 @@ type MidiBend       = Semitones
 type MidiDynamic    = Int
 
 midiChannel :: Cue -> MidiChannel
-midiChannel (Cue part doubling technique) = case (part, section, intonation') of
+midiChannel (Cue part doubling dynamics technique) = case (part, section, intonation') of
     ( Violin _,    High,  Tuning )  ->  0
     ( Viola  _,    High,  Tuning )  ->  1
     ( Cello  _,    High,  Tuning )  ->  2
@@ -444,8 +473,8 @@ midiChannel (Cue part doubling technique) = case (part, section, intonation') of
           intonation' = intonation doubling technique
 
 midiInstrument :: Cue -> MidiInstrument
-midiInstrument (Cue part doubling (Pizz _ _))  =  Just 45
-midiInstrument (Cue part doubling technique)   =  case part of
+midiInstrument (Cue part doubling dynamics (Pizz _ _))  =  Just 45
+midiInstrument (Cue part doubling dynamics technique)   =  case part of
     ( Violin _ )  ->  Just 40
     ( Viola _ )   ->  Just 41
     ( Cello _ )   ->  Just 42
@@ -453,7 +482,7 @@ midiInstrument (Cue part doubling technique)   =  case part of
 
 
 midiBend :: Cue -> MidiBend
-midiBend (Cue part doubling technique) = case (intonation', cents') of
+midiBend (Cue part doubling dynamics technique) = case (intonation', cents') of
     ( Raised, c )  -> getCent (c + raisedIntonation) / 100
     ( Tuning, c )  -> getCent c / 100
     ( Common, c )  -> 0
@@ -485,11 +514,11 @@ leftHandPitch :: Part -> LeftHand Pitch Str -> (MidiPitch, MidiPitch)
 leftHandPitch part (OpenString           s)      =  (openStringPitch part s, 0)
 leftHandPitch part (NaturalHarmonic      x s)    =  (x, 0)
 leftHandPitch part (NaturalHarmonicTrem  x y s)  =  (x, y)
-leftHandPitch part (NaturalHarmonicGliss x y s)  =  (x, y)
+--leftHandPitch part (NaturalHarmonicGliss x y s)  =  (x, y)
 leftHandPitch part (QuarterStoppedString s)      =  (openStringPitch part s, 0)
 leftHandPitch part (StoppedString        x s)    =  (x, 0)
 leftHandPitch part (StoppedStringTrem    x y s)  =  (x, y)
-leftHandPitch part (StoppedStringGliss   x y s)  =  (x, y)
+--leftHandPitch part (StoppedStringGliss   x y s)  =  (x, y)
 
 setMidiChannel :: MidiChannel -> Score t MidiNote -> Score t MidiNote
 setMidiChannel c = fmap (\(MidiNote _ i p b n) -> MidiNote c i p b n)
@@ -500,46 +529,45 @@ setMidiInstrument i = fmap (\(MidiNote c _ p b n) -> MidiNote c i p b n)
 setMidiBend :: MidiBend -> Score t MidiNote -> Score t MidiNote
 setMidiBend b = fmap (\(MidiNote c i p _ n) -> MidiNote c i p b n)
 
+setMidiDynamic :: (Dur -> Level) -> Score Dur MidiNote -> Score Dur MidiNote
+setMidiDynamic f = tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ f t * 63 + 63))
+
 midiScore :: [(Dur, MidiPitch, MidiDynamic)] -> Score Dur MidiNote
 midiScore = lineStretch . map (\(d, p, n) -> (d, MidiNote 0 Nothing p 0 n))
 
-
 renderCue :: Cue -> Score Seconds MidiNote
-renderCue cue@(Cue part doubling technique) = case technique of
+renderCue cue@(Cue part doubling dynamics technique) = case technique of
 
     Pizz art leftHand ->
         let pitch = fst $ leftHandPitch part leftHand in
-              setMidiChannel ch
-            . setMidiInstrument instr
-            . setMidiBend bend
+            setInstr
+            . setMidiDynamic dynamics
             $ midiScore [(1, pitch, 60)]
 
     Single art leftHand ->
         let pitch = fst $ leftHandPitch part leftHand in
-              setMidiChannel ch
-            . setMidiInstrument instr
-            . setMidiBend bend
+            setInstr
+            . setMidiDynamic dynamics
             $ midiScore [(1, pitch, 60)]
 
     Phrase phr leftHand ->
-          setMidiChannel ch
-        . setMidiInstrument instr
-        . setMidiBend bend
+          setInstr
+        . setMidiDynamic dynamics
         $ midiScore $ map (\(d, lh) -> (d, fst $ leftHandPitch part lh, 60)) leftHand
 
     Jete phr leftHand ->
-          setMidiChannel ch
-        . setMidiInstrument instr
-        . setMidiBend bend
-        . midiScore 
+          setInstr
+        . midiScore
+        -- TODO compose with given dynamics 
         . map (\(d, n, lh) -> (d, fst $ leftHandPitch part lh, round (60 * n))) 
-        $ zip3 bounce bounceDyn leftHand
+        $ zip3 bounceDur bounceVel leftHand
         
-    where ch         =  midiChannel cue
+    where channel    =  midiChannel cue
           instr      =  midiInstrument cue
-          bend       =  midiBend cue
-          bounce     =  [ (2 ** (-0.9 * x)) / 6 | x <- [0,0.1..1] ] 
-          bounceDyn  =  [ abs (1 - x) | x <- [0,0.08..]]
+          bend       =  midiBend cue 
+          setInstr   =  setMidiChannel channel . setMidiInstrument instr . setMidiBend bend
+          bounceDur  =  [ (2 ** (-0.9 * x)) / 6 | x <- [0,0.1..1] ] 
+          bounceVel  =  [ abs (1 - x) | x <- [0,0.08..]]
 
 
 \end{code}
@@ -559,7 +587,7 @@ High-level constructors
 
 \begin{code}
 openString :: Part -> Str -> Score Dur Cue
-openString part str = (note $ Cue part Tutti (Single Straight $ OpenString str))
+openString part str = (note $ Cue part Tutti fff (Single Straight $ OpenString str))
     
 \end{code}
 
@@ -587,17 +615,17 @@ loopList xs = xs ++ loopList xs
 
 melody :: Score Dur Cue
 melody = stretch (1) $
-            ( note $ Cue (Viola 1) Tutti (Jete NoPhrasing [OpenString os | os <- (take 50 $ loopList [III,IV]) ]) )
+            ( note $ Cue (Viola 1) Tutti (const 0) (Jete NoPhrasing [OpenString os | os <- (take 50 $ loopList [III,IV]) ]) )
        
 
 
 instance Render (Score Dur Cue) Midi where
     render = render . padAfter . (>>= renderCue)
-        where padAfter s = s >>> rest 2
+        where padAfter s = s >>> rest 5
 
 
 
-
+main = writeMidi "Passager.mid" (render melody)
 
 \end{code}
 
