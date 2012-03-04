@@ -7,8 +7,8 @@ Introduction
 
 \begin{code}
 
-{-# LANGUAGE 
-    TypeSynonymInstances, 
+{-# LANGUAGE
+    TypeSynonymInstances,
     FlexibleInstances,
     MultiParamTypeClasses #-}
 
@@ -26,7 +26,7 @@ module Music.Projects.MusicaVitae
     isViolin, isViola, isCello,
     highParts, lowParts,
     highViolinParts, highViolaParts, highCelloParts,
-    lowViolinParts, lowViolaParts, lowCelloParts, 
+    lowViolinParts, lowViolaParts, lowCelloParts,
     doubleBass,
     Doubling(..),
 
@@ -90,11 +90,10 @@ into three sections, each using a different tuning:
 The other strings should be tuned in relation to the A-string as usual.
 
 \begin{code}
-
 data Part
-    = Violin Int 
-    | Viola  Int 
-    | Cello  Int 
+    = Violin Int
+    | Viola  Int
+    | Cello  Int
     | DoubleBass
     deriving ( Eq, Show )
 
@@ -109,7 +108,6 @@ type Tuning = Frequency
 We now define the relation between these types as follows:
 
 \begin{code}
-
 partSection   :: Part -> Section
 sectionTuning :: Section -> Tuning
 partTuning    :: Part -> Tuning
@@ -135,17 +133,16 @@ partTuning = sectionTuning . partSection
 Then add some utility definitions to quickly access the various parts:
 
 \begin{code}
-
 ensemble     :: [Part]
 sectionParts :: Section -> [Part]
 
 isViolin, isViola, isCello, isDoubleBass :: Part -> Bool
 
-highParts, lowParts 
+highParts, lowParts
     :: [Part]
-highViolinParts, highViolaParts, highCelloParts 
+highViolinParts, highViolaParts, highCelloParts
     :: [Part]
-lowViolinParts, lowViolaParts, lowCelloParts 
+lowViolinParts, lowViolaParts, lowCelloParts
     :: [Part]
 doubleBass :: Part
 
@@ -186,7 +183,6 @@ doubled, which will be marked *solo*. These passages should be distributed evenl
 the musicians, instead of being played by designated soloists.
 
 \begin{code}
-
 data Doubling = Solo | Tutti
     deriving ( Eq, Show )
 
@@ -195,12 +191,34 @@ data Doubling = Solo | Tutti
 \pagebreak
 
 
+Time
+----------
+
+We will use the temporal operations form `Music.Time` for composition on both event level
+and structural level. We use floating point values to represent durations.
+
+\begin{code}
+type Dur = Double
+
+\end{code}
 
 
 Pitch
 ----------
 
+For simplicity, we will use Midi numbers for written pitch. Sounding pitch will of course
+be rendered depending on tuning and playing technique of the given part.
 
+String number will be represented separately using a different type (named `Str` so as not
+to collide with `String`).
+
+\begin{code}
+type Pitch = Int
+
+data Str = I | II | III | IV
+    deriving ( Eq, Ord, Enum, Show )
+
+\end{code}
 
 
 
@@ -210,48 +228,21 @@ Articulation and dynamics
 
 \begin{code}
 
--- data Dynamics = PPP | PP | P | MP | MF | F | FF | FFF
---     deriving ( Show, 
---                Eq, 
---                Enum, 
---                Bounded )
--- 
--- instance Vol Dynamics where
---     volume = Volume (1e-5, 1)
--- 
--- -- short-cuts
--- 
--- ppp', pp', p', mp', mf', f', ff', fff' :: LevelFunctor a => a -> a
--- 
--- ppp' = setLevel PPP
--- pp'  = setLevel PP
--- p'   = setLevel P
--- mp'  = setLevel MP
--- mf'  = setLevel MF
--- f'   = setLevel F
--- ff'  = setLevel FF
--- fff' = setLevel FFF
--- 
--- dim :: LevelFunctor a => Accent -> Score a -> Score a
--- dim v = dynamics ((-v) *)
--- 
--- cresc :: LevelFunctor a => Accent -> Score a -> Score a
--- cresc v = dynamics (v * )
 
 
-data Articulation 
+data Articulation
     = Straight
-    | Stacc Articulation
-    | Tenuto Articulation
-    | Accent Articulation
+    -- | Stacc Articulation
+    -- | Tenuto Articulation
+    -- | Accent Articulation
     deriving ( Eq, Show )
 
-data Phrasing 
-    = NoPhrasing   
-    | Phrasing { attackVel  :: Double
-               , sustainVel :: [Double]
-               , releaseVel :: Double
-               , staccatto  :: Double }
+data Phrasing
+    = NoPhrasing
+    -- | Phrasing { attackVel  :: Double
+    --            , sustainVel :: [Double]
+    --            , releaseVel :: Double
+    --            , staccatto  :: Double }
     deriving ( Eq, Show )
 
 
@@ -265,13 +256,9 @@ data Phrasing
 Playing techniques
 ----------
 
-The piece makes use of different playing techniques in both hands. 
+The piece makes use of different playing techniques in both hands.
 
 \begin{code}
-
-data Str = I | II | III | IV
-    deriving ( Eq, Ord, Enum, Show )
-
 data Stopping = Open | QuarterStopped | Stopped
     deriving ( Eq, Show )
 
@@ -284,27 +271,23 @@ data RightHand a
 
 data LeftHand
     = OpenString Str
-
-    | NaturalHarmonic       Int Str
-    | NaturalHarmonicTrem   Int Int Str
-    | NaturalHarmonicGliss  Int Int Str
-
     | QuarterStoppedString  Str
-
-    | StoppedString         Int Str
-    | StoppedStringTrem     Int Int Str
-    | StoppedStringGliss    Int Int Str
+    | NaturalHarmonic       Pitch Str
+    | NaturalHarmonicTrem   Pitch Pitch Str
+    | NaturalHarmonicGliss  Pitch Pitch Str
+    | StoppedString         Pitch Str
+    | StoppedStringTrem     Pitch Pitch Str
+    | StoppedStringGliss    Pitch Pitch Str
     deriving ( Eq, Show )
 
 \end{code}
 
-As the intonation will be different between open and stopped strings, we define a 
+As the intonation will be different between open and stopped strings, we define a
 function mapping each left-hand technique to a stopping. This stopping also distributes
-over right-hand techniques (for example, an the intonation of a natural harmonic is open, 
+over right-hand techniques (for example, an the intonation of a natural harmonic is open,
 whether played *arco* or *pizz*).
 
 \begin{code}
-
 class Stopped a where
     stopping :: a -> Stopping
 
@@ -323,7 +306,7 @@ instance Stopped a => Stopped (RightHand a) where
     stopping ( Single _ x )       =  stopping x
     stopping ( Phrase _ (x:xs) )  =  stopping x
     stopping ( Jete   _ (x:xs) )  =  stopping x
-    
+
 \end{code}
 
 
@@ -331,16 +314,15 @@ instance Stopped a => Stopped (RightHand a) where
 Cues
 ----------
 
-A *cue* (sv. *insats*) is an action taken by a performer on time.
+A *cue* is an action taken by a performer on time.
 
 \begin{code}
-
 type Technique = RightHand LeftHand
 
 data Cue
-    = Cue { cuePart      :: Part, 
-            cueDoubling  :: Doubling, 
-            cueTechnique :: Technique } 
+    = Cue { cuePart      :: Part,
+            cueDoubling  :: Doubling,
+            cueTechnique :: Technique }
     deriving ( Eq, Show )
 
 \end{code}
@@ -368,7 +350,6 @@ Where stopped strings are used, intonation is determined by context:
  * In unison passages, common intonation should be used.
 
 \begin{code}
-
 data Intonation
     = Tuning
     | Raised
@@ -378,7 +359,7 @@ data Intonation
 
 intonation :: Doubling -> Technique -> Intonation
 
-intonation Tutti t = case stopping t of 
+intonation Tutti t = case stopping t of
     Open           -> Tuning
     QuarterStopped -> Raised
     Stopped        -> Common
@@ -409,11 +390,10 @@ and make musical decisions, we define a rendering function that renders a cue
 to a score of Midi notes.
 
 A caveat is that the Midi representation does not handle simultaneous tunings well.
-We must therefore separete the music into different Midi channels based on part, section 
+We must therefore separete the music into different Midi channels based on part, section
 and intontation.
 
 \begin{code}
-
 type MidiChannel    = Int
 type MidiInstrument = Maybe Int
 type MidiPitch      = Int
@@ -434,8 +414,8 @@ midiChannel (Cue part doubling technique) = case (part, section, intonation') of
     ( DoubleBass,  _,     _      )  ->  10
     ( Violin _,    _,     Raised )  ->  11
     ( Viola _,     _,     Raised )  ->  11
-    ( Cello _,     _,     Raised )  ->  13        
-    -- TODO individual           
+    ( Cello _,     _,     Raised )  ->  13
+    -- TODO individual
     where section     = partSection part
           intonation' = intonation doubling technique
 
@@ -455,9 +435,9 @@ midiBend (Cue part doubling technique) = case (intonation', cents') of
     ( Common, c )       -> 0
     -- TODO individual
     where intonation'   = intonation doubling technique
-          tuning'       = partTuning part       
+          tuning'       = partTuning part
           cents'        = cents tuning' - cents 440
-          
+
 openStringPitch :: Part -> Str -> MidiPitch
 openStringPitch (Violin _) I    =  55
 openStringPitch (Violin _) II   =  62
@@ -491,23 +471,23 @@ leftHandPitch part (StoppedStringGliss    x y s)  =  (x, y)
 renderCue :: Cue -> Score Seconds MidiNote
 renderCue cue@(Cue part doubling technique) = case technique of
 
-    Pizz art leftHand -> 
+    Pizz art leftHand ->
         note (MidiNote ch instr (fst $ leftHandPitch part leftHand) bend dyn)
 
-    Single art leftHand -> 
+    Single art leftHand ->
         note (MidiNote ch instr (fst $ leftHandPitch part leftHand) bend dyn)     -- TODO what about trem ?
 
-    Phrase phr leftHand -> 
+    Phrase phr leftHand ->
         concatSeq $ map (\lh -> note (MidiNote ch instr pitch bend dyn)) leftHand
 
-    Jete phr leftHand -> 
+    Jete phr leftHand ->
         concatSeq $ map (\lh -> note (MidiNote ch instr pitch bend dyn)) leftHand
 
     where ch    = midiChannel cue
           instr = midiInstrument cue
           bend  = midiBend cue
           pitch = 60
-          dyn   = 60 
+          dyn   = 60
           -- TODO handle pitch, dynamics, duration, articulation, phrasing
 
 
@@ -516,25 +496,28 @@ renderCue cue@(Cue part doubling technique) = case technique of
 \pagebreak
 
 
+High-level constructors
+----------
 
+\begin{code}
+openString :: Part -> Str -> Score Dur Cue
+openString part str = (note $ Cue part Tutti (Single Straight $ OpenString str))
+    
+\end{code}
 
 Composing the piece
 ==========
 
 \begin{code}
+allOpenStrings :: Score Dur Cue
+allOpenStrings = stretch (1/3) $   concatSeq [ openString DoubleBass str | str <- enumFrom I ] 
+                               >>> concatSeq [ openString (instr part) str | instr <- [Cello, Viola, Violin], part <- [2,1], str <- enumFrom I]
 
-piece :: Score Double Cue
-piece = stretch (1/2) $
-            concatSeq [ (note $ Cue DoubleBass Tutti (Single Straight    $ OpenString str))    | str <- enumFrom I ]
-        >>> concatSeq [ (note $ Cue (Cello  part) Tutti (Single Straight $ OpenString str)) | part <- [2,1], str <- enumFrom I ]
-        >>> concatSeq [ (note $ Cue (Viola  part) Tutti (Single Straight $ OpenString str)) | part <- [2,1], str <- enumFrom I ]
-        >>> concatSeq [ (note $ Cue (Violin part) Tutti (Single Straight $ OpenString str)) | part <- [2,1], str <- enumFrom I ]
-
-test :: Score Double MidiNote
-test =             
+test :: Score Dur MidiNote
+test =
         (before 10 . loop . stretch 0.5  $ line [ MidiNote c (Just 40) 60 0.0 30 | c <- [0..5] ])
-    
-    -- stretch (3) $ 
+
+    -- stretch (3) $
     -- chordDelay
     -- [ ( 0,      MidiNote 0 (Just 44) 72 0.0 60   )
     -- , ( 0.3,    MidiNote 0 (Just 45) 72 0.8 60   )
@@ -543,7 +526,7 @@ test =
     -- , ( 1.2,      MidiNote 0 (Just 44) 72 0.8 60 ) ]
     where instr = 44
 
-instance Render (Score Double Cue) Midi where
+instance Render (Score Dur Cue) Midi where
     render = render . (>>= renderCue)
 
 
