@@ -1,4 +1,4 @@
-% For string orchestra
+% Passager, for string orchestra
 % Hans Höglund 2012
 
 
@@ -267,24 +267,27 @@ Playing techniques
 
 The piece makes use of different playing techniques in both hands.
 
+The `RightHand` type is parameterized over time, articulation, phrasing and content.
+
 \begin{code}
-data RightHand a
-    = Pizz   Articulation a
-    | Single Articulation a
-    | Phrase Phrasing     [a]
-    | Jete   Phrasing     [a]
+data RightHand t ar ph a
+    = Pizz   ar a
+    | Single ar a
+    | Phrase ph [(t, a)]
+    | Jete   ph [a]
     deriving ( Eq, Show )
 
-data LeftHand
-    = OpenString Str
-    | QuarterStoppedString  Str
-    | NaturalHarmonic       Pitch Str
-    | NaturalHarmonicTrem   Pitch Pitch Str
-    | NaturalHarmonicGliss  Pitch Pitch Str
-    | StoppedString         Pitch Str
-    | StoppedStringTrem     Pitch Pitch Str
-    | StoppedStringGliss    Pitch Pitch Str
+data LeftHand p s
+    = OpenString s
+    | QuarterStoppedString  s
+    | NaturalHarmonic       p s
+    | NaturalHarmonicTrem   p p s
+    | NaturalHarmonicGliss  p p s
+    | StoppedString         p s
+    | StoppedStringTrem     p p s
+    | StoppedStringGliss    p p s
     deriving ( Eq, Show )
+    
 
 \end{code}
 
@@ -300,7 +303,7 @@ data Stopping = Open | QuarterStopped | Stopped
 class Stopped a where
     stopping :: a -> Stopping
 
-instance Stopped LeftHand where
+instance Stopped (LeftHand p s) where
     stopping ( OpenString           _     ) = Open
     stopping ( NaturalHarmonic      _ _   ) = Open
     stopping ( NaturalHarmonicTrem  _ _ _ ) = Open
@@ -310,10 +313,10 @@ instance Stopped LeftHand where
     stopping ( StoppedStringTrem    _ _ _ ) = Stopped
     stopping ( StoppedStringGliss   _ _ _ ) = Stopped
 
-instance Stopped a => Stopped (RightHand a) where
+instance Stopped a => Stopped (RightHand t r p a) where
     stopping ( Pizz   _ x )       =  stopping x
     stopping ( Single _ x )       =  stopping x
-    stopping ( Phrase _ (x:xs) )  =  stopping x
+    stopping ( Phrase _ (x:xs) )  =  stopping (snd x)
     stopping ( Jete   _ (x:xs) )  =  stopping x
 
 \end{code}
@@ -329,7 +332,13 @@ Cues
 A *cue* is an action taken by a performer on time.
 
 \begin{code}
-type Technique = RightHand LeftHand
+type Technique = 
+    RightHand 
+        Dur 
+        Articulation 
+        Phrasing 
+        (LeftHand 
+            Pitch Str)
 
 data Cue
     = Cue 
@@ -472,7 +481,7 @@ openStringPitch DoubleBass III  =  38
 openStringPitch DoubleBass IV   =  43
 
 
-leftHandPitch :: Part -> LeftHand -> (MidiPitch, MidiPitch)
+leftHandPitch :: Part -> LeftHand Pitch Str -> (MidiPitch, MidiPitch)
 leftHandPitch part (OpenString           s)      =  (openStringPitch part s, 0)
 leftHandPitch part (NaturalHarmonic      x s)    =  (x, 0)
 leftHandPitch part (NaturalHarmonicTrem  x y s)  =  (x, y)
@@ -482,28 +491,55 @@ leftHandPitch part (StoppedString        x s)    =  (x, 0)
 leftHandPitch part (StoppedStringTrem    x y s)  =  (x, y)
 leftHandPitch part (StoppedStringGliss   x y s)  =  (x, y)
 
+setMidiChannel :: MidiChannel -> Score t MidiNote -> Score t MidiNote
+setMidiChannel c = fmap (\(MidiNote _ i p b n) -> MidiNote c i p b n)
+
+setMidiInstrument :: MidiInstrument -> Score t MidiNote -> Score t MidiNote
+setMidiInstrument i = fmap (\(MidiNote c _ p b n) -> MidiNote c i p b n)
+
+setMidiBend :: MidiBend -> Score t MidiNote -> Score t MidiNote
+setMidiBend b = fmap (\(MidiNote c i p _ n) -> MidiNote c i p b n)
+
+midiScore :: [(Dur, MidiPitch, MidiDynamic)] -> Score Dur MidiNote
+midiScore = lineStretch . map (\(d, p, n) -> (d, MidiNote 0 Nothing p 0 n))
+
 
 renderCue :: Cue -> Score Seconds MidiNote
 renderCue cue@(Cue part doubling technique) = case technique of
 
     Pizz art leftHand ->
-        note (MidiNote ch instr (fst $ leftHandPitch part leftHand) bend dyn)
+        let pitch = fst $ leftHandPitch part leftHand in
+              setMidiChannel ch
+            . setMidiInstrument instr
+            . setMidiBend bend
+            $ midiScore [(1, pitch, 60)]
 
     Single art leftHand ->
-        note (MidiNote ch instr (fst $ leftHandPitch part leftHand) bend dyn)     -- TODO what about trem ?
+        let pitch = fst $ leftHandPitch part leftHand in
+              setMidiChannel ch
+            . setMidiInstrument instr
+            . setMidiBend bend
+            $ midiScore [(1, pitch, 60)]
 
     Phrase phr leftHand ->
-        concatSeq $ map (\lh -> note (MidiNote ch instr pitch bend dyn)) leftHand
+          setMidiChannel ch
+        . setMidiInstrument instr
+        . setMidiBend bend
+        $ midiScore $ map (\(d, lh) -> (d, fst $ leftHandPitch part lh, 60)) leftHand
 
     Jete phr leftHand ->
-        concatSeq $ map (\lh -> note (MidiNote ch instr pitch bend dyn)) leftHand
-
-    where ch    = midiChannel cue
-          instr = midiInstrument cue
-          bend  = midiBend cue
-          pitch = 60
-          dyn   = 60
-          -- TODO handle pitch, dynamics, duration, articulation, phrasing
+          setMidiChannel ch
+        . setMidiInstrument instr
+        . setMidiBend bend
+        . midiScore 
+        . map (\(d, n, lh) -> (d, fst $ leftHandPitch part lh, round (60 * n))) 
+        $ zip3 bounce bounceDyn leftHand
+        
+    where ch         =  midiChannel cue
+          instr      =  midiInstrument cue
+          bend       =  midiBend cue
+          bounce     =  [ (2 ** (-0.9 * x)) / 6 | x <- [0,0.1..1] ] 
+          bounceDyn  =  [ abs (1 - x) | x <- [0,0.08..]]
 
 
 \end{code}
@@ -535,24 +571,29 @@ openString part str = (note $ Cue part Tutti (Single Straight $ OpenString str))
 Final composition
 ----------
 
+
+
 \begin{code}
+
 allOpenStrings :: Score Dur Cue
 allOpenStrings = 
     stretch (1/3) 
-        $   concatSeq [ openString DoubleBass str | str <- enumFrom I ] 
+        $   concatSeq [ openString DoubleBass   str | str <- enumFrom I ] 
         >>> concatSeq [ openString (instr part) str | instr <- [Cello, Viola, Violin]
                                                     , part  <- [2,1]
                                                     , str   <- enumFrom I ]
 
-test :: Score Dur MidiNote
-test =
-    before 10 . loop . stretch 0.5
-        $ line [ MidiNote c (Just 40) 60 0.0 30 | c <- [0..5] ]
-    where instr = 44
+loopList xs = xs ++ loopList xs
+
+melody :: Score Dur Cue
+melody = stretch (1) $
+            ( note $ Cue (Viola 1) Tutti (Jete NoPhrasing [OpenString os | os <- (take 50 $ loopList [III,IV]) ]) )
+       
+
 
 instance Render (Score Dur Cue) Midi where
-    render = render . (>>= renderCue)
-
+    render = render . padAfter . (>>= renderCue)
+        where padAfter s = s >>> rest 2
 
 
 
