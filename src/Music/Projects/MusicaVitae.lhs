@@ -26,7 +26,8 @@ module Music.Projects.MusicaVitae
     isViolin, isViola, isCello,
     highParts, lowParts,
     highViolinParts, highViolaParts, highCelloParts,
-    lowViolinParts, lowViolaParts, lowCelloParts,
+    lowViolinParts, lowViolaParts, lowCelloParts, 
+    doubleBass,
     Doubling(..),
 
 -- * Articulation and phrasing
@@ -99,7 +100,7 @@ data Part
 
 data Section
     = High | Low | Middle
-    deriving ( Eq, Show )
+    deriving ( Eq, Show, Enum )
 
 type Tuning = Frequency
 
@@ -238,7 +239,11 @@ Articulation and dynamics
 -- cresc v = dynamics (v * )
 
 
-data Articulation = Articulation
+data Articulation 
+    = Straight
+    | Stacc Articulation
+    | Tenuto Articulation
+    | Accent Articulation
     deriving ( Eq, Show )
 
 data Phrasing 
@@ -265,7 +270,7 @@ The piece makes use of different playing techniques in both hands.
 \begin{code}
 
 data Str = I | II | III | IV
-    deriving ( Eq, Show )
+    deriving ( Eq, Ord, Enum, Show )
 
 data Stopping = Open | QuarterStopped | Stopped
     deriving ( Eq, Show )
@@ -411,7 +416,9 @@ and intontation.
 
 type MidiChannel    = Int
 type MidiInstrument = Maybe Int
+type MidiPitch      = Int
 type MidiBend       = Semitones
+type MidiDynamic    = Int
 
 midiChannel :: Cue -> MidiChannel
 midiChannel (Cue part doubling technique) = case (part, section, intonation') of
@@ -451,26 +458,58 @@ midiBend (Cue part doubling technique) = case (intonation', cents') of
           tuning'       = partTuning part       
           cents'        = cents tuning' - cents 440
           
+openStringPitch :: Part -> Str -> MidiPitch
+openStringPitch (Violin _) I    =  55
+openStringPitch (Violin _) II   =  62
+openStringPitch (Violin _) III  =  69
+openStringPitch (Violin _) IV   =  76
+openStringPitch (Viola _)  I    =  48
+openStringPitch (Viola _)  II   =  55
+openStringPitch (Viola _)  III  =  62
+openStringPitch (Viola _)  IV   =  69
+openStringPitch (Cello _)  I    =  36
+openStringPitch (Cello _)  II   =  43
+openStringPitch (Cello _)  III  =  50
+openStringPitch (Cello _)  IV   =  57
+openStringPitch DoubleBass I    =  28
+openStringPitch DoubleBass II   =  33
+openStringPitch DoubleBass III  =  38
+openStringPitch DoubleBass IV   =  43
+
+
+leftHandPitch :: Part -> LeftHand -> (MidiPitch, MidiPitch)
+leftHandPitch part (OpenString            s)      =  (openStringPitch part s, 0)
+leftHandPitch part (NaturalHarmonic       x s)    =  (x, 0)
+leftHandPitch part (NaturalHarmonicTrem   x y s)  =  (x, y)
+leftHandPitch part (NaturalHarmonicGliss  x y s)  =  (x, y)
+leftHandPitch part (QuarterStoppedString  s)      =  (openStringPitch part s, 0)
+leftHandPitch part (StoppedString         x s)    =  (x, 0)
+leftHandPitch part (StoppedStringTrem     x y s)  =  (x, y)
+leftHandPitch part (StoppedStringGliss    x y s)  =  (x, y)
+
 
 renderCue :: Cue -> Score Seconds MidiNote
 renderCue cue@(Cue part doubling technique) = case technique of
+
     Pizz art leftHand -> 
-        note (MidiNote ch instr pitch bend dyn)
+        note (MidiNote ch instr (fst $ leftHandPitch part leftHand) bend dyn)
 
     Single art leftHand -> 
-        note (MidiNote ch instr pitch bend dyn)
+        note (MidiNote ch instr (fst $ leftHandPitch part leftHand) bend dyn)     -- TODO what about trem ?
 
     Phrase phr leftHand -> 
-        concatSeq $ map (\_ -> note (MidiNote ch instr pitch bend dyn)) leftHand
+        concatSeq $ map (\lh -> note (MidiNote ch instr pitch bend dyn)) leftHand
 
-    Jete   phr leftHand -> 
-        concatSeq $ map (\_ -> note (MidiNote ch instr pitch bend dyn)) leftHand
+    Jete phr leftHand -> 
+        concatSeq $ map (\lh -> note (MidiNote ch instr pitch bend dyn)) leftHand
 
     where ch    = midiChannel cue
           instr = midiInstrument cue
           bend  = midiBend cue
-          pitch = 60    -- TODO
+          pitch = 60
           dyn   = 60 
+          -- TODO handle pitch, dynamics, duration, articulation, phrasing
+
 
 \end{code}
 
@@ -485,13 +524,11 @@ Composing the piece
 \begin{code}
 
 piece :: Score Double Cue
-piece = stretch 4 $
-            (note $ Cue (Violin 1) Tutti (Single Articulation $ OpenString I))
-        ||| (note $ Cue (Violin 2) Tutti (Single Articulation $ OpenString I))
-        ||| (note $ Cue (Viola 2) Tutti (Single Articulation $ OpenString I))
-        ||| (note $ Cue (Viola 2) Tutti (Single Articulation $ OpenString I))
-        ||| (note $ Cue (Cello 2) Tutti (Single Articulation $ OpenString I))
-        ||| (note $ Cue (Cello 2) Tutti (Single Articulation $ OpenString I))
+piece = stretch (1/2) $
+            concatSeq [ (note $ Cue DoubleBass Tutti (Single Straight    $ OpenString str))    | str <- enumFrom I ]
+        >>> concatSeq [ (note $ Cue (Cello  part) Tutti (Single Straight $ OpenString str)) | part <- [2,1], str <- enumFrom I ]
+        >>> concatSeq [ (note $ Cue (Viola  part) Tutti (Single Straight $ OpenString str)) | part <- [2,1], str <- enumFrom I ]
+        >>> concatSeq [ (note $ Cue (Violin part) Tutti (Single Straight $ OpenString str)) | part <- [2,1], str <- enumFrom I ]
 
 test :: Score Double MidiNote
 test =             
