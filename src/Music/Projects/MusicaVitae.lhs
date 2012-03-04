@@ -69,6 +69,9 @@ import Music.Time.EventList
 Preliminaries
 ==========
 
+
+
+
 Instruments and parts
 ----------
 
@@ -191,6 +194,8 @@ data Doubling = Solo | Tutti
 \pagebreak
 
 
+
+
 Time
 ----------
 
@@ -201,6 +206,11 @@ and structural level. We use floating point values to represent durations.
 type Dur = Double
 
 \end{code}
+
+\pagebreak
+
+
+
 
 
 Pitch
@@ -220,6 +230,8 @@ data Str = I | II | III | IV
 
 \end{code}
 
+\pagebreak
+
 
 
 
@@ -227,9 +239,6 @@ Articulation and dynamics
 ----------
 
 \begin{code}
-
-
-
 data Articulation
     = Straight
     -- | Stacc Articulation
@@ -259,9 +268,6 @@ Playing techniques
 The piece makes use of different playing techniques in both hands.
 
 \begin{code}
-data Stopping = Open | QuarterStopped | Stopped
-    deriving ( Eq, Show )
-
 data RightHand a
     = Pizz   Articulation a
     | Single Articulation a
@@ -288,6 +294,9 @@ over right-hand techniques (for example, an the intonation of a natural harmonic
 whether played *arco* or *pizz*).
 
 \begin{code}
+data Stopping = Open | QuarterStopped | Stopped
+    deriving ( Eq, Show )
+
 class Stopped a where
     stopping :: a -> Stopping
 
@@ -309,6 +318,9 @@ instance Stopped a => Stopped (RightHand a) where
 
 \end{code}
 
+\pagebreak
+
+
 
 
 Cues
@@ -320,9 +332,12 @@ A *cue* is an action taken by a performer on time.
 type Technique = RightHand LeftHand
 
 data Cue
-    = Cue { cuePart      :: Part,
-            cueDoubling  :: Doubling,
-            cueTechnique :: Technique }
+    = Cue 
+    { 
+        cuePart      :: Part,
+        cueDoubling  :: Doubling,
+        cueTechnique :: Technique 
+    }
     deriving ( Eq, Show )
 
 \end{code}
@@ -430,9 +445,9 @@ midiInstrument (Cue part doubling technique)   =  case part of
 
 midiBend :: Cue -> MidiBend
 midiBend (Cue part doubling technique) = case (intonation', cents') of
-    ( Raised, c )       -> getCent (c + raisedIntonation) / 100
-    ( Tuning, c )       -> getCent c / 100
-    ( Common, c )       -> 0
+    ( Raised, c )  -> getCent (c + raisedIntonation) / 100
+    ( Tuning, c )  -> getCent c / 100
+    ( Common, c )  -> 0
     -- TODO individual
     where intonation'   = intonation doubling technique
           tuning'       = partTuning part
@@ -458,14 +473,14 @@ openStringPitch DoubleBass IV   =  43
 
 
 leftHandPitch :: Part -> LeftHand -> (MidiPitch, MidiPitch)
-leftHandPitch part (OpenString            s)      =  (openStringPitch part s, 0)
-leftHandPitch part (NaturalHarmonic       x s)    =  (x, 0)
-leftHandPitch part (NaturalHarmonicTrem   x y s)  =  (x, y)
-leftHandPitch part (NaturalHarmonicGliss  x y s)  =  (x, y)
-leftHandPitch part (QuarterStoppedString  s)      =  (openStringPitch part s, 0)
-leftHandPitch part (StoppedString         x s)    =  (x, 0)
-leftHandPitch part (StoppedStringTrem     x y s)  =  (x, y)
-leftHandPitch part (StoppedStringGliss    x y s)  =  (x, y)
+leftHandPitch part (OpenString           s)      =  (openStringPitch part s, 0)
+leftHandPitch part (NaturalHarmonic      x s)    =  (x, 0)
+leftHandPitch part (NaturalHarmonicTrem  x y s)  =  (x, y)
+leftHandPitch part (NaturalHarmonicGliss x y s)  =  (x, y)
+leftHandPitch part (QuarterStoppedString s)      =  (openStringPitch part s, 0)
+leftHandPitch part (StoppedString        x s)    =  (x, 0)
+leftHandPitch part (StoppedStringTrem    x y s)  =  (x, y)
+leftHandPitch part (StoppedStringGliss   x y s)  =  (x, y)
 
 
 renderCue :: Cue -> Score Seconds MidiNote
@@ -496,6 +511,13 @@ renderCue cue@(Cue part doubling technique) = case technique of
 \pagebreak
 
 
+
+
+
+Composing the piece
+==========
+
+
 High-level constructors
 ----------
 
@@ -505,25 +527,27 @@ openString part str = (note $ Cue part Tutti (Single Straight $ OpenString str))
     
 \end{code}
 
-Composing the piece
-==========
+\pagebreak
+
+
+
+
+Final composition
+----------
 
 \begin{code}
 allOpenStrings :: Score Dur Cue
-allOpenStrings = stretch (1/3) $   concatSeq [ openString DoubleBass str | str <- enumFrom I ] 
-                               >>> concatSeq [ openString (instr part) str | instr <- [Cello, Viola, Violin], part <- [2,1], str <- enumFrom I]
+allOpenStrings = 
+    stretch (1/3) 
+        $   concatSeq [ openString DoubleBass str | str <- enumFrom I ] 
+        >>> concatSeq [ openString (instr part) str | instr <- [Cello, Viola, Violin]
+                                                    , part  <- [2,1]
+                                                    , str   <- enumFrom I ]
 
 test :: Score Dur MidiNote
 test =
-        (before 10 . loop . stretch 0.5  $ line [ MidiNote c (Just 40) 60 0.0 30 | c <- [0..5] ])
-
-    -- stretch (3) $
-    -- chordDelay
-    -- [ ( 0,      MidiNote 0 (Just 44) 72 0.0 60   )
-    -- , ( 0.3,    MidiNote 0 (Just 45) 72 0.8 60   )
-    -- , ( 0.5,    MidiNote 0 (Just 45) 72 0.5 60   )
-    -- , ( 0.6,    MidiNote 0 (Just 45) 72 0.3 60   )
-    -- , ( 1.2,      MidiNote 0 (Just 44) 72 0.8 60 ) ]
+    before 10 . loop . stretch 0.5
+        $ line [ MidiNote c (Just 40) 60 0.0 30 | c <- [0..5] ]
     where instr = 44
 
 instance Render (Score Dur Cue) Midi where
