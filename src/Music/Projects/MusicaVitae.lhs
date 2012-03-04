@@ -135,15 +135,18 @@ Then add some utility definitions to quickly access the various parts:
 
 \begin{code}
 
-ensemble                                        :: [Part]
-sectionParts                                    :: Section -> [Part]
+ensemble     :: [Part]
+sectionParts :: Section -> [Part]
 
-isViolin, isViola, isCello, isDoubleBass        :: Part -> Bool
+isViolin, isViola, isCello, isDoubleBass :: Part -> Bool
 
-highParts, lowParts                             :: [Part]
-highViolinParts, highViolaParts, highCelloParts :: [Part]
-lowViolinParts, lowViolaParts, lowCelloParts    :: [Part]
-doubleBass                                      :: Part
+highParts, lowParts 
+    :: [Part]
+highViolinParts, highViolaParts, highCelloParts 
+    :: [Part]
+lowViolinParts, lowViolaParts, lowCelloParts 
+    :: [Part]
+doubleBass :: Part
 
 ensemble
     = [ Violin 1, Violin 2, Violin 3, Violin 4
@@ -412,29 +415,30 @@ type MidiBend       = Semitones
 
 midiChannel :: Cue -> MidiChannel
 midiChannel (Cue part doubling technique) = case (part, section, intonation') of
-    ( Violin _,    High,  Tuning )     -> 0
-    ( Viola  _,    High,  Tuning )     -> 1
-    ( Cello  _,    High,  Tuning )     -> 2
-    ( Violin _,    Low,   Tuning )     -> 3
-    ( Viola  _,    Low,   Tuning )     -> 4
-    ( Cello  _,    Low,   Tuning )     -> 5
-    ( Violin _,    _,     Common )     -> 6
-    ( Viola  _,    _,     Common )     -> 7
-    ( Cello  _,    _,     Common )     -> 8
-    ( DoubleBass,  _,     _      )     -> 10
-    ( Violin _,    _,     Raised )     -> 11
-    ( Viola _,     _,     Raised )     -> 11
-    ( Cello _,     _,     Raised )     -> 13        
+    ( Violin _,    High,  Tuning )  ->  0
+    ( Viola  _,    High,  Tuning )  ->  1
+    ( Cello  _,    High,  Tuning )  ->  2
+    ( Violin _,    Low,   Tuning )  ->  3
+    ( Viola  _,    Low,   Tuning )  ->  4
+    ( Cello  _,    Low,   Tuning )  ->  5
+    ( Violin _,    _,     Common )  ->  6
+    ( Viola  _,    _,     Common )  ->  7
+    ( Cello  _,    _,     Common )  ->  8
+    ( DoubleBass,  _,     _      )  ->  10
+    ( Violin _,    _,     Raised )  ->  11
+    ( Viola _,     _,     Raised )  ->  11
+    ( Cello _,     _,     Raised )  ->  13        
     -- TODO individual           
     where section     = partSection part
           intonation' = intonation doubling technique
 
 midiInstrument :: Cue -> MidiInstrument
-midiInstrument (Cue part doubling technique) = case part of
-    ( Violin _ )    -> Just 40
-    ( Viola _ )     -> Just 41
-    ( Cello _ )     -> Just 42
-    DoubleBass      -> Just 43
+midiInstrument (Cue part doubling (Pizz _ _))  =  Just 45
+midiInstrument (Cue part doubling technique)   =  case part of
+    ( Violin _ )  ->  Just 40
+    ( Viola _ )   ->  Just 41
+    ( Cello _ )   ->  Just 42
+    DoubleBass    ->  Just 43
 
 
 midiBend :: Cue -> MidiBend
@@ -449,40 +453,24 @@ midiBend (Cue part doubling technique) = case (intonation', cents') of
           
 
 renderCue :: Cue -> Score Seconds MidiNote
-renderCue = undefined
--- renderCue (Cue part doubl tech) =
---     case tech of
---         Pizz x attr ->
---             note x
--- 
---         Single x attr ->
---             note dur $ Note.Note (volume $ level MF)
---                        (Pitch scale (tone $ pitch x))
---                        Nothing
--- 
---         Phrase xs attr ->
---             note dur $ Note.Note (volume $ level MF)
---                        (Pitch scale (tone 60))
---                        Nothing
--- 
---         Jete xs attr ->
---             note dur $ Note.Note (volume $ level MF)
---                        (Pitch scale (tone 60))
---                        Nothing
--- 
---     where tune = partTuning part
---           scale = makeScale tune
---           intone = intonation doubl tech
---           pitch (OpenString str) = undefined
---           pitch (NaturalHarmonic n str) = undefined
---           pitch (NaturalHarmonicTrem m n str) = undefined
---           pitch (NaturalHarmonicGliss m n str) = undefined
---           pitch (QuarterStoppedString str) = undefined
---           pitch (StoppedString p str) = p
---           pitch (StoppedStringTrem p q str) = undefined
---           pitch (StoppedStringGliss p q str) = undefined
---           makeScale = Scales.eqt 69  
+renderCue cue@(Cue part doubling technique) = case technique of
+    Pizz art leftHand -> 
+        note (MidiNote ch instr pitch bend dyn)
 
+    Single art leftHand -> 
+        note (MidiNote ch instr pitch bend dyn)
+
+    Phrase phr leftHand -> 
+        concatSeq $ map (\_ -> note (MidiNote ch instr pitch bend dyn)) leftHand
+
+    Jete   phr leftHand -> 
+        concatSeq $ map (\_ -> note (MidiNote ch instr pitch bend dyn)) leftHand
+
+    where ch    = midiChannel cue
+          instr = midiInstrument cue
+          bend  = midiBend cue
+          pitch = 60    -- TODO
+          dyn   = 60 
 
 \end{code}
 
@@ -497,7 +485,13 @@ Composing the piece
 \begin{code}
 
 piece :: Score Double Cue
-piece = undefined
+piece = stretch 4 $
+            (note $ Cue (Violin 1) Tutti (Single Articulation $ OpenString I))
+        ||| (note $ Cue (Violin 2) Tutti (Single Articulation $ OpenString I))
+        ||| (note $ Cue (Viola 2) Tutti (Single Articulation $ OpenString I))
+        ||| (note $ Cue (Viola 2) Tutti (Single Articulation $ OpenString I))
+        ||| (note $ Cue (Cello 2) Tutti (Single Articulation $ OpenString I))
+        ||| (note $ Cue (Cello 2) Tutti (Single Articulation $ OpenString I))
 
 test :: Score Double MidiNote
 test =             
