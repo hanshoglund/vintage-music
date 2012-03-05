@@ -16,7 +16,7 @@ Midi playback, use a sampler that support Standard Midi Tuning, such as Timidity
 
 {-# LANGUAGE
     TypeSynonymInstances,
-    FlexibleInstances,
+    FlexibleInstances,  
     MultiParamTypeClasses #-}
 
 module Music.Projects.MusicaVitae
@@ -37,15 +37,25 @@ module Music.Projects.MusicaVitae
     doubleBass,
     Doubling(..),
 
+-- * Time and pitch
+    Dur(..),
+    Pitch(..),
+    Str(..),
+
+-- * Dynamics
+    Level(..),
+    Dynamics(..),
+    ppp, pp, p, mf, f, ff, fff,
+    cresc, dim,
+
 -- * Articulation and phrasing
     Articulation(..),
     Phrasing(..) ,
 
 -- * Playing techniques
-    Str(..),
-    Stopping(..),
     RightHand(..),
     LeftHand(..),
+    Stopping(..),
     Stopped,
     Technique,
     Cue(..),
@@ -58,6 +68,8 @@ module Music.Projects.MusicaVitae
     renderCue
 )
 where
+
+import Prelude hiding ( reverse )
 
 import Data.Convert ( convert )
 
@@ -252,27 +264,29 @@ from time to level, generalizing crescendo, diminuendo and so on.
 
 \begin{code}
 type Level = Double
-type Dynamics = Dur -> Level
+
+newtype Dynamics = Dynamics { getDynamics :: Dur -> Level }
+    deriving ( Eq, Show )
 
 ppp, pp, p, mf, f, ff, fff :: Dynamics
-ppp = const (-0.8)
-pp  = const (-0.6)
-p   = const (-0.3)
-mf  = const 0
-f   = const 0.25
-ff  = const 0.5
-fff = const 0.7
+ppp = Dynamics $ const (-0.8)
+pp  = Dynamics $ const (-0.6)
+p   = Dynamics $ const (-0.3)
+mf  = Dynamics $ const 0
+f   = Dynamics $ const 0.25
+ff  = Dynamics $ const 0.5
+fff = Dynamics $ const 0.7
 
 cresc, dim :: Dynamics
-cresc = id
-dim   = (+ 1) . negate
+cresc = Dynamics id
+dim   = Dynamics (succ . negate)
 
--- instance Num Dynamics where
---     x + y       = undefined
---     x * y       = undefined
---     abs         = id
---     signum      = id
---     fromInteger = const . fromInteger
+instance Num Dynamics where
+    (Dynamics x) + (Dynamics y)  =  Dynamics (\t -> x t + y t)
+    (Dynamics x) * (Dynamics y)  =  Dynamics (\t -> x t * y t)
+    signum (Dynamics x)          =  Dynamics (signum . x)
+    abs (Dynamics x)             =  Dynamics (abs . x)
+    fromInteger n                =  Dynamics (const $ fromInteger n) 
 
 
 data Articulation
@@ -469,6 +483,13 @@ midiChannel (Cue part doubling dynamics technique) = case (part, section, intona
     ( Viola _,     _,     Raised )  ->  11
     ( Cello _,     _,     Raised )  ->  13
     -- TODO individual
+    ( Violin _,    High,  Individual )  ->  0
+    ( Viola  _,    High,  Individual )  ->  1
+    ( Cello  _,    High,  Individual )  ->  2
+    ( Violin _,    Low,   Individual )  ->  3
+    ( Viola  _,    Low,   Individual )  ->  4
+    ( Cello  _,    Low,   Individual )  ->  5
+
     where section     = partSection part
           intonation' = intonation doubling technique
 
@@ -487,6 +508,7 @@ midiBend (Cue part doubling dynamics technique) = case (intonation', cents') of
     ( Tuning, c )  -> getCent c / 100
     ( Common, c )  -> 0
     -- TODO individual
+    ( Individual, c )  -> 0
     where intonation'   = intonation doubling technique
           tuning'       = partTuning part
           cents'        = cents tuning' - cents 440
@@ -541,19 +563,19 @@ renderCue cue@(Cue part doubling dynamics technique) = case technique of
     Pizz art leftHand ->
         let pitch = fst $ leftHandPitch part leftHand in
             setInstr
-            . setMidiDynamic dynamics
-            $ midiScore [(1, pitch, 60)]
+            . setMidiDynamic (getDynamics dynamics)
+            $ midiScore [(1, pitch, undefined)]
 
     Single art leftHand ->
         let pitch = fst $ leftHandPitch part leftHand in
             setInstr
-            . setMidiDynamic dynamics
-            $ midiScore [(1, pitch, 60)]
+            . setMidiDynamic (getDynamics dynamics)
+            $ midiScore [(1, pitch, undefined)]
 
     Phrase phr leftHand ->
           setInstr
-        . setMidiDynamic dynamics
-        $ midiScore $ map (\(d, lh) -> (d, fst $ leftHandPitch part lh, 60)) leftHand
+        . setMidiDynamic (getDynamics dynamics)
+        $ midiScore $ map (\(d, lh) -> (d, fst $ leftHandPitch part lh, undefined)) leftHand
 
     Jete phr leftHand ->
           setInstr
@@ -588,6 +610,9 @@ High-level constructors
 \begin{code}
 openString :: Part -> Str -> Score Dur Cue
 openString part str = (note $ Cue part Tutti fff (Single Straight $ OpenString str))
+
+jeteOpenString :: Part -> Str -> Score Dur Cue
+jeteOpenString part str = (note $ Cue part Tutti fff (Jete NoPhrasing $ loopListTimes 10 [OpenString str]))
     
 \end{code}
 
@@ -612,10 +637,12 @@ allOpenStrings =
                                                     , str   <- enumFrom I ]
 
 loopList xs = xs ++ loopList xs
+loopListTimes n = take n . loopList
 
 melody :: Score Dur Cue
 melody = stretch (1) $
-            ( note $ Cue (Viola 1) Tutti (const 0) (Jete NoPhrasing [OpenString os | os <- (take 50 $ loopList [III,IV]) ]) )
+--            ( note $ Cue (Viola 1) Tutti ppp (Jete NoPhrasing [OpenString s | s <- (take 50 $ loopList [III,IV]) ]) )
+            ( note $ Cue (Viola 1) Tutti fff (Phrase NoPhrasing [(d, StoppedString p I) | d <- [1/2, 1/3], p <- (take 10 $ loopList [60,62]) ]) )
        
 
 
