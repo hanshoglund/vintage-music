@@ -1,12 +1,5 @@
-{-|
-    Module      :  Music.Render.Graphics
-    Copyright   :  Hans Höglund 2012
 
-    Maintainer  :  hans@hanshoglund.se
-    Stability   :  experimental
-    Portability :  non-portable (OS X only)
--}                                                            
-module Music.Utilities where
+module Music.Util.System where
        
 import System.Posix.Process
 

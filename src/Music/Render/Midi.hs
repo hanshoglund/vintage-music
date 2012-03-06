@@ -65,10 +65,6 @@ data MidiNote
         -- | Midi velocity (0-127).
         midiNoteVelocity :: Int
     }
-    | MidiTremNote
-    {
-        midiNoteChannel :: Int
-    }
     deriving (Eq, Show)
 
 instance Render (Score Seconds MidiNote) Midi where
@@ -77,71 +73,75 @@ instance Render (Score Seconds MidiNote) Midi where
 instance Render (EventList Seconds MidiNote) Midi where
     render = renderMidi
 
+-- | Writes the given Midi representation to a file.
+writeMidi :: FilePath -> Midi -> IO ()
+writeMidi = exportFile
+
+
+
+--
+-- Midi track rendering
+-- 
 
 renderMidi :: EventList Seconds MidiNote -> Midi
 renderMidi = Midi MultiTrack (TicksPerBeat division)
---           . removeEmptyTracks
-           . renderMidiTracks
-           . normalize
+           . renderMidiTracks division
+           . normalize                
+    where division = 1024
 
--- FIXME does not remove now as the TrackEnd event makes every track non-empty
--- removeEmptyTracks :: [[a]] -> [[a]]
--- removeEmptyTracks = filter (not . null)
-
-renderMidiTracks :: EventList Seconds MidiNote -> [Track Ticks]
-renderMidiTracks (EventList totalDur events) =
-    [controlTrack totalDur] ++
+renderMidiTracks :: Integral a => a -> EventList Seconds MidiNote -> [Track Ticks]
+renderMidiTracks division (EventList totalDur events) =
+    [controlTrack division totalDur] ++
         do  channel <- [0..15]
             return . fromAbsTime
                    . sortBy (comparing fst)
                    $ map (\m -> (0, m)) (tuningProgramChange channel channel)
-                       ++ concatMap renderNoteEvent (filter (eventChannel channel) events)
-                       ++ [(renderTime (totalDur + 1), TrackEnd)]
+                       ++ concatMap (renderNoteEvent division) (filter (eventChannel channel) events)
+                       ++ [(renderTime division (totalDur + 1), TrackEnd)]
             where
                 eventChannel x  =  (== x) . midiNoteChannel . eventValue
 
-controlTrack :: Seconds -> Track Ticks
-controlTrack totalDur = [(0, TempoChange 1000000), (renderTime (totalDur + 1), TrackEnd)]
+controlTrack :: Integral a => a -> Seconds -> Track Ticks
+controlTrack division totalDur = [(0, TempoChange 1000000), (renderTime division (totalDur + 1), TrackEnd)]
 
-renderNoteEvent :: Event Seconds MidiNote -> [(Ticks, Message)]
-renderNoteEvent (Event time dur (MidiNote channel instr pitch bend velocity)) =
+
+--
+-- Midi event rendering
+-- 
+
+renderNoteEvent :: Integral a => a -> Event Seconds MidiNote -> [(Ticks, Message)]
+renderNoteEvent division (Event time dur (MidiNote channel instr pitch bend velocity)) =
     programChangeMessages ++ tuningMessages ++ noteMessages
-    where  programChangeMessages  =  renderProgram time channel instr
-           tuningMessages         =  renderTune time channel pitch' bend'
-           noteMessages           =  renderNote time dur channel pitch' velocity
+    where  programChangeMessages  =  renderProgram division time channel instr
+           tuningMessages         =  renderTune division time channel pitch' bend'
+           noteMessages           =  renderNote division time dur channel pitch' velocity
            (pitch', bend')        =  adjustPitch (pitch, bend)
 
-renderProgram :: Seconds -> Int -> Maybe Int -> [(Ticks, Message)]
-renderProgram time channel instr = do
+renderProgram :: Integral a => a -> Seconds -> Int -> Maybe Int -> [(Ticks, Message)]
+renderProgram division time channel instr = do
     program <- maybeToList instr
-    return (renderTime time, ProgramChange channel program)
+    return (renderTime division time, ProgramChange channel program)
 
-renderTune :: Seconds -> Int -> Int -> Double -> [(Ticks, Message)]
-renderTune time channel pitch bend | bend == 0  = []
-renderTune time channel pitch bend | otherwise  = 
-    [ ( renderTime time, tuneMessage channel $ tuneParams pitch bend ) ]
+renderTune :: Integral a => a -> Seconds -> Int -> Int -> Double -> [(Ticks, Message)]
+renderTune division time channel pitch bend 
+    | bend == 0  = []
+    | otherwise  = [ ( renderTime division time, tuneMessage channel $ tuneParams pitch bend ) ]
 
-renderNote :: Seconds -> Seconds -> Int -> Int -> Int -> [(Ticks, Message)]
-renderNote time dur channel pitch velocity =
-    [ (renderTime time,         NoteOn  channel pitch velocity ),
-      (renderTime (time + dur), NoteOff channel pitch velocity )]
+renderNote :: Integral a => a -> Seconds -> Seconds -> Int -> Int -> Int -> [(Ticks, Message)]
+renderNote division time dur channel pitch velocity =
+    [ (renderTime division time,         NoteOn  channel pitch velocity ),
+      (renderTime division (time + dur), NoteOff channel pitch velocity )]
 
 adjustPitch :: (Int, Double) -> (Int, Double)
-adjustPitch (p, b) | b <  (-1)        =  (p - 1, 0)
-                   | b <  0           =  (p - 1, b + 1)
-                   | b == 0           =  (p, 0)
-                   | b >  0 && b < 1  =  (p, b)
-                   | otherwise        =  (p, 1)
+adjustPitch (p, b) 
+    | b <  (-1)        =  (p - 1, 0)
+    | b <  0           =  (p - 1, b + 1)
+    | b == 0           =  (p, 0)
+    | b >  0 && b < 1  =  (p, b)
+    | otherwise        =  (p, 1)
 
-renderTime :: Seconds -> Ticks
-renderTime t = round (t * fromIntegral division)
-
-
--- | Writes the given graphic to a MIDI file.
-writeMidi :: FilePath -> Midi -> IO ()
-writeMidi = exportFile
-
-division = 1024
+renderTime :: Integral a => a -> Seconds -> Ticks
+renderTime div t = round (t * fromIntegral div)
 
 --
 -- Intonation

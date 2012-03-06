@@ -19,6 +19,7 @@ Library
                         hxt, 
                         containers,         
                         split,     
+                        random,
 
                         vector-space,
                         colour >= 2.3.1,
@@ -57,6 +58,7 @@ Library
         Music.Time.EventList
         Music.Time.Score
         Music.Time.Segment
+        Music.Time.Tremolo
         Music.Pitch
         Music.Dynamics
         Music.Phrasing
@@ -98,7 +100,8 @@ Library
         Music.Projects.MusicaVitae
         -- Music.Projects.StringQuartet 
 
-        Music.Utilities
+        Music.Util.List
+        Music.Util.System
 
 
    Other-Modules:

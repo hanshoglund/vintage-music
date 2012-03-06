@@ -29,7 +29,14 @@ module Music.Time.Score
     arpeggio,           -- :: Time t => t -> [a] -> Score t a
     
 -- * Miscellaneous
+    compress,           -- :: Time t => t -> Score t a -> Score t a
+    restBefore,         -- :: Time t => t -> Score t a -> Score t a
+    restBoth,           -- :: Time t => t -> Score t a -> Score t a
+    restAfter,          -- :: Time t => t -> Score t a -> Score t a
+    stretchTo,          -- :: Time t => t -> Score t a -> Score t a
     normalizeDuration,  -- :: Time t => Score t a -> Score t a
+
+    printScoreEvents,   -- :: (Time t, Show t, Show a) => Score t a -> String
 )
 where
 

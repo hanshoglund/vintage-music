@@ -29,7 +29,6 @@ import qualified Data.List as List
 import Music.Time
 import Music.Time.Event ( Event(..) )
 
-
 data EventList t a
     = EventList
     {
@@ -64,5 +63,4 @@ printEvents :: (Time t, Show t, Show a) => EventList t a -> String
 printEvents (EventList d xs) = 
     "Total duration: " ++ show d ++ "\n" ++
         List.concatMap ( \(Event t d x) -> "  " ++ show t ++ "  " ++ show d ++ "  " ++ show x ++ "\n" ) xs
-
 

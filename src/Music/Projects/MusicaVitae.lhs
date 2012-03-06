@@ -48,9 +48,13 @@ module Music.Projects.MusicaVitae
     ppp, pp, p, mf, f, ff, fff,
     cresc, dim,
 
--- * Articulation and phrasing
+-- * Articulation
     Articulation(..),
-    Phrasing(..) ,
+    Phrasing(..),
+    staccato,
+    tenuto,
+    legato,
+    portato,
 
 -- * Playing techniques
     RightHand(..),
@@ -79,6 +83,7 @@ import Music.Time.EventList
 import Music.Render
 import Music.Render.Midi
 import Music.Inspect
+import Music.Util.List ( cycleTimes )
 
 \end{code}
 
@@ -216,7 +221,7 @@ data Doubling = Solo | Tutti
 
 
 
-Time
+Time and pitch
 ----------
 
 We will use the temporal operations form `Music.Time` for composition on both event level
@@ -226,15 +231,6 @@ and structural level. We use floating point values to represent durations.
 type Dur = Double
 
 \end{code}
-
-\pagebreak
-
-
-
-
-
-Pitch
-----------
 
 For simplicity, we will use Midi numbers for written pitch. Sounding pitch will of course
 be rendered depending on tuning and playing technique of the given part.
@@ -255,7 +251,7 @@ data Str = I | II | III | IV
 
 
 
-Dynamics and articulation
+Dynamics
 ----------
  
 We use a simple linear representation for dynamics. Level 0 corresponds to some medium level
@@ -281,6 +277,7 @@ cresc, dim :: Dynamics
 cresc = Dynamics id
 dim   = Dynamics (succ . negate)
 
+
 instance Num Dynamics where
     (Dynamics x) + (Dynamics y)  =  Dynamics (\t -> x t + y t)
     (Dynamics x) * (Dynamics y)  =  Dynamics (\t -> x t * y t)
@@ -288,14 +285,41 @@ instance Num Dynamics where
     abs (Dynamics x)             =  Dynamics (abs . x)
     fromInteger n                =  Dynamics (const $ fromInteger n) 
 
+\end{code}
 
+\pagebreak
+
+
+
+
+Articulation
+----------
+
+\begin{code}
 data Articulation
     = Straight
+    | Accent   Double Articulation
+    | Duration Double Articulation
     deriving ( Eq, Show )
 
 data Phrasing
-    = NoPhrasing
+    = Phrasing
+    | Binding Double Phrasing
+    | Begin Articulation Phrasing
+    | End Articulation Phrasing
     deriving ( Eq, Show )
+
+staccato :: Articulation -> Articulation
+staccato = Duration 0.8
+
+tenuto :: Articulation -> Articulation
+tenuto = Duration 1.2
+
+legato :: Phrasing -> Phrasing
+legato = Binding 1.2
+
+portato :: Phrasing -> Phrasing
+portato = Binding 0.8
 
 
 \end{code}
@@ -326,8 +350,10 @@ data LeftHand p s
     | QuarterStoppedString  s
     | NaturalHarmonic       p s
     | NaturalHarmonicTrem   p p s
+    | NaturalHarmonicGliss  p p s
     | StoppedString         p s
     | StoppedStringTrem     p p s
+    | StoppedStringGliss    p p s
     deriving ( Eq, Show )
     
 
@@ -349,11 +375,11 @@ instance Stopped (LeftHand p s) where
     stopping ( OpenString           _     ) = Open
     stopping ( NaturalHarmonic      _ _   ) = Open
     stopping ( NaturalHarmonicTrem  _ _ _ ) = Open
---    stopping ( NaturalHarmonicGliss _ _ _ ) = Open
+    stopping ( NaturalHarmonicGliss _ _ _ ) = Open
     stopping ( QuarterStoppedString _     ) = QuarterStopped
     stopping ( StoppedString        _ _   ) = Stopped
     stopping ( StoppedStringTrem    _ _ _ ) = Stopped
---    stopping ( StoppedStringGliss   _ _ _ ) = Stopped
+    stopping ( StoppedStringGliss   _ _ _ ) = Stopped
 
 instance Stopped a => Stopped (RightHand t r p a) where
     stopping ( Pizz   _ x )       =  stopping x
@@ -365,36 +391,6 @@ instance Stopped a => Stopped (RightHand t r p a) where
 
 \pagebreak
 
-
-
-
-Cues
-----------
-
-A *cue* is an action taken by a performer on time.
-
-\begin{code}
-type Technique = 
-    RightHand 
-        Dur 
-        Articulation 
-        Phrasing 
-        (LeftHand 
-            Pitch Str)
-
-data Cue
-    = Cue 
-    { 
-        cuePart      :: Part,
-        cueDoubling  :: Doubling,
-        cueDynamics  :: Dynamics,
-        cueTechnique :: Technique
-    }
-    deriving ( Eq, Show )
-
-\end{code}
-
-\pagebreak
 
 
 
@@ -445,6 +441,39 @@ raisedIntonation = 23 Cent
 \end{code}
 
 \pagebreak
+
+
+
+
+Cues
+----------
+
+A *cue* is an action taken by a performer on time.
+
+\begin{code}
+type Technique = 
+    RightHand 
+        Dur 
+        Articulation 
+        Phrasing 
+        (LeftHand 
+            Pitch Str)
+
+data Cue
+    = Cue 
+    { 
+        cuePart      :: Part,
+        cueDoubling  :: Doubling,
+        cueDynamics  :: Dynamics,
+        cueTechnique :: Technique
+    }
+    deriving ( Eq, Show )
+
+\end{code}
+
+\pagebreak
+
+
 
 
 
@@ -513,6 +542,19 @@ midiBend (Cue part doubling dynamics technique) = case (intonation', cents') of
           tuning'       = partTuning part
           cents'        = cents tuning' - cents 440
 
+setMidiChannel :: Time t => MidiChannel -> Score t MidiNote -> Score t MidiNote
+setMidiChannel c = fmap (\(MidiNote _ i p b n) -> MidiNote c i p b n)
+
+setMidiInstrument :: Time t => MidiInstrument -> Score t MidiNote -> Score t MidiNote
+setMidiInstrument i = fmap (\(MidiNote c _ p b n) -> MidiNote c i p b n)
+--setMidiInstrument i = tmap (\t x@(MidiNote c _ p b n) -> if (t > 0) then x else MidiNote c i p b n)
+        
+setMidiBend :: Time t => MidiBend -> Score t MidiNote -> Score t MidiNote
+setMidiBend b = fmap (\(MidiNote c i p _ n) -> MidiNote c i p b n)
+
+setMidiDynamic :: Dynamics -> Score Dur MidiNote -> Score Dur MidiNote
+setMidiDynamic (Dynamics f) = tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ f t * 63 + 63))
+
 openStringPitch :: Part -> Str -> MidiPitch
 openStringPitch (Violin _) I    =  55
 openStringPitch (Violin _) II   =  62
@@ -532,27 +574,19 @@ openStringPitch DoubleBass III  =  38
 openStringPitch DoubleBass IV   =  43
 
 
+-- openString, stoppedString, naturalHarm and quarterStopped string return a single note of dur 1
+-- trem versions return a single tremolo note of dur 1
+-- gliss versions return a single gliss note of dur 1
+
 leftHandPitch :: Part -> LeftHand Pitch Str -> (MidiPitch, MidiPitch)
 leftHandPitch part (OpenString           s)      =  (openStringPitch part s, 0)
 leftHandPitch part (NaturalHarmonic      x s)    =  (x, 0)
 leftHandPitch part (NaturalHarmonicTrem  x y s)  =  (x, y)
---leftHandPitch part (NaturalHarmonicGliss x y s)  =  (x, y)
+leftHandPitch part (NaturalHarmonicGliss x y s)  =  (x, y)
 leftHandPitch part (QuarterStoppedString s)      =  (openStringPitch part s, 0)
 leftHandPitch part (StoppedString        x s)    =  (x, 0)
 leftHandPitch part (StoppedStringTrem    x y s)  =  (x, y)
---leftHandPitch part (StoppedStringGliss   x y s)  =  (x, y)
-
-setMidiChannel :: MidiChannel -> Score t MidiNote -> Score t MidiNote
-setMidiChannel c = fmap (\(MidiNote _ i p b n) -> MidiNote c i p b n)
-
-setMidiInstrument :: MidiInstrument -> Score t MidiNote -> Score t MidiNote
-setMidiInstrument i = fmap (\(MidiNote c _ p b n) -> MidiNote c i p b n)
-
-setMidiBend :: MidiBend -> Score t MidiNote -> Score t MidiNote
-setMidiBend b = fmap (\(MidiNote c i p _ n) -> MidiNote c i p b n)
-
-setMidiDynamic :: (Dur -> Level) -> Score Dur MidiNote -> Score Dur MidiNote
-setMidiDynamic f = tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ f t * 63 + 63))
+leftHandPitch part (StoppedStringGliss   x y s)  =  (x, y)
 
 midiScore :: [(Dur, MidiPitch, MidiDynamic)] -> Score Dur MidiNote
 midiScore = lineStretch . map (\(d, p, n) -> (d, MidiNote 0 Nothing p 0 n))
@@ -563,18 +597,18 @@ renderCue cue@(Cue part doubling dynamics technique) = case technique of
     Pizz art leftHand ->
         let pitch = fst $ leftHandPitch part leftHand in
             setInstr
-            . setMidiDynamic (getDynamics dynamics)
+            . setMidiDynamic dynamics
             $ midiScore [(1, pitch, undefined)]
 
     Single art leftHand ->
         let pitch = fst $ leftHandPitch part leftHand in
             setInstr
-            . setMidiDynamic (getDynamics dynamics)
+            . setMidiDynamic dynamics
             $ midiScore [(1, pitch, undefined)]
 
     Phrase phr leftHand ->
           setInstr
-        . setMidiDynamic (getDynamics dynamics)
+        . setMidiDynamic dynamics
         $ midiScore $ map (\(d, lh) -> (d, fst $ leftHandPitch part lh, undefined)) leftHand
 
     Jete phr leftHand ->
@@ -609,10 +643,10 @@ High-level constructors
 
 \begin{code}
 openString :: Part -> Str -> Score Dur Cue
-openString part str = (note $ Cue part Tutti fff (Single Straight $ OpenString str))
+openString part str = (note $ Cue part Tutti mf (Single Straight $ OpenString str))
 
 jeteOpenString :: Part -> Str -> Score Dur Cue
-jeteOpenString part str = (note $ Cue part Tutti fff (Jete NoPhrasing $ loopListTimes 10 [OpenString str]))
+jeteOpenString part str = (note $ Cue part Tutti mf (Jete Phrasing $ cycleTimes 10 [OpenString str]))
     
 \end{code}
 
@@ -628,6 +662,12 @@ Final composition
 
 \begin{code}
 
+test :: Score Dur MidiNote
+test =                       stretch (1/2) (note (MidiNote 0 (Just 42) 60 0 80))
+    >>> (before 10 . loop . stretch (1/2) . delay 0) (note (MidiNote 0 Nothing 60 0 80))
+
+
+
 allOpenStrings :: Score Dur Cue
 allOpenStrings = 
     stretch (1/3) 
@@ -636,13 +676,10 @@ allOpenStrings =
                                                     , part  <- [2,1]
                                                     , str   <- enumFrom I ]
 
-loopList xs = xs ++ loopList xs
-loopListTimes n = take n . loopList
-
 melody :: Score Dur Cue
 melody = stretch (1) $
---            ( note $ Cue (Viola 1) Tutti ppp (Jete NoPhrasing [OpenString s | s <- (take 50 $ loopList [III,IV]) ]) )
-            ( note $ Cue (Viola 1) Tutti fff (Phrase NoPhrasing [(d, StoppedString p I) | d <- [1/2, 1/3], p <- (take 10 $ loopList [60,62]) ]) )
+--            ( note $ Cue (Viola 1) Tutti ppp (Jete Phrasing [OpenString s | s <- (take 50 $ cycle [III,IV]) ]) )
+            ( note $ Cue (Viola 1) Tutti p (Phrase Phrasing [(d, StoppedString p I) | d <- [1/2, 1/3], p <- (take 10 $ cycle [60,62]) ]) )
        
 
 

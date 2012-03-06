@@ -27,7 +27,7 @@ import Data.Convert
 import Music.Time
 import Music.Time.Functors
 import Music.Time.Event ( Event(..) )
-import Music.Time.EventList ( EventList(..) )
+import Music.Time.EventList ( EventList(..), printEvents )
 import qualified Music.Time.EventList as EventList
 
 
@@ -65,11 +65,8 @@ instance Time t => Loop (Score t) where
 
 
 instance Time t => Reverse (Score t) where
-    reverse (ParS x y)  =  ParS (reverse x') (reverse y') 
-                               where (x', y') = x `assureEqualDur` y
-    
-    reverse (SeqS x y)  =  SeqS (reverse y) (reverse x)
-    
+    reverse (ParS x y)  =  ParS (reverse a) (reverse b) where (a, b) = x `assureEqualDur` y
+    reverse (SeqS x y)  =  SeqS (reverse y) (reverse x)    
     reverse x           =  x
 
 
@@ -79,25 +76,15 @@ instance Time t => Timed t (Score t) where
     duration (SeqS x y)   =  duration x + duration y
     duration (ParS x y)   =  duration x `max` duration y
 
-    stretch t (RestS d)   | t >= 0     =  RestS (d * t)
-                          | otherwise  =  negativeError "Music.Time.Timed.stretch"
-
-    stretch t (NoteS d x) | t >= 0     =  NoteS (d * t) x
-                          | otherwise  =  negativeError "Music.Time.Timed.stretch"
-
-    stretch t (ParS x y)  | t >= 0     =  ParS (stretch t x) (stretch t y)
-                          | otherwise  =  negativeError "Music.Time.Timed.stretch"
-
-    stretch t (SeqS x y)  | t >= 0     =  SeqS (stretch t x) (stretch t y)
-                          | otherwise  =  negativeError "Music.Time.Timed.stretch"
+    stretch t (RestS d)   =  RestS (d * t)
+    stretch t (NoteS d x) =  NoteS (d * t) x
+    stretch t (ParS x y)  =  ParS (stretch t x) (stretch t y)
+    stretch t (SeqS x y)  =  SeqS (stretch t x) (stretch t y)
 
 
 instance Time t => Delayed t (Score t) where
-    rest t    | t >= 0     =  RestS t
-              | otherwise  =  negativeError "Music.Time.Timed.rest"
-
-    delay t x | t >= 0     =  rest t >>> x
-              | otherwise  =  negativeError "Music.Time.Timed.delay"
+    rest t     =  RestS t
+    delay t x  =  rest t >>> x
 
 
 instance Time t => Split t (Score t) where
@@ -276,15 +263,46 @@ foldDuration f = foldScore ( \t d   -> f d )
                            ( \t x y -> x `mappend` y )
                            ( \t x y -> x `mappend` y )
 
+
+-- | The number of events in the score.
 numberOfEvents :: Time t => Score t a -> Int
 numberOfEvents = foldScore (\t d -> 0) (\t d x -> 1) (const (+)) (const (+))
 
+-- | The mean duration of the score.
 meanDuration :: Time t => Score t a -> t
 meanDuration score = (getSum . foldDuration Sum) score / fromIntegral (numberOfEvents score)
 
+-- | The inverse of 'stretch'.
+compress :: Time t => t -> Score t a -> Score t a
+compress t = stretch (1 / t)
+
+-- | Prepend a rest of the given duration to the score.
+restBefore :: Time t => t -> Score t a -> Score t a
+restBefore = delay
+
+-- | Append a rest of the given duration to the score.
+restAfter :: Time t => t -> Score t a -> Score t a
+restAfter t x
+    | t <= 0     =  x
+    | otherwise  =  x >>> r
+    where r = rest t
+
+-- | Prepend and append a rest of half the given duration to the score.
+restBoth :: Time t => t -> Score t a -> Score t a
+restBoth t x
+    | t <= 0     =  x
+    | otherwise  =  r >>> x >>> r
+    where r = rest (t / 2)
+
+-- | Stretch the score to the given duration.
+stretchTo :: Time t => t -> Score t a -> Score t a
+stretchTo t x 
+    | duration x == t  =  x
+    | otherwise        =  stretch (t / duration x) x
+
+-- | Resize the score so that the mean duration is one.
 normalizeDuration :: Time t => Score t a -> Score t a
 normalizeDuration score = stretch (1 / meanDuration score) score
-
 
 --
 -- Internals
@@ -308,4 +326,9 @@ toEvents = eventListEvents . renderScore
 negativeError :: String -> a
 negativeError name = error $ name ++ ": negative value"
 
+--
+-- Debug
+--
+printScoreEvents :: (Time t, Show t, Show a) => Score t a -> String
+printScoreEvents = printEvents . renderScore
 

@@ -22,7 +22,7 @@ where
 import Data.Convert
 import Music.Render.Midi
 import Music.Render.Graphics
-import Music.Utilities
+import Music.Util.System
 
 inspect :: (Render a Graphic, Render a Midi) => a -> IO ()
 play    :: Render a Midi => a    -> IO ()

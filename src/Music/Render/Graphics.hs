@@ -43,6 +43,18 @@ instance (Time t, Show a) => Render (EventList t a) Graphic where
 instance (Time t, Show a) => Render (Score t a) Graphic where
     render = renderGraphics
 
+-- | Writes the given graphic representation to a file.
+writeGraphics :: FilePath -> Graphic -> IO ()
+writeGraphics file (Graphic diagram) = do
+    fst $ renderDia Cairo ( CairoOptions file $ PDF (500, 500) ) diagram
+    return ()      
+            
+
+
+--
+-- Graphic rendering
+--            
+
 renderGraphics :: (Time t, Show a) => Score t a -> Graphic
 renderGraphics = Graphic 
         . foldScore (\t d   -> renderRest d)
@@ -69,12 +81,3 @@ renderGraphics = Graphic
 t2d :: Time t => t -> Double
 t2d   = time2Double
 
-
--- Imperative test stuff
-
--- | Writes the given graphic to a PDF file.
-writeGraphics :: FilePath -> Graphic -> IO ()
-writeGraphics file (Graphic diagram) = do
-    fst $ renderDia Cairo ( CairoOptions file $ PDF (500, 500) ) diagram
-    return ()      
-            

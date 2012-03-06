@@ -133,7 +133,7 @@ class Temporal d => Reverse d where
 --
 
 -- | Time values must be ordered and support fractional arithmetic.
-class (Enum t, Ord t, Real t, Fractional t) => Time t where
+class (Enum t, RealFrac t) => Time t where
 
 instance Time Double
 instance Time Rational
