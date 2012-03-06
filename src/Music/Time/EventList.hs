@@ -59,6 +59,7 @@ instance Time t => Delayed t (EventList t) where
 normalize :: Time t => EventList t a -> EventList t a
 normalize (EventList d xs) = EventList d (List.sortBy (comparing eventOffset) xs)
 
+-- | Returns a readable representation of the given event list.
 printEvents :: (Time t, Show t, Show a) => EventList t a -> String
 printEvents (EventList d xs) = 
     "Total duration: " ++ show d ++ "\n" ++

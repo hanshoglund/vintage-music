@@ -272,7 +272,7 @@ numberOfEvents = foldScore (\t d -> 0) (\t d x -> 1) (const (+)) (const (+))
 meanDuration :: Time t => Score t a -> t
 meanDuration score = (getSum . foldDuration Sum) score / fromIntegral (numberOfEvents score)
 
--- | The inverse of 'stretch'.
+-- | The dual of 'stretch'.
 compress :: Time t => t -> Score t a -> Score t a
 compress t = stretch (1 / t)
 
@@ -328,7 +328,9 @@ negativeError name = error $ name ++ ": negative value"
 
 --
 -- Debug
---
+--       
+
+-- | A convenient synonym for 'printEvents' @.@ 'render'.
 printScoreEvents :: (Time t, Show t, Show a) => Score t a -> String
 printScoreEvents = printEvents . renderScore
 

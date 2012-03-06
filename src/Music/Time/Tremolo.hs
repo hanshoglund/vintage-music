@@ -19,8 +19,8 @@ module Music.Time.Tremolo
     tremolo,     
     tremoloBetween,
     tremoloSequence,
-    renderTremolo,
-    renderTremolo',
+    renderTremolo,  
+    renderTremoloEvents,
 --    renderTremoloWith
 )
 where
@@ -32,13 +32,13 @@ import Music.Time
 import Music.Time.Functors
 import Music.Time.Score
 
--- | A tremolo represents an infinite sequence of events played at some interval.
+-- | A repeated sequence with an absolute periodicity.
 --
 --   This type is intended to be composed with 'Score' as follows:
 --
---   * @Score t (Tremolo t a)@ represent a score of events invariant under 'stretch'
+--   * @Score t (Tremolo t a)@
 --
---   * @Score t (Either a (Tremolo t b))@  represent a score of ordinary events and events invariant under 'stretch'
+--   * @Score t (Either a (Tremolo t b))@
 
 
 data Tremolo t a 
@@ -47,7 +47,7 @@ data Tremolo t a
         tremoloPeriod :: t,
         tremoloEvents :: [a] -- always infinite
     }
-    deriving ( Eq, Show ) -- FIXME show for debug
+    deriving ( Eq )
 
 -- | Repeats the given event at the given period.
 tremolo :: Time t => t -> a -> Tremolo t a
@@ -66,10 +66,15 @@ tremoloSequence p xs  =  Tremolo p . cycle $ xs
 renderTremolo :: Time t => Score t (Tremolo t a) -> Score t a
 renderTremolo = join . dmap renderTremolo'
 
+-- | Render tremolos to events and passing normal events through.
+renderTremoloEvents :: Time t => Score t (Either a (Tremolo t a)) -> Score t a
+renderTremoloEvents = join . dmap (\t -> either return (renderTremolo' t))
+
+renderTremolo' :: Time t => t -> Tremolo t a -> Score t a
 renderTremolo' d (Tremolo p xs) = 
     compress (d * recip p) . restAfter f . line . take n $ xs
     where (n, f) = properFraction (d / p)
-    
+
 -- TODO randomize scaling etc
 -- renderTremoloWith :: RandomGen g => g -> Time t => Score t (Tremolo a) -> Score t a
 -- renderTremoloWith = undefined
