@@ -77,6 +77,7 @@ where
 import Prelude hiding ( reverse )
 
 import Data.Convert ( convert )
+import qualified Data.List as List
 
 import Music
 import Music.Time.Tremolo
@@ -267,7 +268,7 @@ newtype Dynamics = Dynamics { getDynamics :: Dur -> Level }
     deriving ( Eq )
 
 instance Show Dynamics where
-    show x = "Dynamics"
+    show x = ""
 
 ppp, pp, p, mf, f, ff, fff :: Dynamics
 ppp = Dynamics $ const (-0.8)
@@ -595,8 +596,10 @@ renderLeftHand part (StoppedStringGliss   x y s)  =  renderLeftHandGliss
 -- TODO gliss
 
 renderLeftHandSingle x   = note . Left  $ MidiNote 0 Nothing x 0 60
-renderLeftHandTrem   x y = note . Right $ tremoloBetween 0.05 (MidiNote 0 Nothing x 0 60) (MidiNote 0 Nothing y 0 60)
+renderLeftHandTrem   x y = note . Right $ tremoloBetween tremoloInterval (MidiNote 0 Nothing x 0 60) (MidiNote 0 Nothing y 0 60)
 renderLeftHandGliss      = error "Gliss not implemented"
+
+tremoloInterval = 0.08
 
 -- TODO clean up this bit...
 
@@ -618,15 +621,15 @@ setMidiBend b = fmapE f g
 setMidiDynamic :: Dynamics -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
 setMidiDynamic (Dynamics n) = tmapE f g 
     where f = (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63))
-          g = (\t x -> fmap (\(MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63)) x)
+          g = (\t x -> tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63)) x)
 
 
 renderCue :: Cue -> TremoloScore Dur MidiNote
 renderCue cue@(Cue part doubling dynamics technique) = case technique of
     Pizz   art leftHand  -> postHoc $ renderLeftHand part leftHand
     Single art leftHand  -> postHoc $ renderLeftHand part leftHand
-    Phrase art leftHand  -> postHoc $ concatSeq . map (\(d, x) -> stretch d $ renderLeftHand part x) $ leftHand
-    Jete   art leftHand  -> postHoc $ concatSeq . map (\(d, x) -> stretch d $ renderLeftHand part x) $ (zip bounceDur leftHand)
+    Phrase art leftHand  -> postHoc $ stretchTo 1 . concatSeq . map (\(d, x) -> stretch d $ renderLeftHand part x) $ leftHand
+    Jete   art leftHand  -> postHoc $ stretchTo 1 . concatSeq . map (\(d, x) -> stretch d $ renderLeftHand part x) $ (zip bounceDur leftHand)
     where                 
         channel    =  midiChannel cue
         instr      =  midiInstrument cue
@@ -662,7 +665,7 @@ High-level constructors
 ----------
 
 \begin{code}                                            
-stdDyn = mf
+stdDyn = cresc
     
 openString :: Part -> Str -> Score Dur Cue
 openString part str = (note $ Cue part Tutti stdDyn (Single Straight $ OpenString str))
@@ -679,6 +682,9 @@ quarterStoppedString part str = (note $ Cue part Tutti stdDyn (Single Straight $
 
 stoppedString :: Part -> Pitch -> Score Dur Cue
 stoppedString part pitch = (note $ Cue part Tutti stdDyn (Single Straight $ StoppedString pitch I))
+
+stoppedStrings :: Part -> [(Dur, Pitch)] -> Score Dur Cue
+stoppedStrings part pitch = (note $ Cue part Tutti stdDyn (Phrase Phrasing $ map (\(d,x) -> (d, StoppedString x I)) pitch))
 
 pizzOpenString :: Part -> Str -> Score Dur Cue
 pizzOpenString part str = (note $ Cue part Tutti stdDyn (Pizz Straight $ OpenString str))
@@ -701,17 +707,52 @@ tremStopped part x y = (note $ Cue part Tutti stdDyn (Single Straight $ StoppedS
 
 
 
-Final composition
+Pitch material
 ----------
-
-
-
 \begin{code}
 
-test :: Score Dur Cue
-test = openStringJete (Viola 1) $ cycle (enumFromTo I IV)
-    
+type Scale = [Pitch]
+minScale = scaleFrom [0,2,1,2,2,1,2,2]
+majMinScale = (retrograde . invert) minScale ++ tail minScale
 
+
+
+scaleFrom :: [Pitch] -> Scale
+scaleFrom = List.reverse . foldl (\ys x -> x + (if (null ys) then 0 else head ys) : ys) []
+
+retrograde :: [Pitch] -> [Pitch]
+retrograde = List.reverse
+
+invert :: [Pitch] -> [Pitch]
+invert = map negate    
+    
+\end{code}
+
+\pagebreak
+
+
+
+
+
+
+Large form
+----------
+
+\begin{code}
+test :: Score Dur Cue
+test =   (stretch 7 $ stoppedStrings (Viola 1) $ zip ([1,1.1..]) (map (+67) majMinScale))
+     ||| (stretch 8 $ stoppedStrings (Viola 1) $ zip ([1,1.1..]) (map (+67) majMinScale))
+     ||| (stretch 9 $ stoppedStrings (Viola 1) $ zip ([1,1.1..]) (map (+67) majMinScale))
+     ||| (stretch 10 $ openString (Cello 1) III)
+     ||| (stretch 10 $ openString (Cello 2) II)
+
+--test =   (delay 0   . stretch 10) (tremStopped (Cello 1) 55 57)
+--     ||| (delay 0.2 . stretch 3) (tremStopped (Cello 1) 48 50)
+
+
+-- test = oj' ||| allOpenStrings
+--     where oj = openStringJete (Viola 1) $ cycle (enumFromTo I IV)
+--           oj' = before 10 (loop oj)
 
 
 allOpenStrings :: Score Dur Cue
