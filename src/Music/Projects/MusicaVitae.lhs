@@ -63,14 +63,22 @@ module Music.Projects.MusicaVitae
     Stopping(..),
     Stopped,
     Technique,
-    Cue(..),
 
+-- * Cues
+    Cue(..),
+    mapCuePart,      -- :: (Part -> Part)           -> Cue -> Cue
+    mapCueDoubling,  -- :: (Doubling -> Doubling)   -> Cue -> Cue
+    mapCueDynamics,  -- :: (Dynamics -> Dynamics)   -> Cue -> Cue
+    mapCueTechnique, -- :: (Technique -> Technique) -> Cue -> Cue
+    
 -- * Intonation
     Intonation(..),
     intonation,
+    cueIntonation,
+    raisedIntonation,
 
 -- * Rendering
---    renderCue
+    renderCue
 )
 where
 
@@ -475,6 +483,15 @@ data Cue
     }
     deriving ( Eq, Show )
 
+mapCuePart      :: (Part -> Part)           -> Cue -> Cue
+mapCueDoubling  :: (Doubling -> Doubling)   -> Cue -> Cue
+mapCueDynamics  :: (Dynamics -> Dynamics)   -> Cue -> Cue
+mapCueTechnique :: (Technique -> Technique) -> Cue -> Cue
+mapCuePart      f (Cue p d n t) = Cue (f p) d n t
+mapCueDoubling  f (Cue p d n t) = Cue p (f d) n t
+mapCueDynamics  f (Cue p d n t) = Cue p d (f n) t
+mapCueTechnique f (Cue p d n t) = Cue p d n (f t)
+
 \end{code}
 
 \pagebreak
@@ -491,9 +508,8 @@ We are going to compose the piece as a score of cues. In order to hear the piece
 and make musical decisions, we define a rendering function that renders a cue
 to a score of Midi notes.
 
-A caveat is that the Midi representation does not handle simultaneous tunings well.
-We must therefore separete the music into different Midi channels based on part, section
-and intontation.
+The `MidiNote` type is imported from `Music.Render.Midi`, but we define some
+extra type synonyms to make the rendering functions somewhat more readable:
 
 \begin{code}
 type MidiChannel    = Int
@@ -503,6 +519,13 @@ type MidiBend       = Semitones
 type MidiDynamic    = Int
 
 
+\end{code}
+
+A caveat is that the Midi representation does not handle simultaneous tunings well.
+We must therefore separete the music into different Midi channels based on part, section
+and intontation.
+
+\begin{code}
 midiChannel :: Cue -> MidiChannel
 midiChannel (Cue part doubling dynamics technique) =
     midiChannel' part section intonation'
@@ -533,6 +556,15 @@ midiChannel'  ( Viola  _ )  Low    Individual  =  4
 midiChannel'  ( Cello  _ )  Low    Individual  =  5
 
 
+\end{code}
+
+Instrument rendering is simple: if the technique is *pizzicato*, use the pizzicato 
+strings program, otherwise use the program representing the current instrument.
+
+(The standard programs give us solo sounds. We could mix in the *string ensemble* 
+program based on the doubling  attribute. I am not sure this is a good idea though.)
+
+\begin{code}
 midiInstrument :: Cue -> MidiInstrument
 midiInstrument (Cue part doubling dynamics technique) =  
     case technique of 
@@ -545,6 +577,11 @@ midiInstrument' ( Cello _ )   =  Just 42
 midiInstrument' DoubleBass    =  Just 43
 
 
+\end{code}
+
+Table of open string pitches.
+
+\begin{code}
 openStringPitch :: Part -> Str -> MidiPitch
 openStringPitch (Violin _) I    =  55
 openStringPitch (Violin _) II   =  62
@@ -564,6 +601,14 @@ openStringPitch DoubleBass III  =  38
 openStringPitch DoubleBass IV   =  43 
 
 
+\end{code}
+
+Determine amount of pitch bend (in semitones) from the part, doubling and technique.
+Note that the `cents` function converts a frequency to cents, so by subtracting the
+reference pitch from the intonation, we get the amount of bending in cents. Then
+divide this by 100 to get the amount in semitones.
+
+\begin{code}
 midiBend :: Cue -> MidiBend
 midiBend (Cue part doubling dynamics technique) = 
     midiBend' (intonation', cents')
@@ -577,11 +622,11 @@ midiBend' ( Tuning, c )     = getCent c / 100
 midiBend' ( Common, c )     = 0
 midiBend' ( Individual, c ) = 0
 
+\end{code}
 
+The `renderLeftHand` function returns a score of duration one, possibly containing tremolos.
 
---
--- New implementation
---
+\begin{code}
 
 renderLeftHand :: Part -> LeftHand Pitch Str -> TremoloScore Dur MidiNote
 renderLeftHand part (OpenString           s)      =  renderLeftHandSingle (openStringPitch part s)
@@ -593,16 +638,22 @@ renderLeftHand part (StoppedString        x s)    =  renderLeftHandSingle x
 renderLeftHand part (StoppedStringTrem    x y s)  =  renderLeftHandTrem x y
 renderLeftHand part (StoppedStringGliss   x y s)  =  renderLeftHandGliss
 
--- TODO gliss
+\end{code}
 
+TODO gliss.
+
+\begin{code}
 renderLeftHandSingle x   = note . Left  $ MidiNote 0 Nothing x 0 60
 renderLeftHandTrem   x y = note . Right $ tremoloBetween tremoloInterval (MidiNote 0 Nothing x 0 60) (MidiNote 0 Nothing y 0 60)
 renderLeftHandGliss      = error "Gliss not implemented"
 
 tremoloInterval = 0.08
 
--- TODO clean up this bit...
+\end{code}
 
+This section needs some cleanup.
+
+\begin{code}
 setMidiChannel :: MidiChannel -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
 setMidiChannel c = fmapE f g
     where f = (\(MidiNote _ i p b n) -> MidiNote c i p b n)
@@ -625,23 +676,30 @@ setMidiDynamic (Dynamics n) = tmapE f g
 
 
 renderCue :: Cue -> TremoloScore Dur MidiNote
-renderCue cue@(Cue part doubling dynamics technique) = case technique of
-    Pizz   art leftHand  -> postHoc $ renderLeftHand part leftHand
-    Single art leftHand  -> postHoc $ renderLeftHand part leftHand
-    Phrase art leftHand  -> postHoc $ stretchTo 1 . concatSeq . map (\(d, x) -> stretch d $ renderLeftHand part x) $ leftHand
-    Jete   art leftHand  -> postHoc $ stretchTo 1 . concatSeq . map (\(d, x) -> stretch d $ renderLeftHand part x) $ (zip bounceDur leftHand)
-    where                 
+renderCue cue@(Cue part doubling dynamics technique) = 
+    postHoc $ case technique of
+        Pizz   art leftHand  -> renderLeftHand part leftHand
+        Single art leftHand  -> renderLeftHand part leftHand
+        Phrase art leftHand  -> renderLeftHands leftHand
+        Jete   art leftHand  -> renderLeftHands (zip bounceDur leftHand)
+    where                                      
+        renderLeftHands   =  stretchTo 1 . concatSeq . map leftHands
+        leftHands (d, x)  =  stretch d $ renderLeftHand part x
+        
         channel    =  midiChannel cue
         instr      =  midiInstrument cue
         bend       =  midiBend cue 
+        
         postHoc    =  setMidiChannel channel 
                    .  setMidiInstrument instr 
                    .  setMidiBend bend 
                    .  setMidiDynamic dynamics
---
--- Rendering of jete bowing
---
 
+\end{code}
+
+Basic rendering of jeté bow strokes.
+
+\begin{code}
 bounceDur :: [Dur]
 bounceDur  =  [ (2 ** (-0.9 * x)) / 6 | x <- [0,0.1..1.2] ] 
 
@@ -649,6 +707,16 @@ bounceVel :: [Double]
 bounceVel  =  [ abs (1 - x) | x <- [0,0.08..]]
 
 
+\end{code}
+
+This instance makes it possible to use the `play` function on scores of cues:
+
+\begin{code}
+instance Render (Score Dur Cue) Midi where
+    render = render 
+           . restAfter 5 
+           . renderTremoloEvents 
+           . (>>= renderCue)
 \end{code}
 
 \pagebreak
@@ -665,20 +733,29 @@ High-level constructors
 ----------
 
 \begin{code}                                            
-stdDyn = cresc
-    
+stdDyn = cresc 
+
+-- Open strings    
+
 openString :: Part -> Str -> Score Dur Cue
 openString part str = (note $ Cue part Tutti stdDyn (Single Straight $ OpenString str))
 
 openStrings :: Part -> [(Dur, Str)] -> Score Dur Cue
 openStrings part str = (note $ Cue part Tutti stdDyn (Phrase Phrasing $ map (\(d,x) -> (d, OpenString x)) str))
 
+openStringPizz :: Part -> Str -> Score Dur Cue
+openStringPizz part str = (note $ Cue part Tutti stdDyn (Pizz Straight $ OpenString str))
+
 openStringJete :: Part -> [Str] -> Score Dur Cue
 openStringJete part str = (note $ Cue part Tutti stdDyn (Jete Phrasing $ map OpenString str))
 
 
+-- Quarter stopped strings
+
 quarterStoppedString :: Part -> Str -> Score Dur Cue
 quarterStoppedString part str = (note $ Cue part Tutti stdDyn (Single Straight $ QuarterStoppedString str))
+
+-- Stopped strings
 
 stoppedString :: Part -> Pitch -> Score Dur Cue
 stoppedString part pitch = (note $ Cue part Tutti stdDyn (Single Straight $ StoppedString pitch I))
@@ -686,19 +763,14 @@ stoppedString part pitch = (note $ Cue part Tutti stdDyn (Single Straight $ Stop
 stoppedStrings :: Part -> [(Dur, Pitch)] -> Score Dur Cue
 stoppedStrings part pitch = (note $ Cue part Tutti stdDyn (Phrase Phrasing $ map (\(d,x) -> (d, StoppedString x I)) pitch))
 
-pizzOpenString :: Part -> Str -> Score Dur Cue
-pizzOpenString part str = (note $ Cue part Tutti stdDyn (Pizz Straight $ OpenString str))
+stoppedStringPizz :: Part -> Pitch -> Score Dur Cue
+stoppedStringPizz part pitch = (note $ Cue part Tutti stdDyn (Pizz Straight $ StoppedString pitch I))
 
-pizzStoppedString :: Part -> Pitch -> Score Dur Cue
-pizzStoppedString part pitch = (note $ Cue part Tutti stdDyn (Pizz Straight $ StoppedString pitch I))
+-- Trem
 
+stoppedTrem :: Part -> Pitch -> Pitch -> Score Dur Cue
+stoppedTrem part x y = (note $ Cue part Tutti stdDyn (Single Straight $ StoppedStringTrem x y I))
 
-
-tremStopped :: Part -> Pitch -> Pitch -> Score Dur Cue
-tremStopped part x y = (note $ Cue part Tutti stdDyn (Single Straight $ StoppedStringTrem x y I))
-
--- jeteOpenString :: Part -> Str -> Score Dur Cue
--- jeteOpenString part str = (note $ Cue part Tutti stdDyn (Jete Phrasing $ cycleTimes 10 [OpenString str]))
       
 \end{code}
 
@@ -740,10 +812,11 @@ Large form
 
 \begin{code}
 test :: Score Dur Cue
-test =   (stretch 7 $ stoppedStrings (Viola 1) $ zip ([1,1.1..]) (map (+67) majMinScale))
-     ||| (stretch 8 $ stoppedStrings (Viola 1) $ zip ([1,1.1..]) (map (+67) majMinScale))
-     ||| (stretch 9 $ stoppedStrings (Viola 1) $ zip ([1,1.1..]) (map (+67) majMinScale))
-     ||| (stretch 10 $ openString (Cello 1) III)
+test =   
+     --     (stretch 7 $ stoppedStrings (Viola 1) $ zip ([1,1.1..]) (map (+67) majMinScale))
+     --  ||| (stretch 8 $ stoppedStrings (Viola 1) $ zip ([1,1.1..]) (map (+67) majMinScale))
+     --  ||| (stretch 9 $ stoppedStrings (Viola 1) $ zip ([1,1.1..]) (map (+67) majMinScale))
+         (stretch 10 $ openString (Cello 1) III)
      ||| (stretch 10 $ openString (Cello 2) II)
 
 --test =   (delay 0   . stretch 10) (tremStopped (Cello 1) 55 57)
@@ -763,23 +836,9 @@ allOpenStrings =
                                                     , part  <- [2,1]
                                                     , str   <- enumFrom I ]
 
-melody :: Score Dur Cue
-melody = stretch (1) $
---            ( note $ Cue (Viola 1) Tutti ppp (Jete Phrasing [OpenString s | s <- (take 50 $ cycle [III,IV]) ]) )
-            ( note $ Cue (Viola 1) Tutti p (Phrase Phrasing [(d, StoppedString p I) | d <- [1/2, 1/3], p <- (take 10 $ cycle [60,62]) ]) )
-       
 
 
--- instance Render (Score Dur Cue) Midi where
---     render = render . padAfter . (>>= renderCue)
---         where padAfter s = s >>> rest 5
-instance Render (Score Dur Cue) Midi where
-    render = render . padAfter . renderTremoloEvents . (>>= renderCue)
-        where padAfter s = s >>> rest 5
-
-
-
-main = writeMidi "Passager.mid" (render melody)
+main = writeMidi "Passager.mid" (render test)
 
 \end{code}
 
