@@ -43,12 +43,14 @@ module Music.Projects.MusicaVitae
     lowViolinParts, lowViolaParts, lowCelloParts,
     doubleBass,
     Doubling(..),
+    PartFunctor(..),
 
 -- ** Time and pitch
     Dur(..),
-    Pitch(..),
+    Pitch(..),  
+    Scale(..),
     Str(..),
-    PitchFunctor,
+    PitchFunctor(..),
 
 -- ** Dynamics
     Level(..),
@@ -56,7 +58,7 @@ module Music.Projects.MusicaVitae
     ppp, pp, p, mf, f, ff, fff,
     cresc, 
     dim,         
-    LevelFunctor,
+    LevelFunctor(..),
 
 -- ** Articulation
     Articulation(..),
@@ -81,14 +83,6 @@ module Music.Projects.MusicaVitae
 
 -- ** Cues
     Cue(..),
-    mapCuePart,
-    mapCueDoubling,
-    mapCueDynamics,
-    mapCueTechnique,
-    setCuePart,
-    setCueDoubling,
-    setCueDynamics,
-    setCueTechnique,
 
 -- * Rendering
     renderCue,
@@ -263,6 +257,23 @@ data Doubling = Solo | Tutti
 
 \end{code}
 
+The `PartFunctor` class defined useful operations for mapping over part and doubling.
+
+\begin{code}
+class PartFunctor f where
+    part        :: f -> Part
+    setPart     :: Part -> f -> f
+    mapPart     :: (Part -> Part) -> f -> f
+    
+    doubling    :: f -> Doubling
+    setDoubling :: Doubling -> f -> f
+    mapDoubling :: (Doubling -> Doubling) -> f -> f
+
+    setPart     x = mapPart (const x)
+    setDoubling x = mapDoubling (const x)
+
+\end{code}
+
 \pagebreak
 
 
@@ -288,19 +299,21 @@ to collide with `String`).
 \begin{code}
 type Pitch = Int
 
-class PitchFunctor f where
-    mapPitch :: (Pitch -> Pitch) -> f -> f
+data Str = I | II | III | IV
+    deriving ( Eq, Ord, Enum, Show )
 
+\end{code}
 
+A scale is conceptually a function from steps to pitches. This relation is captured by
+the `step` function, which maps steps to pitches. For example, `major 'step' 3` means
+the third step in the major scale.
+
+The simplest way to generate a scale is to list its relative steps, i.e. `2,2,2,1,2` for
+the first five pitches in the major scale. This is captured by the function `scaleFromSteps`.
+
+\begin{code}
 newtype Scale a = Scale { getScale :: [a] }
     deriving ( Eq, Show, Functor )
-
-instance PitchFunctor (Pitch) where
-    mapPitch f x = f x
-instance PitchFunctor (Scale Pitch) where
-    mapPitch f = fmap f
-instance PitchFunctor (Score t Pitch) where
-    mapPitch f = fmap f
 
 step :: Scale Pitch -> Pitch -> Pitch
 step (Scale xs) p = xs !! (p `mod` length xs)
@@ -311,9 +324,25 @@ scaleFromSteps = Scale . accum
         accum = snd . List.mapAccumL add 0
         add a x = (a + x, a + x)
 
-data Str = I | II | III | IV
-    deriving ( Eq, Ord, Enum, Show )
+\end{code}
 
+The `PitchFunctor` class defines a useful operation for mapping over pitch. This 
+generalizes to scales and scores containing pitched elements. 
+
+\begin{code}
+class PitchFunctor f where
+    setPitch :: Pitch -> f -> f
+    mapPitch :: (Pitch -> Pitch) -> f -> f
+    setPitch x = mapPitch (const x)
+
+instance PitchFunctor (Pitch) where
+    mapPitch f x = f x
+
+instance PitchFunctor (Scale Pitch) where
+    mapPitch f = fmap f
+
+instance PitchFunctor (Score t Pitch) where
+    mapPitch f = fmap f
 
 \end{code}
 
@@ -325,7 +354,7 @@ data Str = I | II | III | IV
 Dynamics
 ----------
 
-We use a simple linear representation for dynamics. Level 0 corresponds to some medium level
+We use a linear representation for dynamic levels. Level 0 corresponds to some medium level
 dynamic, level 1 to extremely loud and level -1 to extremely soft. A dynamic is a function
 from time to level, generalizing crescendo, diminuendo and so on.
 
@@ -359,7 +388,15 @@ instance Num Dynamics where
     fromInteger n                =  Dynamics (const $ fromInteger n)
 
 class LevelFunctor f where
+    setLevel :: Level -> f -> f
     mapLevel :: (Level -> Level) -> f -> f
+    setLevel x = mapLevel (const x)
+
+    -- setDynamics :: Dynamics -> f -> f
+    -- mapDynamics :: (t -> Level -> Level) -> f -> f
+
+instance LevelFunctor Dynamics where
+    mapLevel f (Dynamics n) = Dynamics (f . n)
 
 \end{code}
 
@@ -558,27 +595,30 @@ data Cue
     }
     deriving ( Eq, Show )
 
-mapCuePart      :: (Part -> Part)           -> Cue -> Cue
-mapCueDoubling  :: (Doubling -> Doubling)   -> Cue -> Cue
-mapCueDynamics  :: (Dynamics -> Dynamics)   -> Cue -> Cue
-mapCueTechnique :: (Technique -> Technique) -> Cue -> Cue
-
-mapCuePart      f (Cue p d n t) = Cue (f p) d n t
-mapCueDoubling  f (Cue p d n t) = Cue p (f d) n t
-mapCueDynamics  f (Cue p d n t) = Cue p d (f n) t
-mapCueTechnique f (Cue p d n t) = Cue p d n (f t)
-
-setCuePart p = mapCuePart (const p)
-setCueDoubling d = mapCueDoubling (const d)
-setCueDynamics n = mapCueDynamics (const n)
-setCueTechnique t = mapCueTechnique (const t)
+instance PartFunctor Cue where
+    part     (Cue p d n t) = p
+    doubling (Cue p d n t) = d
+    mapPart     f (Cue p d n t) = Cue (f p) d n t
+    mapDoubling f (Cue p d n t) = Cue p (f d) n t
 
 instance PitchFunctor Cue where
     mapPitch f (Cue p d n t) = Cue p d n (mapPitch f t)
 
+instance LevelFunctor Cue where
+    setLevel x (Cue p d n t) = Cue p d (setLevel x n) t
+    mapLevel f (Cue p d n t) = Cue p d (mapLevel f n) t
+
+instance (Time t, PartFunctor a) => PartFunctor (Score t a) where
+    part = error "PartFunctor.part: not defined for Score"
+    doubling = error "PartFunctor.part: not defined for Score"
+    mapPart f = fmap (mapPart f)
+    mapDoubling f = fmap (mapDoubling f)
+
 instance (Time t, PitchFunctor a) => PitchFunctor (Score t a) where
     mapPitch f = fmap (mapPitch f)
 
+instance (Time t, LevelFunctor a) => LevelFunctor (Score t a) where
+    mapLevel f = fmap (mapLevel f)
 
 \end{code}
 
@@ -697,7 +737,7 @@ openStringPitch DoubleBass IV   =  43
 
 \end{code}
 
-Determine amount of pitch bend (in semitones) from the part, doubling and technique.
+We determine amount of pitch bend from the part, doubling and technique.
 Note that the `cents` function converts a frequency to cents, so by subtracting the
 reference pitch from the intonation, we get the amount of bending in cents. Then
 divide this by 100 to get the amount in semitones.
@@ -721,6 +761,10 @@ midiBend' ( Individual, c ) = 0
 Left hand
 ----------
 The `renderLeftHand` function returns a score of duration one, possibly containing tremolos.
+This property is formalized by the use of a `TremoloScore`, i.e. a score containing either
+notes or tremolos.
+
+Note: Glissandos are not supported yet.
 
 \begin{code}
 
@@ -734,20 +778,32 @@ renderLeftHand part (StoppedString        x s)    =  renderLeftHandSingle x
 renderLeftHand part (StoppedStringTrem    x y s)  =  renderLeftHandTrem x y
 renderLeftHand part (StoppedStringGliss   x y s)  =  renderLeftHandGliss
 
-\end{code}
+renderLeftHandSingle x   =  note . Left  $ renderMidiNote x
+renderLeftHandTrem   x y =  note . Right $ tremoloBetween tremoloInterval (renderMidiNote x) (renderMidiNote y)
+renderLeftHandGliss      =  error "Gliss not implemented"
 
-TODO gliss.
-
-\begin{code}
-renderLeftHandSingle x   = note . Left  $ MidiNote 0 Nothing x 0 60
-renderLeftHandTrem   x y = note . Right $ tremoloBetween tremoloInterval (MidiNote 0 Nothing x 0 60) (MidiNote 0 Nothing y 0 60)
-renderLeftHandGliss      = error "Gliss not implemented"
-
+renderMidiNote x = MidiNote 0 Nothing x 0 60
 tremoloInterval = 0.08
 
+\end{code}      
+
+Right hand
+----------
+\begin{code}
+renderRightHand :: Part -> Technique -> TremoloScore Dur MidiNote
+renderRightHand part (Pizz   articulation leftHand)  = renderLeftHand part leftHand
+renderRightHand part (Single articulation leftHand)  = renderLeftHand part leftHand
+renderRightHand part (Phrase phrasing leftHand)      = renderLeftHands part leftHand
+renderRightHand part (Jete   phrasing leftHand)      = renderLeftHands part (zip bounceDur leftHand)
+
+renderLeftHands :: Part -> [(Dur, LeftHand Pitch Str)] -> TremoloScore Dur MidiNote
+renderLeftHands part =  stretchTo 1 . concatSeq . map leftHands
+    where
+        leftHands (d, x) = stretch d $ renderLeftHand part x
+    
 \end{code}
 
-Right hand and cues
+Cues
 ------
 
 This section needs some cleanup.
@@ -773,33 +829,22 @@ setMidiDynamic (Dynamics n) = tmapE f g
     where f = (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63))
           g = (\t x -> tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63)) x)
 
-renderRightHand :: Part -> Technique -> TremoloScore Dur MidiNote
-renderRightHand part (Pizz   articulation leftHand)  = renderLeftHand part leftHand
-renderRightHand part (Single articulation leftHand)  = renderLeftHand part leftHand
-renderRightHand part (Phrase phrasing leftHand)      = renderLeftHands part leftHand
-renderRightHand part (Jete   phrasing leftHand)      = renderLeftHands part (zip bounceDur leftHand)
-
-renderLeftHands :: Part -> [(Dur, LeftHand Pitch Str)] -> TremoloScore Dur MidiNote
-renderLeftHands part =  stretchTo 1 . concatSeq . map leftHands
-    where
-        leftHands (d, x)  =  stretch d $ renderLeftHand part x
-
 renderCue :: Cue -> TremoloScore Dur MidiNote
 renderCue cue =
     renderRest $ renderRightHand (cuePart cue) (cueTechnique cue)
     where
-        channel    =  midiChannel cue
-        instr      =  midiInstrument cue
-        bend       =  midiBend cue
+        channel     =  midiChannel cue
+        instr       =  midiInstrument cue
+        bend        =  midiBend cue
 
-        renderRest =  setMidiChannel channel
-                   .  setMidiInstrument instr
-                   .  setMidiBend bend
-                   .  setMidiDynamic (cueDynamics cue)
+        renderRest  =  setMidiChannel channel
+                    .  setMidiInstrument instr
+                    .  setMidiBend bend
+                    .  setMidiDynamic (cueDynamics cue)
 
 \end{code}
 
-Basic rendering of jeté bow strokes.
+Some constants used for the rendering of jeté strokes.
 
 \begin{code}
 bounceDur :: [Dur]
@@ -843,7 +888,7 @@ standardPhrasing      =  Phrasing
 \end{code}
 
 These can be overriden using the methods of the type classes `Temporal`, `Timed`, `Delayed`,
-`PartFunctor`, `DoublingFunctor`, `PitchFunctor`, `Articulated` and `Phrased` respectively.
+`PartFunctor`, `PitchFunctor`, `LevelFunctor`, `Articulated` and `Phrased` respectively.
 
 Open Strings
 ----------
@@ -984,7 +1029,7 @@ pattern :: Int -> Pattern
 pattern = (patterns !!)
 
 -- Play using 
---     play . patternMelody . pattern $ 0
+--     play . patternMelody $ pattern 0
 patterns = 
     [
         [(3, 0), (3, 1)], 
@@ -1003,8 +1048,6 @@ patternMelody x = stretch (scaling x / 2) . mapPitch tonality . stoppedStrings $
         scale  = (majMinScale `step`)
         offset = (+ 57)
 
-test =   (stretch 4 . fmap (setCueDynamics ff) . patternMelody $ patterns !! 0)
-     ||| (stretch 4 . fmap (setCueDynamics ff) . patternMelody $ patterns !! 1)
 
 
 \end{code}
@@ -1021,12 +1064,16 @@ Form
 
 \begin{code}
 test :: Score Dur Cue
+
+test =   (patternMelody $ pattern 0)
+     ||| (patternMelody $ pattern 1)
+
 -- test = 
---          (stretch 7  . fmap (setCueDynamics f) . stoppedStrings $ zip ([1,1.1..]) ps)
---     ||| (stretch 8  . fmap (setCueDynamics f) . stoppedStrings $ zip ([1,1.1..]) ps)
---     ||| (stretch 9  . fmap (setCueDynamics f) . stoppedStrings $ zip ([1,1.1..]) ps)
---     ||| (stretch 10 . fmap (setCueDynamics p) $ openString III)
---     ||| (stretch 10 . fmap (setCueDynamics p) $ openString II)
+--          (stretch 7  . setDynamics f . stoppedStrings $ zip ([1,1.1..]) ps)
+--     ||| (stretch 8  . setDynamics f . stoppedStrings $ zip ([1,1.1..]) ps)
+--     ||| (stretch 9  . setDynamics f . stoppedStrings $ zip ([1,1.1..]) ps)
+--     ||| (stretch 10 . setDynamics f $ openString III)
+--     ||| (stretch 10 . setDynamics f $ openString II)
 --     where ps = map ((+ 69) . (majMinScale `step`)) [0..14]
 
 --test =   (delay 0   . stretch 10) (tremStopped (Cello 1) 55 57)
