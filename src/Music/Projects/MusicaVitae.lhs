@@ -93,9 +93,15 @@ module Music.Projects.MusicaVitae
 -- * High-level composition
 -- ** Open strings
     openString,
-    openStrings,
     openStringPizz,
     openStringJete,
+    openStrings,
+
+-- ** Natural harmonics
+    naturalHarmonic,
+    naturalHarmonicPizz,
+    naturalHarmonicJete,
+    naturalHarmonics,
 
 -- ** Quarter stopped strings
     quarterStoppedString,
@@ -103,8 +109,9 @@ module Music.Projects.MusicaVitae
 
 -- ** Stopped strings
     stoppedString,
-    stoppedStrings,
     stoppedStringPizz,
+    stoppedStringJete,
+    stoppedStrings,
 )
 where
 
@@ -385,11 +392,11 @@ data RightHand t c r a
     deriving ( Eq, Show )
 
 data LeftHand p s
-    = OpenString s
-    | QuarterStoppedString  s
+    = OpenString            s
     | NaturalHarmonic       p s
     | NaturalHarmonicTrem   p p s
     | NaturalHarmonicGliss  p p s
+    | QuarterStoppedString  s
     | StoppedString         p s
     | StoppedStringTrem     p p s
     | StoppedStringGliss    p p s
@@ -775,91 +782,117 @@ Allthough the *cues* defined in the previous chapters is a flexible representati
 orchestral piece, they are also very verbose and cubersome to construct. This is easily
 solved by adding some higher-level constructors.
 
+The constructors all create *standard cues* with the following definition:
+
+\begin{code}
+standardCue = note . Cue (Violin 1) Tutti mf
+\end{code}
+
+The `cueSet...` family of functors along with `fmap` can be used to change these default
+values.
 
 Open Strings
 ----------
 \begin{code}
-openString :: Part -> Str -> Score Dur Cue
-openString part str = 
-    note $ Cue part Tutti mf 
-         $ Single Straight 
-         $ OpenString str
+openString :: Str -> Score Dur Cue
+openString x = standardCue 
+    $ Single Straight 
+    $ OpenString x
 
-openStrings :: Part -> [(Dur, Str)] -> Score Dur Cue
-openStrings part str = 
-    note $ Cue part Tutti mf 
-         $ Phrase Phrasing 
-         $ map (\(d,x) -> (d, OpenString x)) str
+openStringPizz :: Str -> Score Dur Cue
+openStringPizz x = standardCue
+     $ Pizz Straight 
+     $ OpenString x
 
-openStringPizz :: Part -> Str -> Score Dur Cue
-openStringPizz part str = 
-    note $ Cue part Tutti mf 
-         $ Pizz Straight 
-         $ OpenString str
+openStringJete :: [Str] -> Score Dur Cue
+openStringJete xs = standardCue
+     $ Jete Phrasing 
+     $ map OpenString xs
 
-openStringJete :: Part -> [Str] -> Score Dur Cue
-openStringJete part strs = 
-    note $ Cue part Tutti mf 
-         $ Jete Phrasing 
-         $ map OpenString strs
+openStrings :: [(Dur, Str)] -> Score Dur Cue
+openStrings xs = standardCue
+     $ Phrase Phrasing 
+     $ map (\(d,x) -> (d, OpenString x)) xs
+
+
+\end{code}
+Natural harmonics
+----------
+\begin{code}
+naturalHarmonic :: Pitch -> Score Dur Cue
+naturalHarmonic x = standardCue
+     $ Single Straight 
+     $ NaturalHarmonic x I
+
+naturalHarmonicPizz :: Pitch -> Score Dur Cue
+naturalHarmonicPizz x = standardCue
+     $ Pizz Straight 
+     $ NaturalHarmonic x I
+
+naturalHarmonicJete :: [Pitch] -> Score Dur Cue
+naturalHarmonicJete xs = standardCue
+     $ Jete Phrasing 
+     $ map (\x -> NaturalHarmonic x I) xs
+
+naturalHarmonics :: [(Dur, Pitch)] -> Score Dur Cue
+naturalHarmonics pitch = standardCue
+     $ Phrase Phrasing 
+     $ map (\(d,x) -> (d, NaturalHarmonic x I)) pitch
 
 
 \end{code}
 Quarter stopped strings
 ----------
 \begin{code}
-quarterStoppedString :: Part -> Str -> Score Dur Cue
-quarterStoppedString part str = 
-    note $ Cue part Tutti mf 
-         $ Single Straight 
-         $ QuarterStoppedString str
+quarterStoppedString :: Str -> Score Dur Cue
+quarterStoppedString x = standardCue
+     $ Single Straight 
+     $ QuarterStoppedString x
 
-quarterStoppedStrings :: Part -> [(Dur, Str)] -> Score Dur Cue
-quarterStoppedStrings part str = 
-    note $ Cue part Tutti mf 
-         $ Phrase Phrasing 
-         $ map (\(d,x) -> (d, QuarterStoppedString x)) str
+quarterStoppedStrings :: [(Dur, Str)] -> Score Dur Cue
+quarterStoppedStrings xs = standardCue
+     $ Phrase Phrasing 
+     $ map (\(d, x) -> (d, QuarterStoppedString x)) xs
+
 
 \end{code}
 Stopped strings
 ----------
 \begin{code}
-stoppedString :: Part -> Pitch -> Score Dur Cue
-stoppedString part pitch = 
-    note $ Cue part Tutti mf 
-         $ Single Straight 
-         $ StoppedString pitch I
+stoppedString :: Pitch -> Score Dur Cue
+stoppedString x = standardCue
+     $ Single Straight 
+     $ StoppedString x I
 
-stoppedStrings :: Part -> [(Dur, Pitch)] -> Score Dur Cue
-stoppedStrings part pitch = 
-    note $ Cue part Tutti mf 
-         $ Phrase Phrasing 
-         $ map (\(d,x) -> (d, StoppedString x I)) pitch
+stoppedStringPizz :: Pitch -> Score Dur Cue
+stoppedStringPizz x = standardCue
+     $ Pizz Straight 
+     $ StoppedString x I
 
-stoppedStringPizz :: Part -> Pitch -> Score Dur Cue
-stoppedStringPizz part pitch = 
-    note $ Cue part Tutti mf 
-         $ Pizz Straight 
-         $ StoppedString pitch I
+stoppedStringJete :: [Pitch] -> Score Dur Cue
+stoppedStringJete xs = standardCue
+     $ Jete Phrasing 
+     $ map (\x -> StoppedString x I) xs
 
-stoppedStringJete :: Part -> [Pitch] -> Score Dur Cue
-stoppedStringJete part pitches = 
-    note $ Cue part Tutti mf 
-         $ Jete Phrasing 
-         $ map (\p -> StoppedString p I) pitches
+stoppedStrings :: [(Dur, Pitch)] -> Score Dur Cue
+stoppedStrings xs = standardCue
+     $ Phrase Phrasing 
+     $ map (\(d, x) -> (d, StoppedString x I)) xs
 
-
-\end{code}
-Harmonics
-----------
-\begin{code}
-
+                                 
 \end{code}
 Tremolo
 ----------
 \begin{code}
-stoppedTrem :: Part -> Pitch -> Pitch -> Score Dur Cue
-stoppedTrem part x y = (note $ Cue part Tutti mf (Single Straight $ StoppedStringTrem x y I))
+stoppedStringTrem :: Pitch -> Pitch -> Score Dur Cue
+stoppedStringTrem x y = standardCue
+     $ Single Straight 
+     $ StoppedStringTrem x y I
+
+naturalHarmonicTrem :: Pitch -> Pitch -> Score Dur Cue
+naturalHarmonicTrem x y = standardCue
+     $ Single Straight 
+     $ NaturalHarmonicTrem x y I
 
 \end{code}
 
@@ -893,6 +926,15 @@ retrograde = List.reverse
 invert :: [Pitch] -> [Pitch]
 invert = map negate
 
+
+
+
+
+
+
+
+
+
 \end{code}
 
 \pagebreak
@@ -908,11 +950,11 @@ Form
 \begin{code}
 test :: Score Dur Cue
 test =
-     --     (stretch 7 $ stoppedStrings (Viola 1) $ zip ([1,1.1..]) (map (+67) majMinScale))
-     --  ||| (stretch 8 $ stoppedStrings (Viola 1) $ zip ([1,1.1..]) (map (+67) majMinScale))
-     --  ||| (stretch 9 $ stoppedStrings (Viola 1) $ zip ([1,1.1..]) (map (+67) majMinScale))
-         (stretch 10 $ openString (Cello 1) III)
-     ||| (stretch 10 $ openString (Cello 2) II)
+         (stretch 7  . fmap (setCueDynamics f) . stoppedStrings $ zip ([1,1.1..]) (map (+67) majMinScale))
+     ||| (stretch 8  . fmap (setCueDynamics f) . stoppedStrings $ zip ([1,1.1..]) (map (+67) majMinScale))
+     ||| (stretch 9  . fmap (setCueDynamics f) . stoppedStrings $ zip ([1,1.1..]) (map (+67) majMinScale))
+     ||| (stretch 10 . fmap (setCueDynamics p) $ openString III)
+     ||| (stretch 10 . fmap (setCueDynamics p) $ openString II)
 
 --test =   (delay 0   . stretch 10) (tremStopped (Cello 1) 55 57)
 --     ||| (delay 0.2 . stretch 3) (tremStopped (Cello 1) 48 50)
@@ -923,13 +965,13 @@ test =
 --           oj' = before 10 (loop oj)
 
 
-allOpenStrings :: Score Dur Cue
-allOpenStrings =
-    stretch (1/3)
-        $   concatSeq [ openString DoubleBass   str | str <- enumFrom I ]
-        >>> concatSeq [ openString (instr part) str | instr <- [Cello, Viola, Violin]
-                                                    , part  <- [2,1]
-                                                    , str   <- enumFrom I ]
+-- allOpenStrings :: Score Dur Cue
+-- allOpenStrings =
+--     stretch (1/3)
+--         $   concatSeq [ openString DoubleBass   str | str <- enumFrom I ]
+--         >>> concatSeq [ openString (instr part) str | instr <- [Cello, Viola, Violin]
+--                                                     , part  <- [2,1]
+--                                                     , str   <- enumFrom I ]
 
 
 
