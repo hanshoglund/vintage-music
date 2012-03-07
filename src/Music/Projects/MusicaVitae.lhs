@@ -54,7 +54,6 @@ module Music.Projects.MusicaVitae
     ppp, pp, p, mf, f, ff, fff,
     cresc, 
     dim,
-    unitDynamic,
 
 -- ** Articulation
     Articulation(..),
@@ -317,8 +316,6 @@ cresc, dim :: Dynamics
 cresc = Dynamics id
 dim   = Dynamics (succ . negate)
 
-unitDynamic = mf
-
 
 instance Num Dynamics where
     (Dynamics x) + (Dynamics y)  =  Dynamics (\t -> x t + y t)
@@ -554,6 +551,8 @@ type MidiDynamic    = Int
 
 
 \end{code}
+Channel
+----------
 
 A caveat is that the Midi representation does not handle simultaneous tunings well.
 We must therefore separete the music into different Midi channels based on part, section
@@ -591,6 +590,8 @@ midiChannel'  ( Cello  _ )  Low    Individual  =  5
 
 
 \end{code}
+Instrument
+----------
 
 Instrument rendering is simple: if the technique is *pizzicato*, use the pizzicato
 strings program, otherwise use the program representing the current instrument.
@@ -612,6 +613,8 @@ midiInstrument' DoubleBass    =  Just 43
 
 
 \end{code}
+Pitch and bending
+----------
 
 Table of open string pitches.
 
@@ -658,6 +661,8 @@ midiBend' ( Individual, c ) = 0
 
 \end{code}
 
+Left hand
+----------
 The `renderLeftHand` function returns a score of duration one, possibly containing tremolos.
 
 \begin{code}
@@ -708,6 +713,10 @@ setMidiDynamic (Dynamics n) = tmapE f g
     where f = (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63))
           g = (\t x -> tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63)) x)
 
+\end{code}
+Right hand and cues
+------
+\begin{code}
 
 renderCue :: Cue -> TremoloScore Dur MidiNote
 renderCue cue@(Cue part doubling dynamics technique) =
@@ -771,16 +780,28 @@ Open Strings
 ----------
 \begin{code}
 openString :: Part -> Str -> Score Dur Cue
-openString part str = (note $ Cue part Tutti unitDynamic (Single Straight $ OpenString str))
+openString part str = 
+    note $ Cue part Tutti mf 
+         $ Single Straight 
+         $ OpenString str
 
 openStrings :: Part -> [(Dur, Str)] -> Score Dur Cue
-openStrings part str = (note $ Cue part Tutti unitDynamic (Phrase Phrasing $ map (\(d,x) -> (d, OpenString x)) str))
+openStrings part str = 
+    note $ Cue part Tutti mf 
+         $ Phrase Phrasing 
+         $ map (\(d,x) -> (d, OpenString x)) str
 
 openStringPizz :: Part -> Str -> Score Dur Cue
-openStringPizz part str = (note $ Cue part Tutti unitDynamic (Pizz Straight $ OpenString str))
+openStringPizz part str = 
+    note $ Cue part Tutti mf 
+         $ Pizz Straight 
+         $ OpenString str
 
 openStringJete :: Part -> [Str] -> Score Dur Cue
-openStringJete part strs = (note $ Cue part Tutti unitDynamic (Jete Phrasing $ map OpenString strs))
+openStringJete part strs = 
+    note $ Cue part Tutti mf 
+         $ Jete Phrasing 
+         $ map OpenString strs
 
 
 \end{code}
@@ -788,26 +809,44 @@ Quarter stopped strings
 ----------
 \begin{code}
 quarterStoppedString :: Part -> Str -> Score Dur Cue
-quarterStoppedString part str = (note $ Cue part Tutti unitDynamic (Single Straight $ QuarterStoppedString str))
+quarterStoppedString part str = 
+    note $ Cue part Tutti mf 
+         $ Single Straight 
+         $ QuarterStoppedString str
 
 quarterStoppedStrings :: Part -> [(Dur, Str)] -> Score Dur Cue
-quarterStoppedStrings part str = (note $ Cue part Tutti unitDynamic (Phrase Phrasing $ map (\(d,x) -> (d, QuarterStoppedString x)) str))
+quarterStoppedStrings part str = 
+    note $ Cue part Tutti mf 
+         $ Phrase Phrasing 
+         $ map (\(d,x) -> (d, QuarterStoppedString x)) str
 
 \end{code}
 Stopped strings
 ----------
 \begin{code}
 stoppedString :: Part -> Pitch -> Score Dur Cue
-stoppedString part pitch = (note $ Cue part Tutti unitDynamic (Single Straight $ StoppedString pitch I))
+stoppedString part pitch = 
+    note $ Cue part Tutti mf 
+         $ Single Straight 
+         $ StoppedString pitch I
 
 stoppedStrings :: Part -> [(Dur, Pitch)] -> Score Dur Cue
-stoppedStrings part pitch = (note $ Cue part Tutti unitDynamic (Phrase Phrasing $ map (\(d,x) -> (d, StoppedString x I)) pitch))
+stoppedStrings part pitch = 
+    note $ Cue part Tutti mf 
+         $ Phrase Phrasing 
+         $ map (\(d,x) -> (d, StoppedString x I)) pitch
 
 stoppedStringPizz :: Part -> Pitch -> Score Dur Cue
-stoppedStringPizz part pitch = (note $ Cue part Tutti unitDynamic (Pizz Straight $ StoppedString pitch I))
+stoppedStringPizz part pitch = 
+    note $ Cue part Tutti mf 
+         $ Pizz Straight 
+         $ StoppedString pitch I
 
 stoppedStringJete :: Part -> [Pitch] -> Score Dur Cue
-stoppedStringJete part pitches = (note $ Cue part Tutti unitDynamic (Jete Phrasing $ map (\p -> StoppedString p I) pitches))
+stoppedStringJete part pitches = 
+    note $ Cue part Tutti mf 
+         $ Jete Phrasing 
+         $ map (\p -> StoppedString p I) pitches
 
 
 \end{code}
@@ -820,7 +859,7 @@ Tremolo
 ----------
 \begin{code}
 stoppedTrem :: Part -> Pitch -> Pitch -> Score Dur Cue
-stoppedTrem part x y = (note $ Cue part Tutti unitDynamic (Single Straight $ StoppedStringTrem x y I))
+stoppedTrem part x y = (note $ Cue part Tutti mf (Single Straight $ StoppedStringTrem x y I))
 
 \end{code}
 
