@@ -747,6 +747,9 @@ tremoloInterval = 0.08
 
 \end{code}
 
+Right hand and cues
+------
+
 This section needs some cleanup.
 
 \begin{code}
@@ -770,30 +773,29 @@ setMidiDynamic (Dynamics n) = tmapE f g
     where f = (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63))
           g = (\t x -> tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63)) x)
 
-\end{code}
-Right hand and cues
-------
-\begin{code}
+renderRightHand :: Part -> Technique -> TremoloScore Dur MidiNote
+renderRightHand part (Pizz   articulation leftHand)  = renderLeftHand part leftHand
+renderRightHand part (Single articulation leftHand)  = renderLeftHand part leftHand
+renderRightHand part (Phrase phrasing leftHand)      = renderLeftHands part leftHand
+renderRightHand part (Jete   phrasing leftHand)      = renderLeftHands part (zip bounceDur leftHand)
 
-renderCue :: Cue -> TremoloScore Dur MidiNote
-renderCue cue@(Cue part doubling dynamics technique) =
-    postHoc $ case technique of
-        Pizz   art leftHand  -> renderLeftHand part leftHand
-        Single art leftHand  -> renderLeftHand part leftHand
-        Phrase art leftHand  -> renderLeftHands leftHand
-        Jete   art leftHand  -> renderLeftHands (zip bounceDur leftHand)
+renderLeftHands :: Part -> [(Dur, LeftHand Pitch Str)] -> TremoloScore Dur MidiNote
+renderLeftHands part =  stretchTo 1 . concatSeq . map leftHands
     where
-        renderLeftHands   =  stretchTo 1 . concatSeq . map leftHands
         leftHands (d, x)  =  stretch d $ renderLeftHand part x
 
+renderCue :: Cue -> TremoloScore Dur MidiNote
+renderCue cue =
+    renderRest $ renderRightHand (cuePart cue) (cueTechnique cue)
+    where
         channel    =  midiChannel cue
         instr      =  midiInstrument cue
         bend       =  midiBend cue
 
-        postHoc    =  setMidiChannel channel
+        renderRest =  setMidiChannel channel
                    .  setMidiInstrument instr
                    .  setMidiBend bend
-                   .  setMidiDynamic dynamics
+                   .  setMidiDynamic (cueDynamics cue)
 
 \end{code}
 
@@ -832,36 +834,38 @@ Allthough the *cues* defined in the previous chapters is a flexible representati
 orchestral piece, they are also very verbose and cubersome to construct. This is easily
 solved by adding some higher-level constructors.
 
-The constructors all create *standard cues* with the following definition:
+The constructors all create *standard cues* with the following definitions:
 
 \begin{code}
-standardCue = note . Cue (Violin 1) Tutti mf
+standardCue           =  note . Cue (Violin 1) Tutti mf
+standardArticulation  =  Straight
+standardPhrasing      =  Phrasing
 \end{code}
 
-The `cueSet...` family of functors along with `fmap` can be used to change these default
-values.
+These can be overriden using the methods of the type classes `Temporal`, `Timed`, `Delayed`,
+`PartFunctor`, `DoublingFunctor`, `PitchFunctor`, `Articulated` and `Phrased` respectively.
 
 Open Strings
 ----------
 \begin{code}
 openString :: Str -> Score Dur Cue
 openString x = standardCue 
-    $ Single Straight 
+    $ Single standardArticulation 
     $ OpenString x
 
 openStringPizz :: Str -> Score Dur Cue
 openStringPizz x = standardCue
-     $ Pizz Straight 
+     $ Pizz standardArticulation 
      $ OpenString x
 
 openStringJete :: [Str] -> Score Dur Cue
 openStringJete xs = standardCue
-     $ Jete Phrasing 
+     $ Jete standardPhrasing 
      $ map OpenString xs
 
 openStrings :: [(Dur, Str)] -> Score Dur Cue
 openStrings xs = standardCue
-     $ Phrase Phrasing 
+     $ Phrase standardPhrasing 
      $ map (\(d,x) -> (d, OpenString x)) xs
 
 
@@ -871,22 +875,22 @@ Natural harmonics
 \begin{code}
 naturalHarmonic :: Pitch -> Score Dur Cue
 naturalHarmonic x = standardCue
-     $ Single Straight 
+     $ Single standardArticulation 
      $ NaturalHarmonic x I
 
 naturalHarmonicPizz :: Pitch -> Score Dur Cue
 naturalHarmonicPizz x = standardCue
-     $ Pizz Straight 
+     $ Pizz standardArticulation 
      $ NaturalHarmonic x I
 
 naturalHarmonicJete :: [Pitch] -> Score Dur Cue
 naturalHarmonicJete xs = standardCue
-     $ Jete Phrasing 
+     $ Jete standardPhrasing 
      $ map (\x -> NaturalHarmonic x I) xs
 
 naturalHarmonics :: [(Dur, Pitch)] -> Score Dur Cue
 naturalHarmonics pitch = standardCue
-     $ Phrase Phrasing 
+     $ Phrase standardPhrasing 
      $ map (\(d,x) -> (d, NaturalHarmonic x I)) pitch
 
 
@@ -896,12 +900,12 @@ Quarter stopped strings
 \begin{code}
 quarterStoppedString :: Str -> Score Dur Cue
 quarterStoppedString x = standardCue
-     $ Single Straight 
+     $ Single standardArticulation 
      $ QuarterStoppedString x
 
 quarterStoppedStrings :: [(Dur, Str)] -> Score Dur Cue
 quarterStoppedStrings xs = standardCue
-     $ Phrase Phrasing 
+     $ Phrase standardPhrasing 
      $ map (\(d, x) -> (d, QuarterStoppedString x)) xs
 
 
@@ -911,22 +915,22 @@ Stopped strings
 \begin{code}
 stoppedString :: Pitch -> Score Dur Cue
 stoppedString x = standardCue
-     $ Single Straight 
+     $ Single standardArticulation 
      $ StoppedString x I
 
 stoppedStringPizz :: Pitch -> Score Dur Cue
 stoppedStringPizz x = standardCue
-     $ Pizz Straight 
+     $ Pizz standardArticulation 
      $ StoppedString x I
 
 stoppedStringJete :: [Pitch] -> Score Dur Cue
 stoppedStringJete xs = standardCue
-     $ Jete Phrasing 
+     $ Jete standardPhrasing 
      $ map (\x -> StoppedString x I) xs
 
 stoppedStrings :: [(Dur, Pitch)] -> Score Dur Cue
 stoppedStrings xs = standardCue
-     $ Phrase Phrasing 
+     $ Phrase standardPhrasing 
      $ map (\(d, x) -> (d, StoppedString x I)) xs
 
                                  
@@ -936,12 +940,12 @@ Tremolo
 \begin{code}
 stoppedStringTrem :: Pitch -> Pitch -> Score Dur Cue
 stoppedStringTrem x y = standardCue
-     $ Single Straight 
+     $ Single standardArticulation 
      $ StoppedStringTrem x y I
 
 naturalHarmonicTrem :: Pitch -> Pitch -> Score Dur Cue
 naturalHarmonicTrem x y = standardCue
-     $ Single Straight 
+     $ Single standardArticulation 
      $ NaturalHarmonicTrem x y I
 
 \end{code}
@@ -975,16 +979,25 @@ majMinScale = Scale $ getScale lower ++ getScale upper
 
 
 type Pattern =  [(Dur, Pitch)]
-patterns :: [Pattern]
+
+pattern :: Int -> Pattern
+pattern = (patterns !!)
+
+-- Play using 
+--     play . patternMelody . pattern $ 0
 patterns = 
     [
-        [(2, 0), (3, 1), (3, 0)], 
-        [(1, 0), (1, 1), (1, 1), (1, 2), (3, 0), (3, 1)]
+        [(3, 0), (3, 1)], 
+        [(1, 0), (1, 1), (1, 1), (1, 2), (3, 0), (3, 1)],
+        [(1, 0), (1, 1), (1, 1), (2, 2), (1, 3), (1, 3), (3, 0), (3, 1)]
     ]
+
+
                  
 patternMelody :: Pattern -> Score Dur Cue
-patternMelody = mapPitch tonality . stoppedStrings
+patternMelody x = stretch (scaling x / 2) . mapPitch tonality . stoppedStrings $ x
     where                
+        scaling = sum . map fst
         tonality = offset . scale . tonic
         tonic  = (+ 7)
         scale  = (majMinScale `step`)
