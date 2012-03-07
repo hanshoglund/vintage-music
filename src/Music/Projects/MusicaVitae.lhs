@@ -22,7 +22,8 @@ playback of intonation, use a sampler that support Midi Tuning Standard, such as
 {-# LANGUAGE
     TypeSynonymInstances,
     FlexibleInstances,
-    MultiParamTypeClasses #-}
+    MultiParamTypeClasses,
+    DeriveFunctor #-}
 
 module Music.Projects.MusicaVitae
 (
@@ -47,13 +48,15 @@ module Music.Projects.MusicaVitae
     Dur(..),
     Pitch(..),
     Str(..),
+    PitchFunctor,
 
 -- ** Dynamics
     Level(..),
     Dynamics(..),
     ppp, pp, p, mf, f, ff, fff,
     cresc, 
-    dim,
+    dim,         
+    LevelFunctor,
 
 -- ** Articulation
     Articulation(..),
@@ -117,6 +120,7 @@ where
 
 import Prelude hiding ( reverse )
 
+import Control.Applicative
 import Data.Convert ( convert )
 import qualified Data.List as List
 
@@ -284,8 +288,32 @@ to collide with `String`).
 \begin{code}
 type Pitch = Int
 
+class PitchFunctor f where
+    mapPitch :: (Pitch -> Pitch) -> f -> f
+
+
+newtype Scale a = Scale { getScale :: [a] }
+    deriving ( Eq, Show, Functor )
+
+instance PitchFunctor (Pitch) where
+    mapPitch f x = f x
+instance PitchFunctor (Scale Pitch) where
+    mapPitch f = fmap f
+instance PitchFunctor (Score t Pitch) where
+    mapPitch f = fmap f
+
+step :: Scale Pitch -> Pitch -> Pitch
+step (Scale xs) p = xs !! (p `mod` length xs)
+
+scaleFromSteps :: [Pitch] -> Scale Pitch
+scaleFromSteps = Scale . accum
+    where
+        accum = snd . List.mapAccumL add 0
+        add a x = (a + x, a + x)
+
 data Str = I | II | III | IV
     deriving ( Eq, Ord, Enum, Show )
+
 
 \end{code}
 
@@ -323,13 +351,15 @@ cresc, dim :: Dynamics
 cresc = Dynamics id
 dim   = Dynamics (succ . negate)
 
-
 instance Num Dynamics where
     (Dynamics x) + (Dynamics y)  =  Dynamics (\t -> x t + y t)
     (Dynamics x) * (Dynamics y)  =  Dynamics (\t -> x t * y t)
     signum (Dynamics x)          =  Dynamics (signum . x)
     abs (Dynamics x)             =  Dynamics (abs . x)
     fromInteger n                =  Dynamics (const $ fromInteger n)
+
+class LevelFunctor f where
+    mapLevel :: (Level -> Level) -> f -> f
 
 \end{code}
 
@@ -418,20 +448,33 @@ class Stopped a where
     stopping :: a -> Stopping
 
 instance Stopped (LeftHand p s) where
-    stopping ( OpenString           _     ) = Open
-    stopping ( NaturalHarmonic      _ _   ) = Open
-    stopping ( NaturalHarmonicTrem  _ _ _ ) = Open
-    stopping ( NaturalHarmonicGliss _ _ _ ) = Open
-    stopping ( QuarterStoppedString _     ) = QuarterStopped
-    stopping ( StoppedString        _ _   ) = Stopped
-    stopping ( StoppedStringTrem    _ _ _ ) = Stopped
-    stopping ( StoppedStringGliss   _ _ _ ) = Stopped
+    stopping ( OpenString           s     ) = Open
+    stopping ( NaturalHarmonic      x s   ) = Open
+    stopping ( NaturalHarmonicTrem  x y s ) = Open
+    stopping ( NaturalHarmonicGliss x y s ) = Open
+    stopping ( QuarterStoppedString s     ) = QuarterStopped
+    stopping ( StoppedString        x s   ) = Stopped
+    stopping ( StoppedStringTrem    x y s ) = Stopped
+    stopping ( StoppedStringGliss   x y s ) = Stopped
 
 instance Stopped a => Stopped (RightHand t r p a) where
-    stopping ( Pizz   _ x )       =  stopping x
-    stopping ( Single _ x )       =  stopping x
-    stopping ( Phrase _ (x:xs) )  =  stopping (snd x)
-    stopping ( Jete   _ (x:xs) )  =  stopping x
+    stopping ( Pizz   c x )       =  stopping x
+    stopping ( Single c x )       =  stopping x
+    stopping ( Phrase r (x:xs) )  =  stopping (snd x)
+    stopping ( Jete   r (x:xs) )  =  stopping x
+
+instance PitchFunctor (LeftHand Pitch s) where
+    mapPitch f ( StoppedString        x s   ) = StoppedString      (f x) s 
+    mapPitch f ( StoppedStringTrem    x y s ) = StoppedStringTrem  (f x) (f y) s
+    mapPitch f ( StoppedStringGliss   x y s ) = StoppedStringGliss (f x) (f y) s
+    mapPitch f x                              = x
+
+instance PitchFunctor a => PitchFunctor (RightHand t c r a) where
+    mapPitch f ( Pizz   c x )   =  Pizz   c (mapPitch f x)
+    mapPitch f ( Single c x )   =  Single c (mapPitch f x)
+    mapPitch f ( Phrase r xs )  =  Phrase r (fmap (\(d,p) -> (d, mapPitch f p)) xs)
+    mapPitch f ( Jete   r xs )  =  Jete   r (fmap (mapPitch f) xs)
+    
 
 \end{code}
 
@@ -529,6 +572,13 @@ setCuePart p = mapCuePart (const p)
 setCueDoubling d = mapCueDoubling (const d)
 setCueDynamics n = mapCueDynamics (const n)
 setCueTechnique t = mapCueTechnique (const t)
+
+instance PitchFunctor Cue where
+    mapPitch f (Cue p d n t) = Cue p d n (mapPitch f t)
+
+instance (Time t, PitchFunctor a) => PitchFunctor (Score t a) where
+    mapPitch f = fmap (mapPitch f)
+
 
 \end{code}
 
@@ -911,28 +961,37 @@ Pitch material
 ----------
 \begin{code}
 
-type Scale = [Pitch]
-minScale = scaleFrom [0,2,1,2,2,1,2,2]
-majMinScale = (retrograde . invert) minScale ++ tail minScale
+retrograde :: Scale Pitch -> Scale Pitch
+retrograde = Scale . List.reverse . getScale
+
+invert :: Scale Pitch -> Scale Pitch
+invert = mapPitch negate
+                    
+minScale    = scaleFromSteps [0, 2, 1, 2, 2, 1, 2, 2]
+majMinScale = Scale $ getScale lower ++ getScale upper
+    where
+        lower = retrograde . invert $ minScale
+        upper = Scale . tail . getScale $ minScale
 
 
+type Pattern =  [(Dur, Pitch)]
+patterns :: [Pattern]
+patterns = 
+    [
+        [(2, 0), (3, 1), (3, 0)], 
+        [(1, 0), (1, 1), (1, 1), (1, 2), (3, 0), (3, 1)]
+    ]
+                 
+patternMelody :: Pattern -> Score Dur Cue
+patternMelody = mapPitch tonality . stoppedStrings
+    where                
+        tonality = offset . scale . tonic
+        tonic  = (+ 7)
+        scale  = (majMinScale `step`)
+        offset = (+ 57)
 
-scaleFrom :: [Pitch] -> Scale
-scaleFrom = List.reverse . foldl (\ys x -> x + (if (null ys) then 0 else head ys) : ys) []
-
-retrograde :: [Pitch] -> [Pitch]
-retrograde = List.reverse
-
-invert :: [Pitch] -> [Pitch]
-invert = map negate
-
-
-
-
-
-
-
-
+test =   (stretch 4 . fmap (setCueDynamics ff) . patternMelody $ patterns !! 0)
+     ||| (stretch 4 . fmap (setCueDynamics ff) . patternMelody $ patterns !! 1)
 
 
 \end{code}
@@ -949,12 +1008,13 @@ Form
 
 \begin{code}
 test :: Score Dur Cue
-test =
-         (stretch 7  . fmap (setCueDynamics f) . stoppedStrings $ zip ([1,1.1..]) (map (+67) majMinScale))
-     ||| (stretch 8  . fmap (setCueDynamics f) . stoppedStrings $ zip ([1,1.1..]) (map (+67) majMinScale))
-     ||| (stretch 9  . fmap (setCueDynamics f) . stoppedStrings $ zip ([1,1.1..]) (map (+67) majMinScale))
-     ||| (stretch 10 . fmap (setCueDynamics p) $ openString III)
-     ||| (stretch 10 . fmap (setCueDynamics p) $ openString II)
+-- test = 
+--          (stretch 7  . fmap (setCueDynamics f) . stoppedStrings $ zip ([1,1.1..]) ps)
+--     ||| (stretch 8  . fmap (setCueDynamics f) . stoppedStrings $ zip ([1,1.1..]) ps)
+--     ||| (stretch 9  . fmap (setCueDynamics f) . stoppedStrings $ zip ([1,1.1..]) ps)
+--     ||| (stretch 10 . fmap (setCueDynamics p) $ openString III)
+--     ||| (stretch 10 . fmap (setCueDynamics p) $ openString II)
+--     where ps = map ((+ 69) . (majMinScale `step`)) [0..14]
 
 --test =   (delay 0   . stretch 10) (tremStopped (Cello 1) 55 57)
 --     ||| (delay 0.2 . stretch 3) (tremStopped (Cello 1) 48 50)
