@@ -10,11 +10,14 @@
 {-# LANGUAGE
     MultiParamTypeClasses,
     FlexibleInstances,
+    TypeSynonymInstances,
     DeriveFunctor,
     DeriveFoldable #-}
 
 module Music.Time.Tremolo
 (
+    Tremolos,
+    TremoloScore,
     Tremolo,
     tremolo,     
     tremoloBetween,
@@ -32,6 +35,9 @@ import Music.Time
 import Music.Time.Functors
 import Music.Time.Score
 
+type Tremolos     t a = Score t (Tremolo t a)
+type TremoloScore t a = Score t (Either a (Tremolo t a))
+
 -- | A repeated sequence with an absolute periodicity.
 --
 --   This type is intended to be composed with 'Score' as follows:
@@ -40,7 +46,6 @@ import Music.Time.Score
 --
 --   * @Score t (Either a (Tremolo t b))@
 
-
 data Tremolo t a 
     = Tremolo 
     {                       
@@ -48,6 +53,16 @@ data Tremolo t a
         tremoloEvents :: [a] -- always infinite
     }
     deriving ( Eq )
+
+instance Time t => Functor (Tremolo t) where
+    fmap f (Tremolo p xs) = Tremolo p (fmap f xs)
+
+instance Time t => TimeFunctor t (Tremolo t) where
+    tdmap f (Tremolo p xs) = Tremolo p (fmap g ys)
+        where 
+            g  = (\(t, d, x) -> f t d x)
+            ys = zip3 [0,p..] (repeat p) xs
+    
 
 -- | Repeats the given event at the given period.
 tremolo :: Time t => t -> a -> Tremolo t a

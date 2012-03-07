@@ -47,8 +47,8 @@ Library
         -- Data.Trivial
         -- Data.Undefined
         -- Data.Bijection
+        -- Data.Relation
         Data.Convert
-        Data.Relation
         
         Music
 
@@ -101,6 +101,7 @@ Library
         -- Music.Projects.StringQuartet 
 
         Music.Util.List
+        Music.Util.Either
         Music.Util.System
 
 
