@@ -9,7 +9,8 @@ This document describes a piece for string orchestra. It is a literate program, 
 be read as well as executed.
 
 To run the program, install the Haskell platform and the `Music.Time` module. For correct
-Midi playback, use a sampler that support Standard Midi Tuning, such as Timidity.
+playback of intonation, use a sampler that support Midi Tuning Standard, such as 
+[Timidity](http://timidity.sourceforge.net/).
 
 
 \begin{code}
@@ -263,7 +264,10 @@ from time to level, generalizing crescendo, diminuendo and so on.
 type Level = Double
 
 newtype Dynamics = Dynamics { getDynamics :: Dur -> Level }
-    deriving ( Eq, Show )
+    deriving ( Eq )
+
+instance Show Dynamics where
+    show x = "Dynamics"
 
 ppp, pp, p, mf, f, ff, fff :: Dynamics
 ppp = Dynamics $ const (-0.8)
@@ -574,10 +578,8 @@ midiBend' ( Individual, c ) = 0
 
 
 
-
-
 --
--- New impl
+-- New implementation
 --
 
 renderLeftHand :: Part -> LeftHand Pitch Str -> TremoloScore Dur MidiNote
@@ -590,113 +592,55 @@ renderLeftHand part (StoppedString        x s)    =  renderLeftHandSingle x
 renderLeftHand part (StoppedStringTrem    x y s)  =  renderLeftHandTrem x y
 renderLeftHand part (StoppedStringGliss   x y s)  =  renderLeftHandGliss
 
+-- TODO gliss
+
 renderLeftHandSingle x   = note . Left  $ MidiNote 0 Nothing x 0 60
 renderLeftHandTrem   x y = note . Right $ tremoloBetween 0.05 (MidiNote 0 Nothing x 0 60) (MidiNote 0 Nothing y 0 60)
 renderLeftHandGliss      = error "Gliss not implemented"
 
-setMidiChannel2 :: MidiChannel -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
-setMidiChannel2 c = fmapE f g
+-- TODO clean up this bit...
+
+setMidiChannel :: MidiChannel -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
+setMidiChannel c = fmapE f g
     where f = (\(MidiNote _ i p b n) -> MidiNote c i p b n)
           g = fmap (\(MidiNote _ i p b n) -> MidiNote c i p b n)
 
-setMidiInstrument2 :: MidiInstrument -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
-setMidiInstrument2 i = fmapE f g 
+setMidiInstrument :: MidiInstrument -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
+setMidiInstrument i = fmapE f g 
     where f = (\(MidiNote c _ p b n) -> MidiNote c i p b n)
           g = fmap (\(MidiNote c _ p b n) -> MidiNote c i p b n)
         
-setMidiBend2 :: MidiBend -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
-setMidiBend2 b = fmapE f g 
+setMidiBend :: MidiBend -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
+setMidiBend b = fmapE f g 
     where f = (\(MidiNote c i p _ n) -> MidiNote c i p b n)
           g = fmap (\(MidiNote c i p _ n) -> MidiNote c i p b n)
 
-setMidiDynamic2 :: Dynamics -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
-setMidiDynamic2 (Dynamics n) = tmapE f g 
+setMidiDynamic :: Dynamics -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
+setMidiDynamic (Dynamics n) = tmapE f g 
     where f = (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63))
           g = (\t x -> fmap (\(MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63)) x)
 
 
-renderCue2 :: Cue -> TremoloScore Dur MidiNote
-renderCue2 cue@(Cue part doubling dynamics technique) = case technique of
-    Single art leftHand ->           
-           postHoc $ renderLeftHand part leftHand
+renderCue :: Cue -> TremoloScore Dur MidiNote
+renderCue cue@(Cue part doubling dynamics technique) = case technique of
+    Pizz   art leftHand  -> postHoc $ renderLeftHand part leftHand
+    Single art leftHand  -> postHoc $ renderLeftHand part leftHand
+    Phrase art leftHand  -> postHoc $ concatSeq . map (\(d, x) -> stretch d $ renderLeftHand part x) $ leftHand
+    Jete   art leftHand  -> postHoc $ concatSeq . map (\(d, x) -> stretch d $ renderLeftHand part x) $ (zip bounceDur leftHand)
     where                 
         channel    =  midiChannel cue
         instr      =  midiInstrument cue
         bend       =  midiBend cue 
-        postHoc    =  setMidiChannel2 channel 
-                   .  setMidiInstrument2 instr 
-                   .  setMidiBend2 bend 
-                   .  setMidiDynamic2 dynamics
-
-
-
+        postHoc    =  setMidiChannel channel 
+                   .  setMidiInstrument instr 
+                   .  setMidiBend bend 
+                   .  setMidiDynamic dynamics
 --
--- Old impl
+-- Rendering of jete bowing
 --
-
--- setMidiChannel :: (Time t, TimeFunctor t d) => MidiChannel -> d MidiNote -> d MidiNote
--- setMidiChannel c = fmap (\(MidiNote _ i p b n) -> MidiNote c i p b n)
--- 
--- setMidiInstrument :: (Time t, TimeFunctor t d) => MidiInstrument -> d MidiNote -> d MidiNote
--- setMidiInstrument i = fmap (\(MidiNote c _ p b n) -> MidiNote c i p b n)
---         
--- setMidiBend :: (Time t, TimeFunctor t d) => MidiBend -> d MidiNote -> d MidiNote
--- setMidiBend b = fmap (\(MidiNote c i p _ n) -> MidiNote c i p b n)
--- 
--- setMidiDynamic :: Dynamics -> Score Dur MidiNote -> Score Dur MidiNote
--- setMidiDynamic (Dynamics f) = tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ f t * 63 + 63))
--- 
--- 
--- leftHandPitch :: Part -> LeftHand Pitch Str -> (MidiPitch, MidiPitch)
--- leftHandPitch part (OpenString           s)      =  (openStringPitch part s, 0)
--- leftHandPitch part (NaturalHarmonic      x s)    =  (x, 0)
--- leftHandPitch part (NaturalHarmonicTrem  x y s)  =  (x, y)
--- leftHandPitch part (NaturalHarmonicGliss x y s)  =  (x, y)
--- leftHandPitch part (QuarterStoppedString s)      =  (openStringPitch part s, 0)
--- leftHandPitch part (StoppedString        x s)    =  (x, 0)
--- leftHandPitch part (StoppedStringTrem    x y s)  =  (x, y)
--- leftHandPitch part (StoppedStringGliss   x y s)  =  (x, y)
--- 
--- midiScore :: [(Dur, MidiPitch, MidiDynamic)] -> Score Dur MidiNote
--- midiScore = lineStretch . map (\(d, p, n) -> (d, MidiNote 0 Nothing p 0 n))
--- 
--- renderCue :: Cue -> Score Seconds MidiNote
--- renderCue cue@(Cue part doubling dynamics technique) = case technique of
--- 
---     Pizz art leftHand ->
---         let pitch = fst $ leftHandPitch part leftHand in
---             setChannelInstrBend
---             . setMidiDynamic dynamics
---             $ midiScore [(1, pitch, undefined)]
--- 
---     Single art leftHand ->
---         let pitch = fst $ leftHandPitch part leftHand in
---             setChannelInstrBend
---             . setMidiDynamic dynamics
---             $ midiScore [(1, pitch, undefined)]
--- 
---     Phrase phr leftHand ->
---           setChannelInstrBend
---         . setMidiDynamic dynamics
---         $ midiScore $ map (\(d, lh) -> (d, fst $ leftHandPitch part lh, undefined)) leftHand
--- 
---     Jete phr leftHand ->
---           setChannelInstrBend
---         . midiScore
---         -- TODO compose with given dynamics 
---         . map (\(d, n, lh) -> (d, fst $ leftHandPitch part lh, round (60 * n))) 
---         $ zip3 bounceDur bounceVel leftHand
---         
---     where channel    =  midiChannel cue
---           instr      =  midiInstrument cue
---           bend       =  midiBend cue 
---           setChannelInstrBend   =  setMidiChannel channel . setMidiInstrument instr . setMidiBend bend
---                                                                                                         
-
--- Used for rendering of jete bowing
 
 bounceDur :: [Dur]
-bounceDur  =  [ (2 ** (-0.9 * x)) / 6 | x <- [0,0.1..1] ] 
+bounceDur  =  [ (2 ** (-0.9 * x)) / 6 | x <- [0,0.1..1.2] ] 
 
 bounceVel :: [Double]
 bounceVel  =  [ abs (1 - x) | x <- [0,0.08..]]
@@ -718,10 +662,17 @@ High-level constructors
 ----------
 
 \begin{code}                                            
-stdDyn = fff
+stdDyn = mf
     
 openString :: Part -> Str -> Score Dur Cue
 openString part str = (note $ Cue part Tutti stdDyn (Single Straight $ OpenString str))
+
+openStrings :: Part -> [(Dur, Str)] -> Score Dur Cue
+openStrings part str = (note $ Cue part Tutti stdDyn (Phrase Phrasing $ map (\(d,x) -> (d, OpenString x)) str))
+
+openStringJete :: Part -> [Str] -> Score Dur Cue
+openStringJete part str = (note $ Cue part Tutti stdDyn (Jete Phrasing $ map OpenString str))
+
 
 quarterStoppedString :: Part -> Str -> Score Dur Cue
 quarterStoppedString part str = (note $ Cue part Tutti stdDyn (Single Straight $ QuarterStoppedString str))
@@ -729,12 +680,20 @@ quarterStoppedString part str = (note $ Cue part Tutti stdDyn (Single Straight $
 stoppedString :: Part -> Pitch -> Score Dur Cue
 stoppedString part pitch = (note $ Cue part Tutti stdDyn (Single Straight $ StoppedString pitch I))
 
+pizzOpenString :: Part -> Str -> Score Dur Cue
+pizzOpenString part str = (note $ Cue part Tutti stdDyn (Pizz Straight $ OpenString str))
+
+pizzStoppedString :: Part -> Pitch -> Score Dur Cue
+pizzStoppedString part pitch = (note $ Cue part Tutti stdDyn (Pizz Straight $ StoppedString pitch I))
+
+
+
 tremStopped :: Part -> Pitch -> Pitch -> Score Dur Cue
 tremStopped part x y = (note $ Cue part Tutti stdDyn (Single Straight $ StoppedStringTrem x y I))
 
 -- jeteOpenString :: Part -> Str -> Score Dur Cue
 -- jeteOpenString part str = (note $ Cue part Tutti stdDyn (Jete Phrasing $ cycleTimes 10 [OpenString str]))
-    
+      
 \end{code}
 
 \pagebreak
@@ -749,9 +708,9 @@ Final composition
 
 \begin{code}
 
-test :: Score Dur MidiNote
-test =                       stretch (1/2) (note (MidiNote 0 (Just 42) 60 0 80))
-    >>> (before 10 . loop . stretch (1/2) . delay 0) (note (MidiNote 0 Nothing 60 0 80))
+test :: Score Dur Cue
+test = openStringJete (Viola 1) $ cycle (enumFromTo I IV)
+    
 
 
 
@@ -774,7 +733,7 @@ melody = stretch (1) $
 --     render = render . padAfter . (>>= renderCue)
 --         where padAfter s = s >>> rest 5
 instance Render (Score Dur Cue) Midi where
-    render = render . padAfter . renderTremoloEvents . (>>= renderCue2)
+    render = render . padAfter . renderTremoloEvents . (>>= renderCue)
         where padAfter s = s >>> rest 5
 
 
