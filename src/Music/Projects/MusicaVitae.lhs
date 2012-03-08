@@ -184,14 +184,14 @@ partSection   :: Part -> Section
 sectionTuning :: Section -> Tuning
 partTuning    :: Part -> Tuning
 
-partSection (Violin 1) = High
-partSection (Violin 2) = Low
-partSection (Violin 3) = High
-partSection (Violin 4) = Low
-partSection (Viola 1)  = High
-partSection (Viola 2)  = Low
-partSection (Cello 1)  = High
-partSection (Cello 2)  = Low
+partSection ( Violin 1 ) = High
+partSection ( Violin 2 ) = Low
+partSection ( Violin 3 ) = High
+partSection ( Violin 4 ) = Low
+partSection ( Viola 1 )  = High
+partSection ( Viola 2 )  = Low
+partSection ( Cello 1 )  = High
+partSection ( Cello 2 )  = Low
 partSection DoubleBass = Middle
 
 sectionTuning Low    = 434
@@ -227,14 +227,14 @@ sectionParts s  =  filter (\x -> partSection x == s) ensemble
 highParts  =  sectionParts High
 lowParts   =  sectionParts High
 
-isViolin     (Violin _)    =  True
-isViolin     _             =  False
-isViola      (Viola _)     =  True
-isViola      _             =  False
-isCello      (Cello _)     =  True
-isCello      _             =  False
-isDoubleBass (DoubleBass)  =  True
-isDoubleBass _             =  True
+isViolin     ( Violin _ )    =  True
+isViolin     _               =  False
+isViola      ( Viola _ )     =  True
+isViola      _               =  False
+isCello      ( Cello _ )     =  True
+isCello      _               =  False
+isDoubleBass ( DoubleBass )  =  True
+isDoubleBass _               =  True
 
 highViolinParts  =  filter isViolin (sectionParts High)
 highViolaParts   =  filter isViola  (sectionParts High)
@@ -772,14 +772,14 @@ Note: Glissandos are not supported yet.
 \begin{code}
 
 renderLeftHand :: Part -> LeftHand Pitch Str -> TremoloScore Dur MidiNote
-renderLeftHand part (OpenString           s)      =  renderLeftHandSingle (openStringPitch part s)
-renderLeftHand part (NaturalHarmonic      x s)    =  renderLeftHandSingle x
-renderLeftHand part (NaturalHarmonicTrem  x y s)  =  renderLeftHandTrem x y
-renderLeftHand part (NaturalHarmonicGliss x y s)  =  renderLeftHandGliss
-renderLeftHand part (QuarterStoppedString s)      =  renderLeftHandSingle (openStringPitch part s)
-renderLeftHand part (StoppedString        x s)    =  renderLeftHandSingle x
-renderLeftHand part (StoppedStringTrem    x y s)  =  renderLeftHandTrem x y
-renderLeftHand part (StoppedStringGliss   x y s)  =  renderLeftHandGliss
+renderLeftHand part ( OpenString           s )      =  renderLeftHandSingle (openStringPitch part s)
+renderLeftHand part ( NaturalHarmonic      x s )    =  renderLeftHandSingle x
+renderLeftHand part ( NaturalHarmonicTrem  x y s )  =  renderLeftHandTrem x y
+renderLeftHand part ( NaturalHarmonicGliss x y s )  =  renderLeftHandGliss
+renderLeftHand part ( QuarterStoppedString s )      =  renderLeftHandSingle (openStringPitch part s)
+renderLeftHand part ( StoppedString        x s )    =  renderLeftHandSingle x
+renderLeftHand part ( StoppedStringTrem    x y s )  =  renderLeftHandTrem x y
+renderLeftHand part ( StoppedStringGliss   x y s )  =  renderLeftHandGliss
 
 renderLeftHandSingle x   =  note . Left  $ renderMidiNote x
 renderLeftHandTrem   x y =  note . Right $ tremoloBetween tremoloInterval (renderMidiNote x) (renderMidiNote y)
@@ -794,10 +794,10 @@ Right hand
 ----------
 \begin{code}
 renderRightHand :: Part -> Technique -> TremoloScore Dur MidiNote
-renderRightHand part (Pizz   articulation leftHand)  = renderLeftHand part leftHand
-renderRightHand part (Single articulation leftHand)  = renderLeftHand part leftHand
-renderRightHand part (Phrase phrasing leftHand)      = renderLeftHands part leftHand
-renderRightHand part (Jete   phrasing leftHand)      = renderLeftHands part (zip bounceDur leftHand)
+renderRightHand part ( Pizz   articulation leftHand )  = renderLeftHand part leftHand
+renderRightHand part ( Single articulation leftHand )  = renderLeftHand part leftHand
+renderRightHand part ( Phrase phrasing leftHand )      = renderLeftHands part leftHand
+renderRightHand part ( Jete   phrasing leftHand )      = renderLeftHands part (zip bounceDur leftHand)
 
 renderLeftHands :: Part -> [(Dur, LeftHand Pitch Str)] -> TremoloScore Dur MidiNote
 renderLeftHands part =  stretchTo 1 . concatSeq . map leftHands
@@ -851,10 +851,10 @@ Some constants used for the rendering of jeté strokes.
 
 \begin{code}
 bounceDur :: [Dur]
-bounceDur  =  [ (2 ** (-0.9 * x)) / 6 | x <- [0,0.1..1.2] ]
+bounceDur  =  [ (2 ** (-0.9 * x)) / 6 | x <- [0, 0.1..1.2] ]
 
 bounceVel :: [Double]
-bounceVel  =  [ abs (1 - x) | x <- [0,0.08..]]
+bounceVel  =  [ abs (1 - x) | x <- [0, 0.08..]]
 
 
 \end{code}
@@ -891,7 +891,7 @@ standardPhrasing      =  Phrasing
 \end{code}
 
 These can be overriden using the methods of the type classes `Temporal`, `Timed`, `Delayed`,
-`PartFunctor`, `PitchFunctor`, `LevelFunctor`, `Articulated` and `Phrased` respectively.
+`PartFunctor`, `PitchFunctor` and `LevelFunctor` respectively.
 
 Open Strings
 ----------
@@ -1030,14 +1030,24 @@ type Pattern =  [(Dur, Pitch)]
 
 pattern :: Int -> Pattern
 pattern = (patterns !!)
+ipattern = map (\(d,x)->(d,negate x)). (patterns !!)
 
 -- Play using 
 --     play . patternMelody $ pattern 0
 patterns = 
     [
-        [(3, 0), (3, 1)], 
-        [(1, 0), (1, 1), (1, 1), (1, 2), (3, 0), (3, 1)],
-        [(1, 0), (1, 1), (1, 1), (2, 2), (1, 3), (1, 3), (3, 0), (3, 1)]
+        zip [3,3] 
+            [0,1],
+        zip [1,1,1,1,3,3] 
+            [0,1,1,2,0,1],
+        zip [1,1,1,2,1,3,3] 
+            [0,1,1,2,3,0,1],
+        zip [] [], 
+        zip [] [], 
+
+        -- 5
+        zip [1,1,1,1,3,3]
+            [0,2,1,2,0,1]
     ]
 
 
@@ -1046,6 +1056,7 @@ patternMelody :: Pattern -> Score Dur Cue
 patternMelody x = stretch (scaling x / 2) . mapPitch tonality . stoppedStrings $ x
     where                
         scaling = sum . map fst
+        
         tonality = offset . scale . tonic
         tonic  = (+ 7)
         scale  = (majMinScale `step`)
