@@ -47,14 +47,17 @@ module Music.Projects.MusicaVitae
 
 -- ** Time and pitch
     Dur(..),
-    Pitch(..),  
-    Scale(..),
+    Pitch(..),
     Str(..),
+    Scale(..),
+    step,
+    scaleFromSteps,
     PitchFunctor(..),
 
 -- ** Dynamics
     Level(..),
     Dynamics(..),
+    levelAt,
     ppp, pp, p, mf, f, ff, fff,
     cresc, 
     dim,         
@@ -261,11 +264,9 @@ The `PartFunctor` class defined useful operations for mapping over part and doub
 
 \begin{code}
 class PartFunctor f where
-    part        :: f -> Part
     setPart     :: Part -> f -> f
     mapPart     :: (Part -> Part) -> f -> f
     
-    doubling    :: f -> Doubling
     setDoubling :: Doubling -> f -> f
     mapDoubling :: (Doubling -> Doubling) -> f -> f
 
@@ -367,6 +368,9 @@ newtype Dynamics = Dynamics { getDynamics :: Dur -> Level }
 instance Show Dynamics where
     show x = ""
 
+levelAt :: Dynamics -> Dur -> Level
+levelAt (Dynamics n) t = n t
+
 ppp, pp, p, mf, f, ff, fff :: Dynamics
 ppp = Dynamics $ const (-0.8)
 pp  = Dynamics $ const (-0.6)
@@ -392,11 +396,13 @@ class LevelFunctor f where
     mapLevel :: (Level -> Level) -> f -> f
     setLevel x = mapLevel (const x)
 
-    -- setDynamics :: Dynamics -> f -> f
-    -- mapDynamics :: (t -> Level -> Level) -> f -> f
+    setDynamics :: Dynamics -> f -> f
+    mapDynamics :: (Dur -> Level -> Level) -> f -> f
+    setDynamics n = mapDynamics (\t _ -> n `levelAt` t)
 
 instance LevelFunctor Dynamics where
     mapLevel f (Dynamics n) = Dynamics (f . n)
+    mapDynamics f (Dynamics n) = Dynamics (\t -> f t $ n t)
 
 \end{code}
 
@@ -596,8 +602,6 @@ data Cue
     deriving ( Eq, Show )
 
 instance PartFunctor Cue where
-    part     (Cue p d n t) = p
-    doubling (Cue p d n t) = d
     mapPart     f (Cue p d n t) = Cue (f p) d n t
     mapDoubling f (Cue p d n t) = Cue p (f d) n t
 
@@ -605,12 +609,10 @@ instance PitchFunctor Cue where
     mapPitch f (Cue p d n t) = Cue p d n (mapPitch f t)
 
 instance LevelFunctor Cue where
-    setLevel x (Cue p d n t) = Cue p d (setLevel x n) t
-    mapLevel f (Cue p d n t) = Cue p d (mapLevel f n) t
+    mapLevel f    (Cue p d n t) = Cue p d (mapLevel f n) t
+    mapDynamics f (Cue p d n t) = Cue p d (mapDynamics f n) t
 
 instance (Time t, PartFunctor a) => PartFunctor (Score t a) where
-    part = error "PartFunctor.part: not defined for Score"
-    doubling = error "PartFunctor.part: not defined for Score"
     mapPart f = fmap (mapPart f)
     mapDoubling f = fmap (mapDoubling f)
 
@@ -618,7 +620,8 @@ instance (Time t, PitchFunctor a) => PitchFunctor (Score t a) where
     mapPitch f = fmap (mapPitch f)
 
 instance (Time t, LevelFunctor a) => LevelFunctor (Score t a) where
-    mapLevel f = fmap (mapLevel f)
+    mapLevel    f = fmap (mapLevel f)
+    mapDynamics f = fmap (mapDynamics f)
 
 \end{code}
 
@@ -1065,16 +1068,16 @@ Form
 \begin{code}
 test :: Score Dur Cue
 
-test =   (patternMelody $ pattern 0)
-     ||| (patternMelody $ pattern 1)
+-- test =   (patternMelody $ pattern 0)
+--      ||| (patternMelody $ pattern 1)
 
--- test = 
---          (stretch 7  . setDynamics f . stoppedStrings $ zip ([1,1.1..]) ps)
---     ||| (stretch 8  . setDynamics f . stoppedStrings $ zip ([1,1.1..]) ps)
---     ||| (stretch 9  . setDynamics f . stoppedStrings $ zip ([1,1.1..]) ps)
---     ||| (stretch 10 . setDynamics f $ openString III)
---     ||| (stretch 10 . setDynamics f $ openString II)
---     where ps = map ((+ 69) . (majMinScale `step`)) [0..14]
+test = 
+        (stretch 7  . setDynamics f . stoppedStrings $ zip ([1,1.1..]) ps)
+    ||| (stretch 8  . setDynamics f . stoppedStrings $ zip ([1,1.1..]) ps)
+    ||| (stretch 9  . setDynamics f . stoppedStrings $ zip ([1,1.1..]) ps)
+    ||| (stretch 10 . setDynamics f $ openString III)
+    ||| (stretch 10 . setDynamics f $ openString II)
+    where ps = map ((+ 69) . (majMinScale `step`)) [0..14]
 
 --test =   (delay 0   . stretch 10) (tremStopped (Cello 1) 55 57)
 --     ||| (delay 0.2 . stretch 3) (tremStopped (Cello 1) 48 50)
