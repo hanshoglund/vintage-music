@@ -133,6 +133,7 @@ renderNote division time dur channel pitch velocity =
       (renderTime division (time + dur), NoteOff channel pitch velocity )]
 
 adjustPitch :: (Int, Double) -> (Int, Double)
+--adjustPitch = id
 adjustPitch (p, b) 
     | b <  (-1)        =  (p - 1, 0)
     | b <  0           =  (p - 1, b + 1)

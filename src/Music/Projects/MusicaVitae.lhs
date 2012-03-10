@@ -59,8 +59,8 @@ module Music.Projects.MusicaVitae
     Dynamics(..),
     levelAt,
     ppp, pp, p, mf, f, ff, fff,
-    cresc, 
-    dim,         
+    cresc,
+    dim,
     LevelFunctor(..),
 
 -- ** Articulation
@@ -112,7 +112,7 @@ module Music.Projects.MusicaVitae
     stoppedStringPizz,
     stoppedStringJete,
     stoppedStrings,
-    
+
 -- ** Tremolo
     stoppedStringTrem,
     naturalHarmonicTrem,
@@ -197,9 +197,9 @@ partSection ( Cello 1 )  = High
 partSection ( Cello 2 )  = Low
 partSection DoubleBass = Middle
 
-sectionTuning Low    = 434
+sectionTuning Low    = 440 - 10
 sectionTuning Middle = 440
-sectionTuning High   = 446
+sectionTuning High   = 440 + 10
 
 partTuning = sectionTuning . partSection
 \end{code}
@@ -269,7 +269,7 @@ The `PartFunctor` class defined useful operations for mapping over part and doub
 class PartFunctor f where
     setPart     :: Part -> f -> f
     mapPart     :: (Part -> Part) -> f -> f
-    
+
     setDoubling :: Doubling -> f -> f
     mapDoubling :: (Doubling -> Doubling) -> f -> f
 
@@ -333,8 +333,8 @@ retrograde = Scale . List.reverse . getScale
 \end{code}
 
 
-The `PitchFunctor` class defines a useful operation for mapping over pitch. This 
-generalizes to scales and scores containing pitched elements. 
+The `PitchFunctor` class defines a useful operation for mapping over pitch. This
+generalizes to scales and scores containing pitched elements.
 
 \begin{code}
 class PitchFunctor f where
@@ -479,9 +479,14 @@ data LeftHand p s
     | StoppedStringTrem     p p s
     | StoppedStringGliss    p p s
     deriving ( Eq, Show )
+
+leftHand :: RightHand t c r a -> [a]
+leftHand (Pizz   c x)   =  [x]
+leftHand (Single c x)   =  [x]
+leftHand (Phrase c xs)  =  map snd xs
+leftHand (Jete   c xs)  =  xs
+
 \end{code}
-
-
 
 As the intonation will be different between open and stopped strings, we define a
 function mapping each left-hand technique to a stopping. This stopping also distributes
@@ -512,7 +517,7 @@ instance Stopped a => Stopped (RightHand t r p a) where
     stopping ( Jete   r (x:xs) )  =  stopping x
 
 instance PitchFunctor (LeftHand Pitch s) where
-    mapPitch f ( StoppedString        x s   ) = StoppedString      (f x) s 
+    mapPitch f ( StoppedString        x s   ) = StoppedString      (f x) s
     mapPitch f ( StoppedStringTrem    x y s ) = StoppedStringTrem  (f x) (f y) s
     mapPitch f ( StoppedStringGliss   x y s ) = StoppedStringGliss (f x) (f y) s
     mapPitch f x                              = x
@@ -523,7 +528,7 @@ instance PitchFunctor a => PitchFunctor (RightHand t c r a) where
     mapPitch f ( Phrase r xs )  =  Phrase r (fmap (\(d,p) -> (d, mapPitch f p)) xs)
     mapPitch f ( Jete   r xs )  =  Jete   r (fmap (mapPitch f) xs)
 \end{code}
-    
+
 
 \pagebreak
 
@@ -640,7 +645,7 @@ Rendering
 ==========
 
 We are going to compose the piece as a score of cues. In order to hear the piece
-and make musical decisions, we need to define a rendering function that renders a 
+and make musical decisions, we need to define a rendering function that renders a
 cue to a score of Midi notes, which is the object of this chapter.
 
 The `MidiNote` type is imported from `Music.Render.Midi`, but we define some
@@ -763,16 +768,32 @@ divide this by 100 to get the amount in semitones.
 \begin{code}
 midiBend :: Cue -> MidiBend
 midiBend (Cue part doubling dynamics technique) =
-    midiBend' (intonation', cents')
+    midiBend' (intonation', cents') + just
     where
         intonation'  =  intonation doubling technique
         tuning'      =  partTuning part
         cents'       =  cents tuning' - cents 440
+        just         =  midiBendJust (head . leftHand $ technique)
 
 midiBend' ( Raised, c )      =  getCent (c + raisedIntonation) / 100
 midiBend' ( Tuning, c )      =  getCent c / 100
 midiBend' ( Common, c )      =  0
 midiBend' ( Individual, c )  =  0
+
+midiBendJust :: LeftHand Pitch Str -> MidiBend
+midiBendJust ( NaturalHarmonic x s )  =  midiBendJust' x
+midiBendJust _                        = 0
+
+midiBendJust' 0  =  0
+midiBendJust' 1  =  0
+midiBendJust' 2  =  0.0196
+midiBendJust' 3  =  0
+midiBendJust' 4  =  -0.1369
+midiBendJust' 5  =  0.0196
+midiBendJust' 6  =  -0.3117
+midiBendJust' 7  =  0
+midiBendJust' 8  =  0.0391
+
 \end{code}
 
 
@@ -803,7 +824,7 @@ renderLeftHandGliss       =  error "Gliss not implemented"
 
 renderMidiNote x = MidiNote 0 Nothing x 0 60
 tremoloInterval = 0.08
-\end{code}      
+\end{code}
 
 
 
@@ -822,7 +843,7 @@ renderLeftHands part  =  stretchTo 1 . concatSeq . map leftHands
     where
         leftHands (d, x)  =  stretch d $ renderLeftHand part x
 \end{code}
-    
+
 
 
 
@@ -929,23 +950,23 @@ Open Strings
 ----------
 \begin{code}
 openString :: Str -> Score Dur Cue
-openString x = standardCue 
-    $ Single standardArticulation 
+openString x = standardCue
+    $ Single standardArticulation
     $ OpenString x
 
 openStringPizz :: Str -> Score Dur Cue
 openStringPizz x = standardCue
-     $ Pizz standardArticulation 
+     $ Pizz standardArticulation
      $ OpenString x
 
 openStringJete :: [Str] -> Score Dur Cue
 openStringJete xs = standardCue
-     $ Jete standardPhrasing 
+     $ Jete standardPhrasing
      $ map OpenString xs
 
 openStrings :: [(Dur, Str)] -> Score Dur Cue
 openStrings xs = standardCue
-     $ Phrase standardPhrasing 
+     $ Phrase standardPhrasing
      $ map (\(d,x) -> (d, OpenString x)) xs
 \end{code}
 
@@ -957,22 +978,22 @@ Natural harmonics
 \begin{code}
 naturalHarmonic :: Str -> Pitch -> Score Dur Cue
 naturalHarmonic s x = standardCue
-     $ Single standardArticulation 
+     $ Single standardArticulation
      $ NaturalHarmonic x s
 
 naturalHarmonicPizz :: Str -> Pitch -> Score Dur Cue
 naturalHarmonicPizz s x = standardCue
-     $ Pizz standardArticulation 
+     $ Pizz standardArticulation
      $ NaturalHarmonic x s
 
 naturalHarmonicJete :: Str -> [Pitch] -> Score Dur Cue
 naturalHarmonicJete s xs = standardCue
-     $ Jete standardPhrasing 
+     $ Jete standardPhrasing
      $ map (\x -> NaturalHarmonic x s) xs
 
 naturalHarmonics :: Str -> [(Dur, Pitch)] -> Score Dur Cue
 naturalHarmonics s xs = standardCue
-     $ Phrase standardPhrasing 
+     $ Phrase standardPhrasing
      $ map (\(d,x) -> (d, NaturalHarmonic x s)) xs
 \end{code}
 
@@ -983,12 +1004,12 @@ Quarter stopped strings
 \begin{code}
 quarterStoppedString :: Str -> Score Dur Cue
 quarterStoppedString x = standardCue
-     $ Single standardArticulation 
+     $ Single standardArticulation
      $ QuarterStoppedString x
 
 quarterStoppedStrings :: [(Dur, Str)] -> Score Dur Cue
 quarterStoppedStrings xs = standardCue
-     $ Phrase standardPhrasing 
+     $ Phrase standardPhrasing
      $ map (\(d,x) -> (d, QuarterStoppedString x)) xs
 \end{code}
 
@@ -999,39 +1020,39 @@ Stopped strings
 \begin{code}
 stoppedString :: Pitch -> Score Dur Cue
 stoppedString x = standardCue
-     $ Single standardArticulation 
+     $ Single standardArticulation
      $ StoppedString x I
 
 stoppedStringPizz :: Pitch -> Score Dur Cue
 stoppedStringPizz x = standardCue
-     $ Pizz standardArticulation 
+     $ Pizz standardArticulation
      $ StoppedString x I
 
 stoppedStringJete :: [Pitch] -> Score Dur Cue
 stoppedStringJete xs = standardCue
-     $ Jete standardPhrasing 
+     $ Jete standardPhrasing
      $ map (\x -> StoppedString x I) xs
 
 stoppedStrings :: [(Dur, Pitch)] -> Score Dur Cue
 stoppedStrings xs = standardCue
-     $ Phrase standardPhrasing 
+     $ Phrase standardPhrasing
      $ map (\(d,x) -> (d, StoppedString x I)) xs
 \end{code}
 
 
 
-                                 
+
 Tremolo
 ----------
 \begin{code}
 stoppedStringTrem :: Pitch -> Pitch -> Score Dur Cue
 stoppedStringTrem x y = standardCue
-     $ Single standardArticulation 
+     $ Single standardArticulation
      $ StoppedStringTrem x y I
 
 naturalHarmonicTrem :: Str -> Pitch -> Pitch -> Score Dur Cue
 naturalHarmonicTrem s x y = standardCue
-     $ Single standardArticulation 
+     $ Single standardArticulation
      $ NaturalHarmonicTrem x y s
 \end{code}
 
@@ -1048,7 +1069,7 @@ Final composition
 In this chapter we will assemble the final piece.
 
 Pitch material
-----------                                       
+----------
 
 The pitch material is based on a 15-tone scale (mixolydian below aeolian), which is
 completely symmetric around its seventh step.
@@ -1066,7 +1087,7 @@ tonality = mapPitch $ offset . scale . tonic
     where
         tonic  = (+ 7)
         scale  = (majMinScale `step`)
-        offset = (+ 57)      
+        offset = (+ 57)
 
 tonalSeq :: (Time t, PitchFunctor a) => Pitch -> Score t a -> Score t a -> Score t a
 tonalSeq p x y = x >>> mapPitch (+ p) y
@@ -1074,30 +1095,38 @@ tonalSeq p x y = x >>> mapPitch (+ p) y
 tonalConcat :: (Time t, PitchFunctor a) => Pitch -> [Score t a] -> Score t a
 tonalConcat p = List.foldr (tonalSeq p) instant
 
+duodecDown, octaveDown, fifthDown, fifthUp, octaveUp, duodecUp :: PitchFunctor a => a -> a
+duodecDown = mapPitch (- 19)
+octaveDown = mapPitch (- 12)
+fifthDown  = mapPitch (- 7)
+fifthUp    = mapPitch (+ 7)
+octaveUp   = mapPitch (+ 12)
+duodecUp   = mapPitch (+ 19)
+
 \end{code}
 
 
 
 Some arbitrary melodic patterns that may work well in the symmetric scale.
 
-\begin{code}    
+\begin{code}
 type Pattern =  [(Dur, Pitch)]
 
 pattern :: Int -> Pattern
 pattern = (patterns !!)
 
--- Play using 
+-- Play using
 --     play . tonality . patternMelody $ pattern 0
-patterns = 
+patterns =
     [
-        zip [ 3, 3 ] 
+        zip [ 3, 3 ]
             [ 0, 1 ],
-        zip [ 1, 1, 1, 1, 3, 3 ] 
+        zip [ 1, 1, 1, 1, 3, 3 ]
             [ 0, 1, 1, 2, 0, 1 ],
-        zip [ 1, 1, 1, 2, 1, 3, 3 ] 
+        zip [ 1, 1, 1, 2, 1, 3, 3 ]
             [ 0, 1, 1, 2, 3, 0, 1 ],
-        zip [] [], 
-        zip [] [], 
+        zip [] [],
+        zip [] [],
 
         -- 5
         zip [ 1, 1, 1, 1, 3, 3 ]
@@ -1108,7 +1137,7 @@ patterns =
 
 patternMelody :: Pattern -> Score Dur Cue
 patternMelody x = stretch (scaling x / 2) . stoppedStrings $ x
-    where                
+    where
         scaling = sum . map fst
 
 patternSequence :: Pitch -> [Pattern] -> Score Dur Cue
@@ -1116,25 +1145,59 @@ patternSequence p = tonalConcat p . map patternMelody
 
 --  play . stretch 2 . tonality . patternSequence 1 . map pattern $ [2,1,2,1]
 
-harm :: Int -> Score Dur Cue
-harm = (harms !!)
 
-harms :: [Score Dur Cue]
-harms = 
-    [
-        (setPart (Cello 1) $ naturalHarmonicTrem I 0 2),
-        (setPart (Cello 1) $ naturalHarmonicTrem I 1 3),
-        (setPart (Cello 2) $ naturalHarmonic I 1),
-        (setPart (Viola 2) $ naturalHarmonic I 2)
-    ]
-          
+
+
+
+x  =  ((setPart (Cello 1) $ naturalHarmonic I 0) ||| (setPart (Cello 1) $ naturalHarmonic I 4))
+y  =  ((setPart (Cello 2) $ naturalHarmonic I 0) ||| (setPart (Cello 2) $ naturalHarmonic I 4))
+xx =  ((setPart (Cello 1) $ naturalHarmonic I 0) ||| (setPart (Cello 2) $ naturalHarmonic I 4))
+yy =  ((setPart (Cello 2) $ naturalHarmonic I 0) ||| (setPart (Cello 1) $ naturalHarmonic I 4))
+z  = fmap (setPart (Cello 1)) $ (stoppedString 36 ||| stoppedString 64)
+
+intro = stretch 4 (before 20 . loop $ a >>> b) ||| rest 5 >>> mm >>> rest 5 >>> nn
+
+a  =  instant
+    ||| (setDynamics ppp . setPart DoubleBass  $ naturalHarmonic IV 4)
+    ||| (setDynamics ppp . setPart (Cello 1)   $ naturalHarmonic IV 3)
+    ||| (setDynamics ppp . setPart (Viola 1)   $ naturalHarmonic III 2)
+    ||| (setDynamics ppp . setPart (Violin 1)  $ naturalHarmonic II  1)
+    ||| (setDynamics ppp . setPart (Violin 2)  $ naturalHarmonic II  1)
+
+b  =  instant
+    ||| (setDynamics ppp . setPart DoubleBass  $ naturalHarmonic IV 4)
+    ||| (setDynamics ppp . setPart (Cello 2)   $ naturalHarmonic IV 3)
+    ||| (setDynamics ppp . setPart (Viola 2)   $ naturalHarmonic III 2)
+    ||| (setDynamics ppp . setPart (Violin 2)  $ naturalHarmonic II  1)
+    ||| (setDynamics ppp . setPart (Violin 1)  $ naturalHarmonic II  1)
+
+d  =  instant
+    ||| (setDynamics pp . setPart DoubleBass $ naturalHarmonic II 3)
+    ||| (setDynamics ppp . setPart (Cello 2)  $ naturalHarmonicTrem III 0 2)
+    ||| (setDynamics ppp . setPart (Cello 1)  $ naturalHarmonicTrem III 0 2)
+    ||| (setDynamics ppp . setPart (Viola 2)  $ naturalHarmonicTrem III 0 3)
+    ||| (setDynamics ppp . setPart (Viola 1)  $ naturalHarmonicTrem III 0 3)
+
+mm = instant
+    ||| (setDynamics pp . delay 0   . stretch 2 . mapPitch (+ 7) . tonality . setPart (Cello 1) $ patternSequence 0 . map pattern $ [0,0])
+nn = instant
+    ||| (setDynamics pp . delay 0   . stretch 2 . mapPitch (+ 7) . tonality . setPart (Cello 1) . invert $ patternSequence 0 . map pattern $ [0,0])
+
+m = instant
+    ||| (setDynamics pp . delay 0.0 . stretch 2.1 . mapPitch (+ 0) . tonality . setPart (Cello 1) $ patternSequence 0 . map pattern $ [0,1,2])
+    ||| (setDynamics pp . delay 1.1 . stretch 2.2 . mapPitch (+ 0) . tonality . invert . setPart (Cello 1) $ patternSequence 0 . map pattern $ [1,2,0])
+
+n = instant
+    ||| (setDynamics pp . delay 5   . stretch 5 . mapPitch (+ 7) . tonality . setPart (Cello 1) $ patternSequence 0 . map pattern $ [5,1])
+    ||| (setDynamics pp . delay 0.0 . stretch 4 . mapPitch (+ 0) . tonality . setPart (Cello 1) $ patternSequence 0 . map pattern $ [1,5])
+
 test = compress 1.1 $ instant
-    ||| (setDynamics f . delay 0.3 . stretch 2.1 . mapPitch (+ 19) . tonality . setPart (Violin 1) $ patternSequence 1 . map pattern $ [0,2,2,1,2])
-    ||| (setDynamics f . delay 0.2 . stretch 2.2 . mapPitch (+ 19) . tonality . setPart (Violin 2) $ patternSequence 1 . map pattern $ [1,2,2,0,2])
-    ||| (setDynamics f . delay 0.1 . stretch 2.5 . mapPitch (+ 12) . tonality . setPart (Violin 3) $ patternSequence 1 . map pattern $ [1,2,0,1,2])
-    ||| (setDynamics f . delay 0.4 . stretch 2.9 . mapPitch (+ 12) . tonality . setPart (Violin 4) $ patternSequence 1 . map pattern $ [1,2,2,1,2])
-    ||| (setDynamics f . delay 0.6 . stretch 3.5 . mapPitch (+ 7) . tonality . setPart (Violin 2) $ patternSequence  1 . map pattern $ [2,1,2,1,0])
-    ||| (setDynamics f . delay 0.5 . stretch 4.1 . mapPitch (+ 7) . tonality . setPart (Viola 1) $ patternSequence   1 . map pattern $ [1,2,1,1,2])
+    ||| (setDynamics f . delay 0.3 . stretch 2.1 . duodecUp . tonality . setPart (Violin 1) $ patternSequence 1 . map pattern $ [0,2,2,1,2])
+    ||| (setDynamics f . delay 0.2 . stretch 2.2 . duodecUp . tonality . setPart (Violin 2) $ patternSequence 1 . map pattern $ [1,2,2,0,2])
+    ||| (setDynamics f . delay 0.1 . stretch 2.5 . octaveUp . tonality . setPart (Violin 3) $ patternSequence 1 . map pattern $ [1,2,0,1,2])
+    ||| (setDynamics f . delay 0.4 . stretch 2.9 . octaveUp . tonality . setPart (Violin 4) $ patternSequence 1 . map pattern $ [1,2,2,1,2])
+    ||| (setDynamics f . delay 0.6 . stretch 3.5 . fifthUp . tonality . setPart (Violin 2) $ patternSequence  1 . map pattern $ [2,1,2,1,0])
+    ||| (setDynamics f . delay 0.5 . stretch 4.1 . fifthUp . tonality . setPart (Viola 1) $ patternSequence   1 . map pattern $ [1,2,1,1,2])
     ||| (setDynamics mf . concatSeq $ map (\x -> stretch 20 . setPart (Cello 1)  $ stoppedString x) [57,56..52])
     ||| (setDynamics mf . concatSeq $ map (\x -> stretch 30 . setPart (Cello 1)  $ stoppedString x) [54,52..52])
     ||| (setDynamics mf . stretch 80 . setPart DoubleBass $ openString IV)
@@ -1164,7 +1227,6 @@ allOpenStrings = stretch (1/3)
     >>> concatSeq [ setPart (instr part) $ openString str | instr <- [Cello, Viola, Violin]
                                                           , part  <- [2,1]
                                                           , str   <- enumFrom I ]
-
 
 
 main = writeMidi "Passager.mid" (render test)
