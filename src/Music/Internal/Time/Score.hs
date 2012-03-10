@@ -20,9 +20,9 @@ import Prelude hiding ( reverse )
 import Control.Monad
 import Control.Applicative
 
+import Data.Convert
 import Data.Monoid
 import Data.Foldable
-import Data.Convert
 
 import Music.Time
 import Music.Time.Functors
@@ -263,6 +263,20 @@ foldDuration f = foldScore ( \t d   -> f d )
                            ( \t x y -> x `mappend` y )
                            ( \t x y -> x `mappend` y )
 
+-- | First event in score.
+firstEvent :: Time t => Score t a -> Maybe a
+firstEvent = getFirst . 
+    foldScore ( \t d   -> First $ Nothing )
+              ( \t d x -> First $ Just x )
+              ( \t x y -> x `mappend` y )
+              ( \t x y -> x `mappend` y )
+
+lastEvent :: Time t => Score t a -> Maybe a
+lastEvent = getLast . 
+    foldScore ( \t d   -> Last $ Nothing )
+              ( \t d x -> Last $ Just x )
+              ( \t x y -> x `mappend` y )
+              ( \t x y -> x `mappend` y )
 
 -- | The number of events in the score.
 numberOfEvents :: Time t => Score t a -> Int

@@ -29,6 +29,8 @@ module Music.Time.Score
     arpeggio,           -- :: Time t => t -> [a] -> Score t a
     
 -- * Miscellaneous
+    firstEvent,         -- :: Time t => Score t a -> Maybe a
+    lastEvent,          -- :: Time t => Score t a -> Maybe a
     compress,           -- :: Time t => t -> Score t a -> Score t a
     restBefore,         -- :: Time t => t -> Score t a -> Score t a
     restBoth,           -- :: Time t => t -> Score t a -> Score t a
