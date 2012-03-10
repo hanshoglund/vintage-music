@@ -16,6 +16,7 @@ module Music.Inspect
     inspect,
     play,
     draw,
+    audify,
 )
 where
 
@@ -41,3 +42,7 @@ draw score = do
     writeGraphics "test.pdf" (render score)
     openFile      "test.pdf"
     return ()
+
+audify score = do
+    writeMidi "test.mid" (render score)
+    exportMidiFileToAudio "test.mid"

@@ -197,9 +197,9 @@ partSection ( Cello 1 )  = High
 partSection ( Cello 2 )  = Low
 partSection DoubleBass = Middle
 
-sectionTuning Low    = 440 - 10
+sectionTuning Low    = 440 - 4
 sectionTuning Middle = 440
-sectionTuning High   = 440 + 10
+sectionTuning High   = 440 + 4
 
 partTuning = sectionTuning . partSection
 \end{code}
@@ -1096,9 +1096,9 @@ tonalConcat :: (Time t, PitchFunctor a) => Pitch -> [Score t a] -> Score t a
 tonalConcat p = List.foldr (tonalSeq p) instant
 
 duodecDown, octaveDown, fifthDown, fifthUp, octaveUp, duodecUp :: PitchFunctor a => a -> a
-duodecDown = mapPitch (- 19)
-octaveDown = mapPitch (- 12)
-fifthDown  = mapPitch (- 7)
+duodecDown = mapPitch (+ (-19))
+octaveDown = mapPitch (+ (-12))
+fifthDown  = mapPitch (+ (-7))
 fifthUp    = mapPitch (+ 7)
 octaveUp   = mapPitch (+ 12)
 duodecUp   = mapPitch (+ 19)
@@ -1156,6 +1156,7 @@ yy =  ((setPart (Cello 2) $ naturalHarmonic I 0) ||| (setPart (Cello 1) $ natura
 z  = fmap (setPart (Cello 1)) $ (stoppedString 36 ||| stoppedString 64)
 
 intro = stretch 4 (before 20 . loop $ a >>> b) ||| rest 5 >>> mm >>> rest 5 >>> nn
+middle =  stretch 10 d ||| (setPart (Cello  1) . octaveDown . tonality . patternMelody) (pattern 2)
 
 a  =  instant
     ||| (setDynamics ppp . setPart DoubleBass  $ naturalHarmonic IV 4)
@@ -1172,11 +1173,11 @@ b  =  instant
     ||| (setDynamics ppp . setPart (Violin 1)  $ naturalHarmonic II  1)
 
 d  =  instant
-    ||| (setDynamics pp . setPart DoubleBass $ naturalHarmonic II 3)
-    ||| (setDynamics ppp . setPart (Cello 2)  $ naturalHarmonicTrem III 0 2)
-    ||| (setDynamics ppp . setPart (Cello 1)  $ naturalHarmonicTrem III 0 2)
-    ||| (setDynamics ppp . setPart (Viola 2)  $ naturalHarmonicTrem III 0 3)
-    ||| (setDynamics ppp . setPart (Viola 1)  $ naturalHarmonicTrem III 0 3)
+    ||| (setDynamics pp . setPart DoubleBass $ naturalHarmonic I 3)
+    ||| (setDynamics ppp . setPart (Cello 2)  $ naturalHarmonic II 2)
+    ||| (setDynamics ppp . setPart (Cello 2)  $ naturalHarmonic III 3)
+    ||| (setDynamics ppp . setPart (Viola 2)  $ naturalHarmonic III 1)
+    ||| (setDynamics ppp . setPart (Viola 2)  $ naturalHarmonic II 2)
 
 mm = instant
     ||| (setDynamics pp . delay 0   . stretch 2 . mapPitch (+ 7) . tonality . setPart (Cello 1) $ patternSequence 0 . map pattern $ [0,0])
