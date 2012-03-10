@@ -1192,6 +1192,16 @@ n = instant
     ||| (setDynamics pp . delay 5   . stretch 5 . mapPitch (+ 7) . tonality . setPart (Cello 1) $ patternSequence 0 . map pattern $ [5,1])
     ||| (setDynamics pp . delay 0.0 . stretch 4 . mapPitch (+ 0) . tonality . setPart (Cello 1) $ patternSequence 0 . map pattern $ [1,5])
 
+h = compress 1.1 . reverse $ instant
+    ||| (setDynamics mf . delay 0.3 . stretch 2.1 . octaveUp . tonality . setPart (Violin 1) $ patternSequence 0 . map pattern $ [0,2,2,1,2])
+    ||| (setDynamics mf . delay 0.2 . stretch 2.2 . octaveUp . tonality . setPart (Violin 2) $ patternSequence 0 . map pattern $ [1,2,2,0,2])
+    ||| (setDynamics mf . delay 0.1 . stretch 2.5 . fifthUp  . tonality . setPart (Violin 3) $ patternSequence 0 . map pattern $ [1,2,0,1,2])
+    ||| (setDynamics mf . delay 0.4 . stretch 2.9 . fifthUp  . tonality . setPart (Violin 4) $ patternSequence 0 . map pattern $ [1,2,2,1,2])
+    ||| (setDynamics mf . delay 0.6 . stretch 3.5 . id       . tonality . setPart (Violin 2) $ patternSequence  0 . map pattern $ [2,1,2,1,0])
+    ||| (setDynamics mf . delay 0.5 . stretch 4.1 . id       . tonality . setPart (Viola 1) $ patternSequence   0 . map pattern $ [1,2,1,1,2])
+
+
+
 test = compress 1.1 $ instant
     ||| (setDynamics f . delay 0.3 . stretch 2.1 . duodecUp . tonality . setPart (Violin 1) $ patternSequence 1 . map pattern $ [0,2,2,1,2])
     ||| (setDynamics f . delay 0.2 . stretch 2.2 . duodecUp . tonality . setPart (Violin 2) $ patternSequence 1 . map pattern $ [1,2,2,0,2])
