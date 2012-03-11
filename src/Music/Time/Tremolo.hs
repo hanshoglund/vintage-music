@@ -1,5 +1,5 @@
 {-|
-    Module      :  Music.Time.Segment
+    Module      :  Music.Time.Tremolo
     Copyright   :  Hans Höglund 2012
 
     Maintainer  :  hans@hanshoglund.se

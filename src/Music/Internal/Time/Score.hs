@@ -37,8 +37,8 @@ import qualified Music.Time.EventList as EventList
 --   There are several utility construction functions, implemented in terms of 'note', notably
 --   'line' and 'chord'. Durations are specified by using 'delay' and 'stretch'.
 --
---   >     melody [1, 2, 3]
---   >     chord  [0, 3, 5]
+--   > line [1, 2, 3]   =  note 1 >>> note 2 >>> note 3
+--   > chord [0, 3, 5]  =  note 0 ||| note 3 ||| note 5
 --
 --   Useful applicative functions:
 --       'pure', '<*>', 'liftA', 'liftA2' etc.

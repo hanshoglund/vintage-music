@@ -126,6 +126,7 @@ import Data.Convert ( convert )
 import qualified Data.List as List
 
 import Music
+import Music.Time.Overlay
 import Music.Time.Tremolo
 import Music.Time.Functors
 import Music.Render
@@ -1225,48 +1226,24 @@ n = instant
 
 
 
-
-Advanced composition
-----------
-
-\begin{code}
-infixr 8 <<|
-infixr 8 |>>
-
-(<<|) :: Time t => Score t a -> Score t a -> Score t a
-(|>>) :: Time t => Score t a -> Score t a -> Score t a
-
-x <<| y  =  y |>> x    
-x |>> y  =  x ||| delay t y
-    where t = duration x / 2    
-
-loopOverlay :: Time t => Score t a -> Score t a
-loopOverlay x = x |>> loopOverlay x
-
-loopOverlayAll :: Time t => [Score t a] -> Score t a
-loopOverlayAll xs = loopOverlayAll' xs xs
-
-loopOverlayAll' xs []     = loopOverlayAll' xs xs
-loopOverlayAll' xs (y:ys) = y |>> loopOverlayAll' xs ys
-
-
-\end{code}
-
-
-
-
 Sections
 ----------
 
 \begin{code}
+
+-- TODO redo completely
 intro = instant
     ||| (before 40 . stretch 4 . loopOverlayAll $ [a, b]) 
     ||| rest 5 >>> mm >>> rest 5 >>> nn
 
 
+-- TODO expand
 middle = instant
     ||| stretch 10 d 
     ||| (setPart (Cello  1) . setDynamics p . octaveDown . tonality . patternMelody) (pattern 2)
+
+
+
 
 
 middle2 = compress 1.1 . reverse $ instant
@@ -1288,6 +1265,9 @@ test = compress 1.1 $ instant
     ||| (setDynamics mf . concatSeq $ map (\x -> stretch 20 . setPart (Cello 1)  $ stoppedString x) [57,56..52])
     ||| (setDynamics mf . concatSeq $ map (\x -> stretch 30 . setPart (Cello 1)  $ stoppedString x) [54,52..52])
     ||| (setDynamics mf . stretch 80 . setPart DoubleBass $ openString IV)
+
+-- TODO coda?
+
 \end{code}
 
 
