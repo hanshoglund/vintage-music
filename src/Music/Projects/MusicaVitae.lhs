@@ -87,10 +87,10 @@ module Music.Projects.MusicaVitae
 -- ** Cues
     Cue(..),
 
--- * Rendering
+-- * Midi rendering
     renderCue,
 
--- * High-level composition
+-- * High-level constructors
 -- ** Open strings
     openString,
     openStringPizz,
@@ -174,7 +174,7 @@ data Part
 
 data Section
     = High | Low | Middle
-    deriving ( Eq, Show, Enum )
+    deriving ( Eq, Show, Enum, Bounded )
 
 type Tuning = Frequency
 \end{code}
@@ -278,7 +278,7 @@ class PartFunctor f where
 \end{code}
 
 
-\pagebreak
+
 
 
 
@@ -304,7 +304,7 @@ to collide with `String`).
 type Pitch = Int
 
 data Str = I | II | III | IV
-    deriving ( Eq, Ord, Enum, Show )
+    deriving ( Eq, Show, Ord, Enum, Bounded )
 \end{code}
 
 
@@ -353,7 +353,7 @@ invert = mapPitch negate
 \end{code}
 
 
-\pagebreak
+
 
 
 
@@ -412,7 +412,7 @@ instance LevelFunctor Dynamics where
 \end{code}
 
 
-\pagebreak
+
 
 
 
@@ -448,7 +448,7 @@ portato = Binding 0.8
 \end{code}
 
 
-\pagebreak
+
 
 
 
@@ -530,7 +530,7 @@ instance PitchFunctor a => PitchFunctor (RightHand t c r a) where
 \end{code}
 
 
-\pagebreak
+
 
 
 
@@ -580,7 +580,7 @@ raisedIntonation :: Cent
 raisedIntonation = 23 Cent
 \end{code}
 
-\pagebreak
+
 
 
 
@@ -641,7 +641,7 @@ instance (Time t, LevelFunctor a) => LevelFunctor (Score t a) where
 
 
 
-Rendering
+Midi rendering
 ==========
 
 We are going to compose the piece as a score of cues. In order to hear the piece
@@ -930,8 +930,8 @@ High-level constructors
 ==========
 
 Allthough the *cues* defined in the previous chapters is a flexible representation for an
-orchestral piece, they are also very verbose and cubersome to construct. This is easily
-solved by adding some higher-level constructors.
+orchestral piece, they are somewhat cubersome to construct. This is easily solved by 
+adding some higher-level constructors.
 
 The constructors all create *standard cues* with the following definitions:
 
@@ -1068,12 +1068,17 @@ Final composition
 
 In this chapter we will assemble the final piece.
 
-Pitch material
+Pitches
 ----------
 
-The pitch material is based on a 15-tone scale (mixolydian below aeolian), which is
-completely symmetric around its seventh step.
+The pitch material is based on a 15-tone symmetric scale. The lower half is mixolydian
+and the upper half is aeolian (i.e. the inverse of mixolydian).
 
+We will represent melodies in a relative fashion, using 0 to represent a reference pitch.
+This simplifies inversion and similar techniques. We use A3 as the reference pitch
+(corresponding to step 0). The `tonality` function applies the major-minor scale at
+the reference pitch, so pitch operations applied *before* this function is diatonic, while
+operations applied *after* it is chromatic.
 
 \begin{code}
 minScale    = scaleFromSteps [0, 2, 1, 2, 2, 1, 2, 2]
@@ -1088,26 +1093,37 @@ tonality = mapPitch $ offset . scale . tonic
         tonic  = (+ 7)
         scale  = (majMinScale `step`)
         offset = (+ 57)
+\end{code}
 
+The `tonalSeq` function generates a binary musical sequence, in which the second operand is transposed
+the given amount of steps. The `tonalConcat` function is the same on higher arities.
+
+The `fifthUp`, `fifthDown` etc are handy shortcuts for transposition.
+
+\begin{code}
 tonalSeq :: (Time t, PitchFunctor a) => Pitch -> Score t a -> Score t a -> Score t a
-tonalSeq p x y = x >>> mapPitch (+ p) y
-
 tonalConcat :: (Time t, PitchFunctor a) => Pitch -> [Score t a] -> Score t a
-tonalConcat p = List.foldr (tonalSeq p) instant
 
-duodecDown, octaveDown, fifthDown, fifthUp, octaveUp, duodecUp :: PitchFunctor a => a -> a
-duodecDown = mapPitch (+ (-19))
-octaveDown = mapPitch (+ (-12))
-fifthDown  = mapPitch (+ (-7))
-fifthUp    = mapPitch (+ 7)
-octaveUp   = mapPitch (+ 12)
-duodecUp   = mapPitch (+ 19)
+tonalSeq    p x y  =  x >>> mapPitch (+ p) y
+tonalConcat p      =  List.foldr (tonalSeq p) instant
 
+duodecDown, octaveDown, fifthDown :: PitchFunctor a => a -> a
+fifthUp, octaveUp, duodecUp       :: PitchFunctor a => a -> a
+
+duodecDown  =  mapPitch (+ (-19))
+octaveDown  =  mapPitch (+ (-12))
+fifthDown   =  mapPitch (+ (-7))
+fifthUp     =  mapPitch (+ 7)
+octaveUp    =  mapPitch (+ 12)
+duodecUp    =  mapPitch (+ 19)
 \end{code}
 
 
 
-Some arbitrary melodic patterns that may work well in the symmetric scale.
+Melody
+----------
+
+Melodic patterns that may work well in the symmetric scale.
 
 \begin{code}
 type Pattern =  [(Dur, Pitch)]
@@ -1142,21 +1158,35 @@ patternMelody x = stretch (scaling x / 2) . stoppedStrings $ x
 
 patternSequence :: Pitch -> [Pattern] -> Score Dur Cue
 patternSequence p = tonalConcat p . map patternMelody
-
---  play . stretch 2 . tonality . patternSequence 1 . map pattern $ [2,1,2,1]
-
+\end{code}
 
 
 
+Harmony
+----------
 
-x  =  ((setPart (Cello 1) $ naturalHarmonic I 0) ||| (setPart (Cello 1) $ naturalHarmonic I 4))
-y  =  ((setPart (Cello 2) $ naturalHarmonic I 0) ||| (setPart (Cello 2) $ naturalHarmonic I 4))
-xx =  ((setPart (Cello 1) $ naturalHarmonic I 0) ||| (setPart (Cello 2) $ naturalHarmonic I 4))
-yy =  ((setPart (Cello 2) $ naturalHarmonic I 0) ||| (setPart (Cello 1) $ naturalHarmonic I 4))
-z  = fmap (setPart (Cello 1)) $ (stoppedString 36 ||| stoppedString 64)
+\begin{code}
+secondChord :: [Int] -> [Str] -> [Int] -> Score Dur Cue
+secondChord xs ss ps =  instant
+    ||| (setDynamics p . setPart (Cello  (xs !! 0)) $ naturalHarmonic (ss !! 0) (ps !! 0))
+    ||| (setDynamics p . setPart (Viola  (xs !! 0)) $ naturalHarmonic (ss !! 1) (ps !! 1))
+    ||| (setDynamics p . setPart (Violin (xs !! 0)) $ naturalHarmonic (ss !! 2) (ps !! 2))
+    ||| (setDynamics p . setPart (Violin (xs !! 0)) $ naturalHarmonic (ss !! 3) (ps !! 3))
 
-intro = stretch 4 (before 20 . loop $ a >>> b) ||| rest 5 >>> mm >>> rest 5 >>> nn
-middle =  stretch 10 d ||| (setPart (Cello  1) . octaveDown . tonality . patternMelody) (pattern 2)
+sc1 = secondChord (repeat 1) [I,II,III,IV] [1,2,3,4]
+sc2 = secondChord (repeat 1) [IV,III,II,I] [1,2,3,4]
+sc3 = secondChord (repeat 1) [I,II,III,IV] [4,3,2,1]
+sc4 = secondChord (repeat 1) [IV,III,II,I] [4,3,2,1]
+
+
+ch  =  instant
+--    ||| (setDynamics p . setPart DoubleBass  $ naturalHarmonic I 4)
+    ||| (setDynamics p . setPart (Cello 2)   $ naturalHarmonic IV 2)
+    ||| (setDynamics p . setPart (Viola 2)   $ naturalHarmonic III 1)
+    ||| (setDynamics p . setPart (Violin 2)  $ naturalHarmonic II 3)
+    ||| (setDynamics p . setPart (Violin 2)  $ naturalHarmonic IV 1)
+
+
 
 a  =  instant
     ||| (setDynamics ppp . setPart DoubleBass  $ naturalHarmonic IV 4)
@@ -1191,15 +1221,61 @@ m = instant
 n = instant
     ||| (setDynamics pp . delay 5   . stretch 5 . mapPitch (+ 7) . tonality . setPart (Cello 1) $ patternSequence 0 . map pattern $ [5,1])
     ||| (setDynamics pp . delay 0.0 . stretch 4 . mapPitch (+ 0) . tonality . setPart (Cello 1) $ patternSequence 0 . map pattern $ [1,5])
+\end{code}
 
-h = compress 1.1 . reverse $ instant
+
+
+
+Advanced composition
+----------
+
+\begin{code}
+infixr 8 <<|
+infixr 8 |>>
+
+(<<|) :: Time t => Score t a -> Score t a -> Score t a
+(|>>) :: Time t => Score t a -> Score t a -> Score t a
+
+x <<| y  =  y |>> x    
+x |>> y  =  x ||| delay t y
+    where t = duration x / 2    
+
+loopOverlay :: Time t => Score t a -> Score t a
+loopOverlay x = x |>> loopOverlay x
+
+loopOverlayAll :: Time t => [Score t a] -> Score t a
+loopOverlayAll xs = loopOverlayAll' xs xs
+
+loopOverlayAll' xs []     = loopOverlayAll' xs xs
+loopOverlayAll' xs (y:ys) = y |>> loopOverlayAll' xs ys
+
+
+\end{code}
+
+
+
+
+Sections
+----------
+
+\begin{code}
+intro = instant
+    ||| (before 40 . stretch 4 . loopOverlayAll $ [a, b]) 
+    ||| rest 5 >>> mm >>> rest 5 >>> nn
+
+
+middle = instant
+    ||| stretch 10 d 
+    ||| (setPart (Cello  1) . setDynamics p . octaveDown . tonality . patternMelody) (pattern 2)
+
+
+middle2 = compress 1.1 . reverse $ instant
     ||| (setDynamics mf . delay 0.3 . stretch 2.1 . octaveUp . tonality . setPart (Violin 1) $ patternSequence 0 . map pattern $ [0,2,2,1,2])
     ||| (setDynamics mf . delay 0.2 . stretch 2.2 . octaveUp . tonality . setPart (Violin 2) $ patternSequence 0 . map pattern $ [1,2,2,0,2])
     ||| (setDynamics mf . delay 0.1 . stretch 2.5 . fifthUp  . tonality . setPart (Violin 3) $ patternSequence 0 . map pattern $ [1,2,0,1,2])
     ||| (setDynamics mf . delay 0.4 . stretch 2.9 . fifthUp  . tonality . setPart (Violin 4) $ patternSequence 0 . map pattern $ [1,2,2,1,2])
     ||| (setDynamics mf . delay 0.6 . stretch 3.5 . id       . tonality . setPart (Violin 2) $ patternSequence  0 . map pattern $ [2,1,2,1,0])
     ||| (setDynamics mf . delay 0.5 . stretch 4.1 . id       . tonality . setPart (Viola 1) $ patternSequence   0 . map pattern $ [1,2,1,1,2])
-
 
 
 test = compress 1.1 $ instant
@@ -1212,33 +1288,32 @@ test = compress 1.1 $ instant
     ||| (setDynamics mf . concatSeq $ map (\x -> stretch 20 . setPart (Cello 1)  $ stoppedString x) [57,56..52])
     ||| (setDynamics mf . concatSeq $ map (\x -> stretch 30 . setPart (Cello 1)  $ stoppedString x) [54,52..52])
     ||| (setDynamics mf . stretch 80 . setPart DoubleBass $ openString IV)
-
 \end{code}
 
 
 
 
-\pagebreak
 
 
 
-
-
-
-Form
+Test
 ----------
 
 \begin{code}
 test :: Score Dur Cue
 --test = instant
 
+allHarmonics :: Score Dur Cue
+allHarmonics = stretch (1/3) $ instant
+    >>> concatSeq [ setPart DoubleBass $ naturalHarmonic str pos | str <- enumFrom I, pos <- [0..7] ]
+
+
 allOpenStrings :: Score Dur Cue
-allOpenStrings = stretch (1/3)
-    $   concatSeq [ setPart DoubleBass   $ openString str | str <- enumFrom I ]
+allOpenStrings = stretch (1/3) $ instant
+    >>> concatSeq [ setPart DoubleBass   $ openString str | str <- enumFrom I ]
     >>> concatSeq [ setPart (instr part) $ openString str | instr <- [Cello, Viola, Violin]
                                                           , part  <- [2,1]
                                                           , str   <- enumFrom I ]
-
 
 main = writeMidi "Passager.mid" (render test)
 

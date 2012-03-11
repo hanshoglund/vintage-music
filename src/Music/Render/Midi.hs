@@ -124,7 +124,7 @@ renderProgram division time channel instr = do
 
 renderTune :: Integral a => a -> Seconds -> Int -> Int -> Double -> [(Ticks, Message)]
 renderTune division time channel pitch bend 
-    | bend == 0  = []
+--    | bend == 0  = []
     | otherwise  = [ ( renderTime division time, tuneMessage channel $ tuneParams pitch bend ) ]
 
 renderNote :: Integral a => a -> Seconds -> Seconds -> Int -> Int -> Int -> [(Ticks, Message)]
