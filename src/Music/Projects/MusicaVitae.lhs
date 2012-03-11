@@ -198,9 +198,9 @@ partSection ( Cello 1 )  = High
 partSection ( Cello 2 )  = Low
 partSection DoubleBass = Middle
 
-sectionTuning Low    = 440 - 4
+sectionTuning Low    = 440 - 0
 sectionTuning Middle = 440
-sectionTuning High   = 440 + 4
+sectionTuning High   = 440 + 0
 
 partTuning = sectionTuning . partSection
 \end{code}
@@ -766,6 +766,9 @@ Note that the `cents` function converts a frequency to cents, so by subtracting 
 reference pitch from the intonation, we get the amount of bending in cents. Then
 divide this by 100 to get the amount in semitones.
 
+For harmonics, we add a compensation for the difference between just and 
+twelve-tone equal temperament. Unfortunately this does not work for harmonic tremolos.
+
 \begin{code}
 midiBend :: Cue -> MidiBend
 midiBend (Cue part doubling dynamics technique) =
@@ -1174,10 +1177,39 @@ secondChord xs ss ps =  instant
     ||| (setDynamics p . setPart (Violin (xs !! 0)) $ naturalHarmonic (ss !! 2) (ps !! 2))
     ||| (setDynamics p . setPart (Violin (xs !! 0)) $ naturalHarmonic (ss !! 3) (ps !! 3))
 
-sc1 = secondChord (repeat 1) [I,II,III,IV] [1,2,3,4]
-sc2 = secondChord (repeat 1) [IV,III,II,I] [1,2,3,4]
-sc3 = secondChord (repeat 1) [I,II,III,IV] [4,3,2,1]
-sc4 = secondChord (repeat 1) [IV,III,II,I] [4,3,2,1]
+secondChordTrem :: [Int] -> [Str] -> [Int] -> Score Dur Cue
+secondChordTrem xs ss ps =  instant
+    ||| (setDynamics p . setPart (Cello  (xs !! 0)) $ naturalHarmonicTrem (ss !! 0) 0 (ps !! 0))
+    ||| (setDynamics p . setPart (Viola  (xs !! 0)) $ naturalHarmonicTrem (ss !! 1) 0 (ps !! 1))
+    ||| (setDynamics p . setPart (Violin (xs !! 0)) $ naturalHarmonicTrem (ss !! 2) 0 (ps !! 2))
+    ||| (setDynamics p . setPart (Violin (xs !! 0)) $ naturalHarmonicTrem (ss !! 3) 0 (ps !! 3))
+
+
+scs = concatSeq $ do 
+    ss <- return [IV,III,II,I]
+    ps <- List.permutations [1,2,3,4]
+    -- xs <- List.permutations [2,1,2,1]
+    -- return $ secondChord xs ss ps
+    return $ secondChord [1,1,1,1] ss ps ||| secondChord [2,2,2,2] ss ps
+
+-- g, a, d, e
+-- scs = concatSeq $ do 
+--     ss <- return [IV,III,II,I]
+--     xs <- List.permutations [2,1,2,1]
+--     ps <- List.permutations [1,2,2,3]
+--     return $ secondChord xs ss ps
+
+-- g, a, d, e
+-- scs = concatSeq $ do 
+--     xs <- return [1,1,1,1]
+--     ss <- return [IV,III,II,I]
+--     ps <- List.permutations [1,1,1,2]
+--     return $ secondChord xs ss ps
+
+
+
+
+
 
 
 ch  =  instant
@@ -1231,6 +1263,46 @@ Sections
 
 \begin{code}
 
+introHarm :: Int -> Score Dur Cue
+introHarm sect = stretch 1 $ instant
+    >>> stretch 3 a >>> stretch 2.2 g >>> stretch 3.4 a >>> introHarm sect
+    where a  = setPart (Cello sect) . setDynamics ppp $ naturalHarmonic IV 1
+          g  = setPart (Viola sect) . setDynamics ppp $ naturalHarmonic II 1
+
+introHarmTrem :: Int -> Score Dur Cue
+introHarmTrem sect = stretch 2 $ instant
+    >>> stretch 3 a >>> stretch 2.4 g
+    where a  = setPart (Cello sect) . setDynamics ppp $ naturalHarmonicTrem IV 0 1
+          g  = setPart (Viola sect) . setDynamics ppp $ naturalHarmonicTrem II 0 1
+
+introHarmVln :: Int -> Score Dur Cue
+introHarmVln sect = stretch 1 $ instant
+    >>> stretch 3 d >>> stretch 2.2 d2 >>> stretch 3.4 a >>> introHarm sect
+    where d  = setPart (Violin sect) . setDynamics ppp $ naturalHarmonic I  2
+          d2 = setPart (Violin sect) . setDynamics ppp $ naturalHarmonic II 1
+          a  = setPart (Violin sect) . setDynamics ppp $ naturalHarmonic III 1
+
+intro2 = instant
+    ||| (before 30 $ introHarm 1)
+    ||| (delay 15  . before 30 $ introHarm 2)
+    ||| (delay 25  . stretch 5 $ db)
+    ||| (delay 35  . before 35 $ introHarm 1)
+    ||| (delay 50  . before 35 $ introHarm 2)
+    ||| (delay 60  . stretch 5 $ db2)
+    ||| (delay 80  . before 15 $ introHarmTrem 1)
+    ||| (delay 90  . before 30 $ introHarm 2)
+    ||| (delay 100 . stretch 5 $ db)
+    ||| (delay 110 . before 30 $ introHarm 1)
+    ||| (delay 125 . before 15 $ introHarmTrem 2)
+
+    ||| (delay 75 . before 25 $ introHarmVln 1)
+    ||| (delay 95 . before 30 $ introHarmVln 1)
+
+    where
+        db  = setPart DoubleBass . setDynamics ppp . stretch 4  $ naturalHarmonic III 4
+        db2 = setPart DoubleBass . setDynamics ppp . stretch 4  $ naturalHarmonic IV 4
+        
+          
 -- TODO redo completely
 intro = instant
     ||| (before 40 . stretch 4 . loopOverlayAll $ [a, b]) 
