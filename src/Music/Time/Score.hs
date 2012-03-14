@@ -39,6 +39,14 @@ module Music.Time.Score
     normalizeDuration,  -- :: Time t => Score t a -> Score t a
 
     printScoreEvents,   -- :: (Time t, Show t, Show a) => Score t a -> String
+
+-- TODO normal forms and related maps
+    -- mapLines :: [a] -> [b] -> Score t a -> Score t b
+    -- mapChords :: [a] -> [b] -> Score t a -> Score t b
+    -- mapHomophonic :: ([[a]] -> [[b]]) -> Score t a -> Score t b
+    -- mapPolyphonic :: ([[a]] -> [[b]]) -> Score t a -> Score t b
+    -- normalizeHomophinic :: Score t a -> [[a]]
+    -- normalizePolyphonic :: Score t a -> [[a]]
 )
 where
 
