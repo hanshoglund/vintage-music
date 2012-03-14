@@ -9,6 +9,7 @@ import Data.Convert
 
 import Music                  
 import Music.Time.EventList
+import Music.Time.Tremolo
 import Music.Render.Midi
 import Music.Render.Graphics
 import Music.Inspect
@@ -87,19 +88,22 @@ both   = stretch (1/2) . before 6 $ melody ||| minors
 
 
 instance Render (Score Double Int) Midi where
-    render = render . fmap (\p -> MidiNote (p `mod` 15) (p+60) 0 60)
+    render = render . fmap (\p -> MidiNote 0 Nothing (p + 60) 0 60)
+
+instance Render (Score Double Integer) Midi where
+    render = render . fmap (\p -> MidiNote 0 Nothing (fromIntegral p + 60) 0 60)
 
 instance Render (Score Double (Int, Double)) Midi where
-    render = render . fmap (\(p,b) -> MidiNote 0 (p+60) b 60)
+    render = render . fmap (\(p,b) -> MidiNote 0 Nothing (p+60) b 60)
 
 
-test :: Score Double MidiNote
-test = stretch 5 $ 
-                      note (MidiNote 0 67 0.2 80)
-       ||| delay 0.2 (note (MidiNote 1 64 0.0 80))
-       ||| delay 0.4 (note (MidiNote 2 60 (-0.2) 80))
+-- test :: Score Double MidiNote
+-- test = stretch 5 $ 
+--                       note (MidiNote 0 60   0.9   80)
+--        ||| delay 0.2 (note (MidiNote 1 60   0.45  80))
+--        ||| delay 0.4 (note (MidiNote 2 60   0.0   80))
 
 -- test :: Score Double Int
 -- test = frere'
 
-main = inspect test
+-- main = inspect test
