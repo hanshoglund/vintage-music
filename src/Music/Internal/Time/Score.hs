@@ -24,11 +24,17 @@ import Data.Convert
 import Data.Monoid
 import Data.Foldable
 
+import Data.Colour ( withOpacity )
+import Data.Colour.SRGB ( sRGB24read )
+import Data.Convert
+import Diagrams.Prelude hiding ( Render, render )
+
 import Music.Time
 import Music.Time.Functors
 import Music.Time.Event ( Event(..) )
 import Music.Time.EventList ( EventList(..), printEvents )
 import qualified Music.Time.EventList as EventList
+import Music.Render.Graphics
 
 
 -- | A discrete temporal structure, generalising standard music notation.
@@ -126,11 +132,23 @@ instance Time t => TimeFunctor t (Score t) where
                         (const ParS)
                         (const SeqS)
 
+
+--
+-- Rendering
+--
+
 instance Time t => Render (Score t a) (EventList t a) where
     render = renderScore
 
 instance Time t => Render (EventList t a) (Score t a) where
     render = unrenderScore
+    
+instance (Time t, Show a) => Render (Score t a) Graphic where
+    render = renderGraphics
+
+instance (Time t, Show a) => Render (EventList t a) Graphic where
+    render = renderGraphics . unrenderScore
+
 
 --  The basic implementation for render looks like this:
 --  
@@ -161,6 +179,31 @@ renderScore' t (SeqS x y)   =
 
 unrenderScore :: Time t => EventList t a -> Score t a
 unrenderScore = chordDelayStretch . map (\(Event t d x) -> (t, d, x)). eventListEvents
+
+renderGraphics :: (Time t, Show a) => Score t a -> Graphic
+renderGraphics = Graphic 
+        . foldScore (\t d   -> renderRest d)
+                    (\t d x -> renderNote d x)
+                    (\t x y -> renderPar x y)
+                    (\t x y -> renderSeq x y)
+        . normalizeDuration
+    where
+        renderRest d   | d == 0     =  mempty
+                       | otherwise  =  moveOriginBy (negate (t2d d), 0) (renderEmpty (t2d d * 2))
+
+        renderNote d x | d == 0     =  mempty
+                       | otherwise  =  moveOriginBy (negate (t2d d), 0) (renderText x <> renderBox (t2d d))
+
+        renderPar     =  beside (negateV unitY)
+        renderSeq     =  append unitX
+        renderEmpty   =  strutX
+        renderText x  =  text (show x) # font "Gill Sans"
+                                       # fc white
+        renderBox d   =  scaleX d . fcA boxColor $ square 2
+        boxColor      =  sRGB24read "465FBD" `withOpacity` 0.6    
+        
+        t2d           = time2Double
+
 
 
 --
@@ -271,6 +314,7 @@ firstEvent = getFirst .
               ( \t x y -> x `mappend` y )
               ( \t x y -> x `mappend` y )
 
+-- | Last event in score.
 lastEvent :: Time t => Score t a -> Maybe a
 lastEvent = getLast . 
     foldScore ( \t d   -> Last $ Nothing )
@@ -285,10 +329,6 @@ numberOfEvents = foldScore (\t d -> 0) (\t d x -> 1) (const (+)) (const (+))
 -- | The mean duration of the score.
 meanDuration :: Time t => Score t a -> t
 meanDuration score = (getSum . foldDuration Sum) score / fromIntegral (numberOfEvents score)
-
--- | The dual of 'stretch'.
-compress :: Time t => t -> Score t a -> Score t a
-compress t = stretch (1 / t)
 
 -- | Prepend a rest of the given duration to the score.
 restBefore :: Time t => t -> Score t a -> Score t a
