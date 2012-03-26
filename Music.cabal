@@ -44,10 +44,8 @@ Library
 
     Exposed-Modules:
         
-        -- Data.Trivial
-        -- Data.Undefined
-        -- Data.Bijection
-        -- Data.Relation
+        Data.Trivial
+        Data.Undefined
         Data.Convert
         
         Music

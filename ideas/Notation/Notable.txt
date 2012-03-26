@@ -1,0 +1,108 @@
+
+Notable 
+Music Notation library for Haskell based on the Diagrams API
+
+
+========
+Abstraction levels
+    * Music 
+        Independent of notation
+        No time signatures, tied notes etc
+        Represented by Music.Time, Music.Pitch etc
+    * Music -> Notation
+        Notation as a human (who could not read music) would understand it
+        No concept of pitch/time, instead we say note position, notehead type etc
+        No page layout
+    * Notation -> Engraving
+        How to perform the engraving, i.e. what kind of symbol at what place
+        Each engraving is "single plate", i.e. a page or an image
+        Engravings are represented as Diagram values
+
+========
+Subjects with Tyboni refs:
+
+Note spacing (II.1 p 120)
+
+========
+Engravings with Tyboni refs:
+
+Chord objects
+    Non-spaced
+        Noteheads (position II.1 p 86)
+            Auxilary note lines (I.2)
+            Accidentals (I.4)
+                Standard (I.4)
+                Redundant (I.4)
+        Rests (II.2)
+        Dots (II.1 p 108) 
+        Stems (II.1 p 86)
+            Flags (II.1 p 92)
+            Crossbeams (II.1 p 100)
+            Cherry stems
+        Articulations
+            Fermata (II.1 p 118)
+        Chord vertical lines (arrpegios, chord brackets)
+
+Staff objects
+    Note lines (I.2)
+    Spaced
+        Clefs (I.3)
+        Key signatures (I.6)
+        Time signatures (II.3)
+
+    	Chords (including chord objects)
+        Cesuras (commas, break etc)
+        Single staff barlines
+
+    Non-spaced
+        Beams (II.1 p 93)
+    	Tremolo beams (II.1 p 102)
+    	Ties (II.1 p 103)
+    	Slurs  (II.x)
+    	Tuplets (II.1 p 112)
+    	
+    	Metronome marks
+    	Tempo text
+    	Technique text
+    	Expression text
+
+System objects
+    System bar numbers
+    Staves (including line objects)
+    Left line           
+    Brackets/Braces (I.2)
+    Part names
+    Cross-staff barlines
+
+
+    
+    
+    
+    
+-- type NotationT sa pa ca t p = (sa, [(pa, [(ca, t, [p])])])
+-- 
+-- data ScoreAttr    
+--     = ScoreAttr
+--     {
+--         title    :: String,
+--         composer :: String
+--     }
+-- data PartAttr     
+--     = PartAttr
+--     {
+--         instrument :: String,
+--         partNumber :: String
+--     }
+-- data ChordAttr    
+--     = ChordAttr
+--     {
+--         timeSignature :: Maybe String,
+--         keySignature :: Maybe String,
+--         articulation :: Maybe String
+--     }
+--     
+-- type Notation t p = NotationT ScoreAttr PartAttr ChordAttr t p
+-- 
+-- 
+-- instance (Time t, Pitched t p) => Render (NotationT sa pa ca t p) Graphic where
+--     render = undefined     

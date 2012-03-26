@@ -24,11 +24,3 @@ class Render a b where
 class Convert a b where
     convert   :: a -> b
     reconvert :: b -> a
-
-
--- instance Convert a b => Render a b where
---     render = convert
-
--- instance (Render a b, Render b a) => Convert a b where
---     convert   = render
---     reconvert = render
