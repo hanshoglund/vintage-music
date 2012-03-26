@@ -21,33 +21,25 @@ import Diagrams.Prelude hiding ( Render, render, (|||), (===) )
 import Diagrams.TwoD.Text ( Text )
 --import Diagrams.TwoD.Types ( r2 )
 
-infixl 6 =|=
+infixl 6 =<=
+infixl 6 =>=
 infixl 6 ===
 
+--
+-- Diagrams
+--
 
-(=|=) = beside unitX
+(=>=) = beside unitX
+(=<=) = beside (negateV unitX)
 (===) = beside (negateV unitY)
 
 
-
-
-
-
+--
+-- Preliminaries
+--
 
 data Notation = Notation
 type Engraving = (Renderable Text b, Renderable (Path R2) b) => Diagram b R2
-
-
-instance Render Notation Graphic where
-    render = Graphic . renderNotation
-    
-renderNotation :: t -> Engraving
-
-renderNotation x = mempty
-    <> (moveOriginBy (r2 (0,-space/2)) noteLines)
-    <> renderNote 2 True Unfilled
-
-
 
 -- * Font representation in the engraver.
 type Font   = String
@@ -56,7 +48,18 @@ type Symbol = (Font, Glyph)
 
 space = 0.26 
 
+--renderNotation :: t -> Engraving
+renderNotation x = mempty
+    <> (moveOriginBy (r2 (0, -space/2)) noteLines)
+    <> (chord1 =<= chord1 =<= chord1 =<= chord1 =<= chord1) # showOrigin
 
+chord1 = chord1'
+chord1' = mempty
+    <> renderNote 3 True Brevis
+    <> renderNote 1 True Whole
+    <> renderNote (-1) True Unfilled
+    <> renderNote (-3) True Filled
+        
 noteLines :: Engraving
 noteLines = 
     foldr (===) mempty (replicate 5 noteLine) # moveOriginBy (r2 (0, space * (-1.5))) 
@@ -84,24 +87,37 @@ downwards = False
 
 renderNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
 renderNote pos dir nh = 
-    translate (r2 (0, space * pos / 2)) $ mempty
+    translate (r2 (0, space * pos / 2)) $ 
+    mempty
     <> spacer
     <> noteHead 
-    <> noteStem
+    -- <> noteStem
     where
         spacer     =  square 1 
-                        # opacity 0
-        noteHead   =  text noteGlyph 
-                        # font noteFont
-        noteStem   =  if (hasStem nh) then noteStem' else mempty
-        noteStem'  =  rect noteStemWidth noteStemHeight 
-                        # fc black 
-                        # moveOriginBy noteStemOffset
+                      # opacity 0
+
+        noteHead   =  
+                     text noteGlyph 
+                      # font noteFont
+                      # translate noteHeadOffset
+
+        -- noteStem   =  if (hasStem nh) then noteStem' else mempty
+        -- noteStem'  =  rect noteStemWidth noteStemHeight 
+        --               # fc black 
+        --               # moveOriginBy noteStemOffset
+        
         noteStemWidth   =  0.025
         noteStemHeight  =  1
-        noteStemOffset  =  r2 $ negateUnless dir (0.14, 0.52)
+
+        noteHeadOffset  =  r2 $ noteHeadAdjustment nh
+        noteStemOffset  =  r2 $ negateUnless dir (0.3, 0)
+        
         (noteFont, noteGlyph)  =  noteSymbol nh
 
+noteHeadAdjustment Brevis   = (0.06, 0.25)
+noteHeadAdjustment Whole    = (0.058, 0.25)
+noteHeadAdjustment Filled   = (0.022, 0.485)
+noteHeadAdjustment Unfilled = (0.065, 0.485)
 
 -- | Negate when a boolean condition holds.
 negateWhen :: Num a => Bool -> a -> a
@@ -130,12 +146,25 @@ hasStem Filled    =  True
 hasStem Whole     =  False
 hasStem Brevis    =  False
 
+baseMusicFont    = "Helsinki"
+specialMusicFont = "Helsinki Special"
+-- baseMusicFont    = "Opus"
+-- specialMusicFont = "Opus Special"
+
 noteSymbol :: NoteHead -> Symbol
-noteSymbol Unfilled  =  ("Helsinki Special", "F")
-noteSymbol Filled    =  ("Helsinki Special", "f")
-noteSymbol Whole     =  ("Helsinki", "w")
-noteSymbol Brevis    =  ("Helsinki", "W")
+noteSymbol Unfilled  =  (specialMusicFont, "F")
+noteSymbol Filled    =  (specialMusicFont, "f")
+noteSymbol Whole     =  (baseMusicFont, "w")
+noteSymbol Brevis    =  (baseMusicFont, "W")
 
 
 
+
+--
+-- Instance for drawing
+--
+
+instance Render Notation Graphic where
+    render = Graphic . renderNotation
+    
 
