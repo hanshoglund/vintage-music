@@ -11,6 +11,7 @@ module Music.Phrasing where
 
 
 import Prelude hiding ( reverse )
+
 import Music.Time
 import Music.Dynamics
 import Music.Time.Score

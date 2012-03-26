@@ -21,6 +21,7 @@ module Music.Inspect
 where
 
 import Data.Convert
+
 import Music.Render.Midi
 import Music.Render.Graphics
 import Music.Util.System

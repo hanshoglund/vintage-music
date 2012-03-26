@@ -17,6 +17,7 @@ module Music.Pitch
 where
 
 import Data.Convert
+
 import Music.Time
 
 -- | Frequency in Hertz    

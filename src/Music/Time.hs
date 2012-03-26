@@ -5,6 +5,17 @@
     Maintainer  :  hans@hanshoglund.se
     Stability   :  experimental
     Portability :  portable
+    
+    This module defines type clases for temporal and durational values.
+      Basic temporal compositions are provided by the 'Temporal' class.
+      Durational properties are split into the two classes 'Timed' and
+      'Delayed'.
+    
+      The special temporal operations 'loop' and 'reverse' are defined in
+      their own classes instead of 'Temporal', as not all instances support
+      them. The same goes for the 'split' operation, which are supported by
+      some, but not all instances of 'Timed' and 'Delayed'.
+
 -}
 
 {-# LANGUAGE               
@@ -25,13 +36,14 @@ module Music.Time
 -- ** Reverse
     Reverse(..),
 
--- * Timed values
+-- * Durational values
     Time(..),
-    time2Double,
--- ** Duration
-    Timed(..),
+    timeToDouble,
+    timeToRational,
 -- ** Position
     Delayed(..),
+-- ** Duration
+    Timed(..),
 -- ** Split
     Split(..),
 
@@ -41,7 +53,9 @@ module Music.Time
 )
 where
 
+import Prelude hiding ( foldr )
 import Data.Monoid
+import Data.Foldable ( Foldable, foldr )
 
 infixr 9 <<<
 infixr 9 >>>
@@ -83,13 +97,13 @@ class Temporal d where
 
 
 -- | Sequential concatenation.
-concatSeq :: Temporal d => [d a] -> d a
+concatSeq :: (Foldable f, Temporal d) => f (d a) -> d a
 
 -- | Parallel concatenation.
-concatPar :: Temporal d => [d a] -> d a
+concatPar :: (Foldable f, Temporal d) => f (d a) -> d a
 
-concatSeq = Prelude.foldr (>>>) instant
-concatPar = Prelude.foldr (|||) instant
+concatSeq = foldr (>>>) instant
+concatPar = foldr (|||) instant
 
 
 -- | Monoid under sequential composition.
@@ -138,9 +152,11 @@ class (Enum t, RealFrac t) => Time t where
 instance Time Double
 instance Time Rational
 
-time2Double :: Time t => t -> Double
-time2Double = fromRational . toRational
+timeToDouble :: Time t => t -> Double
+timeToDouble = fromRational . toRational
 
+timeToRational :: Time t => t -> Rational
+timeToRational = toRational
 
 -- | Values with a duration.
 class Time t => Timed t d | d -> t where
@@ -165,10 +181,17 @@ class Time t => Delayed t d | d -> t where
     delay  :: t -> d a -> d a
 
 
--- | Instances of 'Loop', 'Split' and 'Timed' should satisfy
+-- | Values that can be split.
 --
---   > before d (after d) (loop x) = a
---   >     where d = duration x * n
+--   All instances should satisfy:
+--
+--   > split t x = (before t x, after t x)
+--
+--   Instances of 'Loop', 'Split' and 'Timed' should satisfy
+--
+--   > before d' (after d) (loop x) = a
+--   >     where d  = duration x * n
+--   >           d' = duration x * n + 1
 --
 --   for any natural number @n@.
 --
@@ -180,6 +203,5 @@ class Time t => Split t d | d -> t where
     after  :: t -> d a -> d a
 
     split t x = (before t x, after t x)
-
     before t x = a where (a, b) = split t x
     after  t x = b where (a, b) = split t x

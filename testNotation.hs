@@ -17,46 +17,49 @@ import Music.Render.Graphics
 import Data.Colour ( withOpacity )
 import Data.Colour.SRGB ( sRGB24read )
 import Data.Convert
-import Diagrams.Prelude hiding ( Render, render )
+import Diagrams.Prelude hiding ( Render, render, (|||), (===) )
 import Diagrams.TwoD.Text ( Text )
+--import Diagrams.TwoD.Types ( r2 )
 
---infixl 6 ===
 infixl 6 =|=
-infixl 6 ~~~
-infixl 6 ~|~
+infixl 6 ===
 
---(===) = beside (negateV unitY)
+
 (=|=) = beside unitX
-(~~~) = append (negateV unitY)
-(~|~) = append unitX
+(===) = beside (negateV unitY)
 
 
-type Engraving = (Renderable Text b, Renderable (Path R2) b) => Diagram b R2
+
+
+
 
 
 data Notation = Notation
+type Engraving = (Renderable Text b, Renderable (Path R2) b) => Diagram b R2
 
--- * Font representation in the engraver.
-type Font   = String
-type Glyph  = String
-type Symbol = (Font, Glyph)
 
 instance Render Notation Graphic where
     render = Graphic . renderNotation
     
 renderNotation :: t -> Engraving
 
-
 renderNotation x = mempty
-    <> noteLines
+    <> (moveOriginBy (r2 (0,-space/2)) noteLines)
     <> renderNote 2 True Unfilled
+
+
+
+-- * Font representation in the engraver.
+type Font   = String
+type Glyph  = String
+type Symbol = (Font, Glyph)
 
 space = 0.26 
 
 
 noteLines :: Engraving
 noteLines = 
-    foldr (===) mempty (replicate 5 noteLine) # moveOriginBy (0, space * (-1.5)) 
+    foldr (===) mempty (replicate 5 noteLine) # moveOriginBy (r2 (0, space * (-1.5))) 
         where
             noteLine  =  hrule 10 # lw 0.025 
                            <> 
@@ -81,7 +84,7 @@ downwards = False
 
 renderNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
 renderNote pos dir nh = 
-    translate (0, space * pos / 2) $ mempty
+    translate (r2 (0, space * pos / 2)) $ mempty
     <> spacer
     <> noteHead 
     <> noteStem
@@ -96,7 +99,7 @@ renderNote pos dir nh =
                         # moveOriginBy noteStemOffset
         noteStemWidth   =  0.025
         noteStemHeight  =  1
-        noteStemOffset  =  negateUnless dir (0.14, 0.52)
+        noteStemOffset  =  r2 $ negateUnless dir (0.14, 0.52)
         (noteFont, noteGlyph)  =  noteSymbol nh
 
 
