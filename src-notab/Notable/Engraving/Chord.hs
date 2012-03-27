@@ -1,15 +1,20 @@
+
 {-# LANGUAGE 
     RankNTypes,
     FlexibleContexts #-}
 
+-- | Chord-level engraving.
 module Notable.Engraving.Chord
 where
 
+import Data.Tuple (swap)
+import qualified Data.List
 import Music.Util
+import Music.Util.List
     
 import Notable.Core
 import Notable.Core.Diagrams
-import Notable.Core.Glyphs
+import Notable.Core.Symbols
 
 noteStemWidth               =  0.025
 noteStemInset               =  0.013
@@ -44,6 +49,31 @@ type FlipStem = Bool
 renderChord :: [(NoteHead, NoteHeadPos, Accidental)] -> Dots -> FlipStem -> Engraving
 renderChord = undefined
 
+-- | Separates note heads to be drawn to the left or the right of the stem.
+--
+--   Seconds are always partitioned so that the lower note heads goes to the right 
+--   of the stem, while other notes are put on the default side of the note.
+
+separeteNoteHeads :: Direction -> [Int] -> ([Int], [Int])
+separeteNoteHeads d = separeteNoteHeads' d . assertNoPrimes . Data.List.sort
+
+separeteNoteHeads' direction positions 
+    | direction == upwards    =  (lowers `merge` others, uppers)
+    | direction == downwards  =  (lowers, uppers `merge` others)
+    where 
+        (pairs, others)  =  partitioner collides positions
+        (lowers, uppers) =  unzip pairs
+        partitioner      =  if direction then partition2 else reversePartition2
+        collides x y     =  y - x < 2
+
+-- | Sanity check as we do not handle primes yet
+assertNoPrimes :: [Int] -> [Int]
+assertNoPrimes xs 
+    | null (filter2 (==) xs)  =  xs
+    | otherwise               =  error "assertNoPrimes"
+
+
+
 renderNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
 renderNote pos dir nh = 
     moveToPosition pos $ 
@@ -64,8 +94,8 @@ renderNote pos dir nh =
         noteStemHeight  =  space * 3.5 - noteStemShortenAtOuterNote
 
         noteHeadOffset  =  noteHeadAdjustment nh
-        noteStemOffset  =  r2 $ negateUnless dir (- (fst . unr2 $ noteHeadOffset / 2) - noteStemInset, 
-                                                  space * 3.5 / 2 + (noteStemShortenAtOuterNote / 2))
+        noteStemOffset  =  r2 $ negateIf (const dir) (- (fst . unr2 $ noteHeadOffset / 2) - noteStemInset, 
+                                                      space * 3.5 / 2 + (noteStemShortenAtOuterNote / 2))
         
         (noteFont, noteGlyph)  =  noteSymbol nh
 

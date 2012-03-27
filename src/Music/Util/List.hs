@@ -1,14 +1,180 @@
 
+{-|
+    Module      :  Music.Time
+    Copyright   :  Hans Höglund 2012
+
+    Maintainer  :  hans@hanshoglund.se
+    Stability   :  experimental
+    Portability :  portable
+
+    Some utilities not present in 'Data.List'.
+
+    Includes:
+    
+      * Versions of 'filter' and 'partition' for consecutive elements.
+
+      * Tuple/List conversions.    
+-}
+
 module Music.Util.List
+(
+-- * Special searches
+    filter2,
+    remove2,
+    partition2,
+    filter3,
+    remove3,
+    partition3,
+    reversePartition2,
+    
+-- * Sublists
+    findSublist,
+
+-- * Lists and tuples
+    match,
+    match3,
+    tuple2,
+    tuple3,
+    prependFirst,
+    prependSecond,
+
+-- * Transformations
+    cycleTimes,
+    palindrome,
+    palindromeInclusive,
+
+-- * Misc
+    merge,
+    mergeBy,
+)
 where
 
+import Data.List ( reverse )
+import Data.Maybe ( fromMaybe )
+import Data.Tuple ( swap )
+import Music.Util ( mapFirst, mapSecond )
+
+--
+-- Special searches
+--
+
+-- | Extracts all consequent pairs matching the given predicate.
+filter2 :: (a -> a -> Bool) -> [a] -> [(a, a)]
+filter2 pred = map (fromMaybe undefined . tuple2) . fst . findSublist 2 (match pred False)
+
+-- | Extracts all elements that are not part of a consequent pair matching the given predicate.
+remove2 :: (a -> a -> Bool) -> [a] -> [a]
+remove2 pred = snd . findSublist 2 (match pred False)
+
+-- | Separate consequent pairs matching the given predicate from the other elements in the list.
+partition2 :: (a -> a -> Bool) -> [a] -> ([(a, a)], [a])
+partition2 pred = mapFirst (map $ fromMaybe undefined . tuple2) . findSublist 2 (match pred False)
+
+-- | Separate consequent pairs matching the given predicate from the other elements in the list.
+reversePartition2 :: (a -> a -> Bool) -> [a] -> ([(a, a)], [a])
+reversePartition2 p xs = let (x, y) = partition2 (flip p) (reverse xs) in (reverse . map swap $ x, reverse y)
+
+-- | Extracts all consequent triples matching the given predicate.
+filter3 :: (a -> a -> a -> Bool) -> [a] -> [(a, a, a)]
+filter3 pred = map (fromMaybe undefined . tuple3) . fst . findSublist 3 (match3 pred False)
+
+-- | Extracts all elements that are not part of a consequent triple matching the given predicate.
+remove3 :: (a -> a -> a -> Bool) -> [a] -> [a]
+remove3 pred = snd . findSublist 2 (match3 pred False)
+
+-- | Separate consequent triples matching the given predicate from the other elements in the list.
+partition3 :: (a -> a -> a -> Bool) -> [a] -> ([(a, a, a)], [a])
+partition3 pred = mapFirst (map $ fromMaybe undefined . tuple3) . findSublist 3 (match3 pred False)
+--
+-- Sublists
+--
+
+-- | Search through consecutive sublists of a length @n@.
+--   The length of each sublist must be greater than 0 or the result is diverging.
+findSublist :: Int -> ([a] -> Bool) -> [a] -> ([[a]], [a])
+findSublist n pred [] = ([], [])
+findSublist n pred xs
+    | pred slice  =  prependFirst slice      $ findSublist n pred (drop n xs)
+    | otherwise   =  prependSecond (head xs) $ findSublist n pred (tail xs)
+    where
+        slice = take n xs
+
+--
+-- Lists and tuples
+--
+
+-- | Pair to list conversion.
+match :: (a -> a -> b) -> b -> [a] -> b
+match f z xs
+    | length xs < 2  =  z
+    | otherwise      =  f (xs !! 0) (xs !! 1)
+
+-- | Triple to list conversion.
+match3 :: (a -> a -> a -> b) -> b -> [a] -> b
+match3 f z xs
+    | length xs < 3  =  z
+    | otherwise      =  f (xs !! 0) (xs !! 1) (xs !! 2)
+
+-- | List to pair conversion.
+tuple2 :: [a] -> Maybe (a, a)
+tuple2 xs
+    | length xs /= 2  = Nothing
+    | otherwise       = Just (xs !! 0, xs !! 1)
+
+-- | List to triple conversion.
+tuple3 :: [a] -> Maybe (a, a, a)
+tuple3 xs
+    | length xs /= 3  = Nothing
+    | otherwise       = Just (xs !! 0, xs !! 1, xs !! 2)
+
+prependFirst :: a -> ([a], b) -> ([a], b)
+prependFirst x (xs, ys) = (x:xs, ys)
+
+prependSecond :: b -> (a, [b]) -> (a, [b])
+prependSecond y (xs, ys) = (xs, y:ys)
+
+
+--
+-- Transformations
+--
+
+-- | Finite version of 'cycle'.
 cycleTimes :: Int -> [a] -> [a]
 cycleTimes n xs = take (n * length xs) $ cycle xs
 
+-- | Non-inclusive palindrome. For example:
+--
+--   > palindrome [1,2,3] = [1,2,3,2]
 palindrome :: [a] -> [a]
 palindrome []        =  []
 palindrome [x]       =  [x]
 palindrome (x : xs)  =  x : init xs ++ reverse xs
-    
-palindrome' :: [a] -> [a]
-palindrome' xs = xs ++ reverse xs
+
+-- | Inclusive palindrome. For example:
+--
+--   > palindromeInclusive [1,2,3] = [1,2,3,3,2,1]
+palindromeInclusive :: [a] -> [a]
+palindromeInclusive xs = xs ++ reverse xs
+
+--
+-- Misc
+--
+
+-- | Merge two lists.
+--
+--   @merge xs ys@ is equivalent to 'sort' @(xs ++ ys)@ but with O(n) complexity.
+merge :: Ord a => [a] -> [a] -> [a]
+merge xs [] = xs
+merge [] ys = ys
+merge (x:xs) (y:ys)
+    | x < y      = x : merge xs (y:ys)
+    | otherwise  = y : merge (x:xs) ys
+
+-- | Generic version of 'merge'.
+mergeBy :: (a -> a -> Ordering) -> [a] -> [a] -> [a]
+mergeBy comp xs [] = xs
+mergeBy comp [] ys = ys
+mergeBy comp (x:xs) (y:ys)
+    | x `comp` y == LT = x : mergeBy comp xs (y:ys)
+    | otherwise        = y : mergeBy comp (x:xs) ys
+

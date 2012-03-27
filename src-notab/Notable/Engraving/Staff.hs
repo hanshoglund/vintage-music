@@ -1,13 +1,15 @@
+
 {-# LANGUAGE 
     RankNTypes,
     FlexibleContexts #-}
 
+-- | Staff-level engraving.
 module Notable.Engraving.Staff
 where
 
 import Notable.Core
 import Notable.Core.Diagrams
-import Notable.Core.Glyphs
+import Notable.Core.Symbols
 
 noteLineWidth = 0.025
 barLineWidth  = 0.04

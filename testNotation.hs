@@ -1,11 +1,9 @@
 
-{-# LANGUAGE
+{-# LANGUAGE  
     TypeFamilies,
-    FlexibleInstances,
-    FlexibleContexts,
+    RankNTypes,  
     MultiParamTypeClasses,
-    RankNTypes,
-    NoMonomorphismRestriction #-}
+    FlexibleContexts #-}
 
 import Music
 import Music.Inspect
@@ -48,4 +46,4 @@ renderNotation _ = mempty
     -- <> renderNote 3 downwards Filled     # translate (r2 (5, 0))
 
 instance Render Notation Graphic where
-    render = Graphic . renderNotation
+    render = Graphic . renderNotation    

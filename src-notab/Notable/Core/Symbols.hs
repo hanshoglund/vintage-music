@@ -1,6 +1,6 @@
 
-
-module Notable.Core.Glyphs
+-- | Notable symbols are simply represented as a pair of font and glyph.
+module Notable.Core.Symbols
 where
 
 import Notable.Core.Diagrams

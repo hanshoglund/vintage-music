@@ -1,13 +1,16 @@
+
 {-# LANGUAGE 
     TypeFamilies #-}
 
+-- | This module reexports standard components of the Diagrams API used
+--   throughout Notable.
 module Notable.Core.Diagrams
 (
-module Diagrams.Prelude,
-module Diagrams.TwoD.Text,
-(===), 
-(=>=), 
-(=<=)
+    module Diagrams.Prelude,
+    module Diagrams.TwoD.Text,
+    (===), 
+    (=>=), 
+    (=<=)
 )
 where
 

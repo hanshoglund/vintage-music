@@ -111,7 +111,7 @@ Library
         -- Notable music engraving engine
         -- To be moved to separate library soon (!)
         Notable.Core
-        Notable.Core.Glyphs
+        Notable.Core.Symbols
         Notable.Core.Diagrams
         Notable.Core.Diagrams.Cairo
         Notable.Engraving.System

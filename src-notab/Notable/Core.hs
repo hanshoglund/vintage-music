@@ -1,9 +1,30 @@
+
 {-# LANGUAGE  
     TypeFamilies,
     RankNTypes,
     FlexibleContexts #-}
 
+-- | This module contains preliminaries for music engraving.
 module Notable.Core
+(
+-- * Base units
+Spaces,
+HalfSpaces,
+Direction,
+
+space,
+halfSpace,
+upwards,
+downwards,
+
+-- * Core types
+Notation(..),
+Engraving,
+
+-- * Music engraving
+spaceRect,
+moveToPosition
+)
 where
 
 import Notable.Core.Diagrams
@@ -16,7 +37,9 @@ import Notable.Core.Diagrams
 -- | Base unit of engraving. Equal to the space between two note lines.
 type Spaces = Double
 
--- | Unit of half a space.
+-- | Unit of half a space. Equal to half the space between two note lines, so
+--
+--   > space / 2 = halfSpace
 type HalfSpaces = Double
 
 space :: Spaces
@@ -49,7 +72,7 @@ data Notation = Notation
 -- | An engraved note symbol.                       
 --
 --   This is precisely a diagram in the diagrams library, so it supports transformations,
---   rendering and composition with other engravings.
+--   rendering and composition with other 'Engraving' values.
 type Engraving = (Renderable Text b, Renderable (Path R2) b, Backend b R2) => Diagram b R2
 
 
