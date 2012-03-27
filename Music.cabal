@@ -103,6 +103,7 @@ Library
         Music.Projects.MusicaVitae
         -- Music.Projects.StringQuartet 
 
+        Music.Util
         Music.Util.List
         Music.Util.Either
         Music.Util.System
