@@ -20,8 +20,6 @@ import Data.Convert
 import Diagrams.Prelude hiding ( Render, render, (|||), (===) )
 import Diagrams.TwoD.Text ( Text )
 
-import Diagrams.Backend.Cairo.Text
-
 infixl 6 =<=
 infixl 6 =>=
 infixl 6 ===
@@ -34,10 +32,12 @@ infixl 6 ===
 (=<=) = beside (negateV unitX)
 (===) = beside (negateV unitY)
 
-instance Show TextExtents where
-    show (TextExtents b s v) = show b ++ " " ++ show s ++ " " ++ show v
-instance Show FontExtents where
-    show (FontExtents a d h v) = show a ++ " " ++ show d ++ " " ++ show h ++ " " ++ show v
+--import Diagrams.Backend.Cairo.Text
+
+-- instance Show TextExtents where
+--     show (TextExtents b s v) = show b ++ " " ++ show s ++ " " ++ show v
+-- instance Show FontExtents where
+--     show (FontExtents a d h v) = show a ++ " " ++ show d ++ " " ++ show h ++ " " ++ show v
 
 --
 -- Preliminaries
@@ -51,15 +51,14 @@ type Font   = String
 type Glyph  = String
 type Symbol = (Font, Glyph)
 
-space = 0.26 
-
 --renderNotation :: t -> Engraving
 renderNotation x = mempty
-    <> (moveOriginBy (r2 (0, -space/2)) noteLines)
-    <> renderNote (-3) True Brevis
-    <> renderNote (-1) True Whole
-    <> renderNote 1 True Unfilled
-    <> renderNote 3 True Filled
+    <> noteLines
+    <> renderNote 0 False Filled
+    <> renderNote (-3) True Brevis  # translate (r2 (2, 0))
+    <> renderNote (-1) True Whole   # translate (r2 (3, 0))
+    <> renderNote 1 True Unfilled   # translate (r2 (4, 0))
+    <> renderNote 3 True Filled     # translate (r2 (5, 0))
 
 chord1 = chord1'
 chord1' = mempty
@@ -67,11 +66,12 @@ chord1' = mempty
         
 noteLines :: Engraving
 noteLines = 
-    foldr (===) mempty (replicate 5 noteLine) # moveOriginBy (r2 (0, space * (-1.5))) 
+    moveOriginBy (r2 (0, -space/2)) $ 
+        foldr (===) mempty (replicate 5 noteLine) # moveOriginBy (r2 (0, space * (-1.5))) 
         where
-            noteLine  =  hrule 3 # lw 0.025 
+            noteLine  =  hrule 15 # lw 0.025 
                            <> 
-                         rect 3 space # opacity 0
+                         rect 15 space # opacity 0
 
 
 -- | Base unit of engraving. Equal to the space between two note lines.
@@ -92,29 +92,31 @@ downwards = False
 
 --renderNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
 renderNote pos dir nh = 
-    translate (r2 (0, space * pos / 2)) . showOrigin $ 
-    mempty
+    translate (r2 (0, space * pos / 2)) $ mempty
     <> noteHead 
-    -- <> noteStem
+    <> noteStem
     <> spacer
     where
         spacer     =  spaceRect (fst . unr2 $ noteHeadOffset) space
         noteHead   =  baselineText noteGlyph # font noteFont # translate (0.5 *^ noteHeadOffset)
 
-        -- noteStem   =  if (hasStem nh) then noteStem' else mempty
-        -- noteStem'  =  rect noteStemWidth noteStemHeight 
-        --               # fc black 
-        --               # moveOriginBy noteStemOffset
+        noteStem   =  if (hasStem nh) then noteStem' else mempty
+        noteStem'  =  rect noteStemWidth noteStemHeight 
+                      # fc black 
+                      # moveOriginBy noteStemOffset
         
         noteStemWidth   =  0.025
-        noteStemHeight  =  1
+        noteStemHeight  =  space * 3.5
 
         noteHeadOffset  =  noteHeadAdjustment nh
-        noteStemOffset  =  r2 $ negateUnless dir (0.3, 0)
+        noteStemOffset  =  r2 $ negateUnless dir (- fst . unr2 $ noteHeadOffset / 2, space * 3.5 / 2)
         
         (noteFont, noteGlyph)  =  noteSymbol nh
 
-spaceRect x y = rect x y # fc blue # opacity 0.6
+spaceRect x y = rect x y # fc blue # opacity 0.0
+
+space :: Spaces
+space = 0.27
 
 noteHeadAdjustment Filled   = r2 (-0.3, 0)
 noteHeadAdjustment Unfilled = r2 (-0.3, 0)

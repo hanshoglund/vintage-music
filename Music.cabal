@@ -40,7 +40,7 @@ Library
 
     Default-Language:   Haskell2010
 
-    Hs-Source-Dirs:     src
+    Hs-Source-Dirs:     src, src-notab
 
     Default-Extensions: 
 
@@ -49,6 +49,8 @@ Library
         Data.Trivial
         Data.Undefined
         Data.Convert
+
+
         
         Music
 
@@ -104,7 +106,18 @@ Library
         Music.Util.List
         Music.Util.Either
         Music.Util.System
-
+                              
+        -- Notable music engraving engine
+        -- To be moved to separate library soon (!)
+        Notable.Core
+        Notable.Core.Glyphs
+        Notable.Core.Diagrams
+        Notable.Core.Diagrams.Cairo
+        Notable.Engraving.System
+        Notable.Engraving.Chord
+        Notable.Engraving.Staff
+        Notable.Inspect
+        
 
    Other-Modules:
         Music.Internal.Time.Score
