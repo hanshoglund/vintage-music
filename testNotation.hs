@@ -19,7 +19,8 @@ import Data.Colour.SRGB ( sRGB24read )
 import Data.Convert
 import Diagrams.Prelude hiding ( Render, render, (|||), (===) )
 import Diagrams.TwoD.Text ( Text )
---import Diagrams.TwoD.Types ( r2 )
+
+import Diagrams.Backend.Cairo.Text
 
 infixl 6 =<=
 infixl 6 =>=
@@ -33,6 +34,10 @@ infixl 6 ===
 (=<=) = beside (negateV unitX)
 (===) = beside (negateV unitY)
 
+instance Show TextExtents where
+    show (TextExtents b s v) = show b ++ " " ++ show s ++ " " ++ show v
+instance Show FontExtents where
+    show (FontExtents a d h v) = show a ++ " " ++ show d ++ " " ++ show h ++ " " ++ show v
 
 --
 -- Preliminaries
@@ -51,22 +56,22 @@ space = 0.26
 --renderNotation :: t -> Engraving
 renderNotation x = mempty
     <> (moveOriginBy (r2 (0, -space/2)) noteLines)
-    <> (chord1 =<= chord1 =<= chord1 =<= chord1 =<= chord1) # showOrigin
+    <> renderNote (-3) True Brevis
+    <> renderNote (-1) True Whole
+    <> renderNote 1 True Unfilled
+    <> renderNote 3 True Filled
 
 chord1 = chord1'
 chord1' = mempty
     <> renderNote 3 True Brevis
-    <> renderNote 1 True Whole
-    <> renderNote (-1) True Unfilled
-    <> renderNote (-3) True Filled
         
 noteLines :: Engraving
 noteLines = 
     foldr (===) mempty (replicate 5 noteLine) # moveOriginBy (r2 (0, space * (-1.5))) 
         where
-            noteLine  =  hrule 10 # lw 0.025 
+            noteLine  =  hrule 3 # lw 0.025 
                            <> 
-                         rect 10 space # opacity 0
+                         rect 3 space # opacity 0
 
 
 -- | Base unit of engraving. Equal to the space between two note lines.
@@ -85,21 +90,16 @@ downwards = False
 -- TODO more intelligent version for chords
 -- TODO proper scaling and size of spacer
 
-renderNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
+--renderNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
 renderNote pos dir nh = 
-    translate (r2 (0, space * pos / 2)) $ 
+    translate (r2 (0, space * pos / 2)) . showOrigin $ 
     mempty
-    <> spacer
     <> noteHead 
     -- <> noteStem
+    <> spacer
     where
-        spacer     =  square 1 
-                      # opacity 0
-
-        noteHead   =  
-                     text noteGlyph 
-                      # font noteFont
-                      # translate noteHeadOffset
+        spacer     =  spaceRect (fst . unr2 $ noteHeadOffset) space
+        noteHead   =  baselineText noteGlyph # font noteFont # translate (0.5 *^ noteHeadOffset)
 
         -- noteStem   =  if (hasStem nh) then noteStem' else mempty
         -- noteStem'  =  rect noteStemWidth noteStemHeight 
@@ -109,15 +109,17 @@ renderNote pos dir nh =
         noteStemWidth   =  0.025
         noteStemHeight  =  1
 
-        noteHeadOffset  =  r2 $ noteHeadAdjustment nh
+        noteHeadOffset  =  noteHeadAdjustment nh
         noteStemOffset  =  r2 $ negateUnless dir (0.3, 0)
         
         (noteFont, noteGlyph)  =  noteSymbol nh
 
-noteHeadAdjustment Brevis   = (0.06, 0.25)
-noteHeadAdjustment Whole    = (0.058, 0.25)
-noteHeadAdjustment Filled   = (0.022, 0.485)
-noteHeadAdjustment Unfilled = (0.065, 0.485)
+spaceRect x y = rect x y # fc blue # opacity 0.6
+
+noteHeadAdjustment Filled   = r2 (-0.3, 0)
+noteHeadAdjustment Unfilled = r2 (-0.3, 0)
+noteHeadAdjustment Whole    = r2 (-0.43, 0)
+noteHeadAdjustment Brevis   = r2 (-0.65, 0)
 
 -- | Negate when a boolean condition holds.
 negateWhen :: Num a => Bool -> a -> a
@@ -152,8 +154,8 @@ specialMusicFont = "Helsinki Special"
 -- specialMusicFont = "Opus Special"
 
 noteSymbol :: NoteHead -> Symbol
-noteSymbol Unfilled  =  (specialMusicFont, "F")
 noteSymbol Filled    =  (specialMusicFont, "f")
+noteSymbol Unfilled  =  (specialMusicFont, "F")
 noteSymbol Whole     =  (baseMusicFont, "w")
 noteSymbol Brevis    =  (baseMusicFont, "W")
 

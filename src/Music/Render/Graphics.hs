@@ -26,7 +26,8 @@ import Data.Colour.SRGB ( sRGB24read )
 import Data.Convert
 
 import Diagrams.Prelude hiding ( Render, Time, render )
-import Diagrams.Backend.Cairo                  
+
+import Diagrams.Backend.Cairo
 
 -- Needed due to GHC 7.0.x bug, see haddocks for Diagrams.Backend.Cairo
 import Diagrams.Backend.Cairo.Internal
@@ -42,8 +43,8 @@ newtype Graphic = Graphic (Diagram Cairo R2)
 -- | Writes the given graphic representation to a file.
 writeGraphics :: FilePath -> Graphic -> IO ()
 writeGraphics file (Graphic diagram) = do
---  fst $ renderDia Cairo ( CairoOptions file $ PDF (500, 500) ) diagram
     fst $ renderDia Cairo (CairoOptions file (Width 250) PDF) diagram
+    fst $ renderDia Cairo (CairoOptions "test.ps" (Width 250) PS) diagram
     return ()
 
 
