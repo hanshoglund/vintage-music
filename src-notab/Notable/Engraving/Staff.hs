@@ -5,32 +5,98 @@
 
 -- | Staff-level engraving.
 module Notable.Engraving.Staff
+(
+-- * Note lines
+noteLineWeight,
+noteLines,
+standardNoteLines,
+
+-- * Barlines
+barLineWeight,
+singleBarLine,
+doubleBarLine,
+
+-- * Clefs
+ClefPos,
+ClefType,
+Clef,
+clef,
+clefSymbol,
+
+frenchClef,
+trebleClef,
+sopranoClef,
+mezzoSopranoClef,
+altoClef,
+tenorClef,
+baritoneClef,
+bassClef,
+subBassClef,
+)
+
 where
 
 import Notable.Core
 import Notable.Core.Diagrams
 import Notable.Core.Symbols
 
-noteLineWidth = 0.025
-barLineWidth  = 0.04
+--
+-- Constants
+--
 
-noteLines :: Double -> Engraving
-noteLines width = 
-    foldr (===) mempty (replicate 5 noteLine)
-        # moveOriginBy (r2 (0, -2 * space))
+-- | Thickness of note lines.
+noteLineWeight :: Double
+noteLineWeight = 0.025
+
+-- | Thickness of barlines.
+barLineWeight :: Double
+barLineWeight  = 0.04
+
+
+--
+-- Note lines
+--
+
+-- | Engraves a set of note line.
+noteLines :: Int -> Double -> Engraving
+noteLines num width = 
+    foldr (===) mempty (replicate num noteLine)
+        # moveOriginBy (r2 (0, (negate $ (fromIntegral num - 1) / 2) * space))
         where
-            noteLine  =  hrule width # lw noteLineWidth 
+            noteLine  =  hrule width # lw noteLineWeight 
                            <> 
                          spaceRect width space
                          
+-- | Engraves a standard set of note line.
+standardNoteLines :: Double -> Engraving
+standardNoteLines = noteLines 5
+
+--
+-- Bar lines
+--
+
+-- | Engraves a single bar line.
 singleBarLine :: Engraving
 singleBarLine = lineE <> spaceE
     where
-        lineE   =  vrule (4 * space) # lw barLineWidth
+        lineE   =  vrule (4 * space) # lw barLineWeight
         spaceE  =  spaceRect (space * 4/9) (space * 4)
 
+
+-- | Engraves a double bar line.
 doubleBarLine :: Engraving
 doubleBarLine = beside unitX (align unitX singleBarLine) singleBarLine
+
+-- TODO
+-- thickBarLine
+-- dashedBarLine
+-- shortBarLine
+-- tickBarLine
+-- finalBarLine
+-- startRepriseBarLine
+-- endRepriseBarLine
+-- startEndRepriseBarLine
+
 
 --
 -- Clefs

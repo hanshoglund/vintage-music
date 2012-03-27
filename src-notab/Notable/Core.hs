@@ -55,7 +55,6 @@ upwards   = True
 downwards = False
 
 
-
 --
 -- Notation and Engraving
 --

@@ -1,6 +1,13 @@
 
 -- | Notable symbols are simply represented as a pair of font and glyph.
 module Notable.Core.Symbols
+(
+Font,
+Glyph,
+Symbol,
+baseMusicFont,
+specialMusicFont
+)
 where
 
 import Notable.Core.Diagrams

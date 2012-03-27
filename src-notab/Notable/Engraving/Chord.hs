@@ -5,6 +5,20 @@
 
 -- | Chord-level engraving.
 module Notable.Engraving.Chord
+(
+NoteHead(..),
+NoteHeadPos,
+AccidentalType(..),
+Accidental(..),
+Dots,
+FlipStem,
+renderChord,
+separeteNoteHeads,
+assertNoPrimes,
+renderNote,
+hasStem,
+noteSymbol,
+)
 where
 
 import Data.Tuple (swap)
@@ -16,9 +30,19 @@ import Notable.Core
 import Notable.Core.Diagrams
 import Notable.Core.Symbols
 
-noteStemWidth               =  0.025
-noteStemInset               =  0.013
-noteStemShortenAtOuterNote  =  0.1 * space
+--
+-- Constants
+--
+
+noteStemWidth :: Double
+noteStemWidth = 0.025
+
+noteStemInset :: Double
+noteStemInset = 0.013
+
+noteStemShortenAtOuterNote :: Double
+noteStemShortenAtOuterNote = 0.1 * space
+
 
 -- | Represents a note head symbol.
 data NoteHead 

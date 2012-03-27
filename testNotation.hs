@@ -15,28 +15,12 @@ import Notable.Engraving.Chord
 import Notable.Engraving.Staff
 
 
-renderNotation :: Notation -> Engraving
-renderNotation _ = mempty
-    <> noteLines 15
-    <> (
-            frenchClef
-            =>=
-            trebleClef
-            =>=
-            sopranoClef
-            =>=
-            mezzoSopranoClef
-            =>=
-            altoClef
-            =>=
-            tenorClef
-            =>=
-            baritoneClef
-            =>=
-            bassClef
-            =>=
-            subBassClef
-       ) 
+-- Instance so we can use 'draw'
+instance Render Notation Graphic where
+    render = Graphic . clefs
+
+
+
        -- # translate (r2 (-5,0))
     -- <> doubleBarLine # translate (r2 (-2,0))
     -- <> renderNote 0 False Filled
@@ -45,5 +29,18 @@ renderNotation _ = mempty
     -- <> renderNote 1 downwards Unfilled   # translate (r2 (4, 0))
     -- <> renderNote 3 downwards Filled     # translate (r2 (5, 0))
 
-instance Render Notation Graphic where
-    render = Graphic . renderNotation    
+
+clefs _ = mempty
+    <> standardNoteLines 15
+    <> (
+        frenchClef
+        =>= trebleClef
+        =>= sopranoClef
+        =>= mezzoSopranoClef
+        =>= altoClef
+        =>= tenorClef
+        =>= baritoneClef
+        =>= bassClef
+        =>= subBassClef
+       ) 
+
