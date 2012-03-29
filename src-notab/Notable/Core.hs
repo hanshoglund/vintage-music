@@ -23,6 +23,7 @@ Engraving,
 
 -- * Music engraving
 spaceRect,
+spaceRectR,
 moveToPosition
 )
 where
@@ -60,7 +61,12 @@ downwards = False
 --
 
 spaceRect :: Double -> Double -> Engraving
-spaceRect x y = rect x y # fc blue # opacity 0
+spaceRect x y = rect x y # fc blue 
+    # opacity 0.1
+    -- # opacity 0
+
+spaceRectR :: R2 -> Engraving
+spaceRectR v = spaceRect (fst . unr2 $ v) (snd . unr2 $ v)
 
 moveToPosition :: (V t ~ R2, Transformable t) => Double -> t -> t
 moveToPosition pos = translate (r2 (0, space * pos / 2))

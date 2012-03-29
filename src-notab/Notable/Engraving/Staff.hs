@@ -18,7 +18,7 @@ doubleBarLine,
 
 -- * Clefs
 ClefPos,
-ClefType,
+ClefType(..),
 Clef,
 clef,
 clefSymbol,
@@ -57,7 +57,7 @@ barLineWeight  = 0.04
 -- Note lines
 --
 
--- | Engraves a set of note line.
+-- | Engraves a set of note lines.
 noteLines :: Int -> Double -> Engraving
 noteLines num width = 
     foldr (===) mempty (replicate num noteLine)
@@ -65,11 +65,13 @@ noteLines num width =
         where
             noteLine  =  hrule width # lw noteLineWeight 
                            <> 
-                         spaceRect width space
+                         {-spaceRect rect width space-}
+                         strutY space
                          
 -- | Engraves a standard set of note line.
 standardNoteLines :: Double -> Engraving
 standardNoteLines = noteLines 5
+
 
 --
 -- Bar lines
@@ -102,7 +104,13 @@ doubleBarLine = beside unitX (align unitX singleBarLine) singleBarLine
 -- Clefs
 --
 
+-- | Position that the clef will indicate, offset from the middle line.
+-- 
+--   For example, a standard alto clef has position 0, while a treble clef
+--   has position -2.
+--
 type ClefPos = HalfSpaces
+
 data ClefType
     = GClef
     | CClef
@@ -110,20 +118,23 @@ data ClefType
 
 type Clef = (ClefType, ClefPos)
 
+-- | Symbol used to represent a given clef type.
+clefSymbol :: ClefType -> Symbol
+clefSymbol GClef  =  (baseMusicFont, "&")
+clefSymbol CClef  =  (baseMusicFont, "B")
+clefSymbol FClef  =  (baseMusicFont, "?")
+
+-- | Engraves a standard size clef.
 clef :: Clef -> Engraving
 clef (clefType, pos) =
     moveToPosition pos $ clefE <> spaceE
     where   
         clefE   =  baselineText clefGlyph # font clefFont
-        spaceE  =  spaceRect (3 * space) (4 * space)
+        spaceE  =  spaceRectR (symbolSpacer sym) # translate (symbolOffset sym)
+        
+        (clefFont, clefGlyph)  =  sym
+        sym                    =  clefSymbol clefType
 
-        (clefFont, clefGlyph)  =  clefSymbol clefType
-
-
-clefSymbol :: ClefType -> Symbol
-clefSymbol GClef  =  (baseMusicFont, "&")
-clefSymbol CClef  =  (baseMusicFont, "B")
-clefSymbol FClef  =  (baseMusicFont, "?")
 
 frenchClef        :: Engraving
 trebleClef        :: Engraving
@@ -138,7 +149,7 @@ frenchClef        = clef (GClef, -4)
 trebleClef        = clef (GClef, -2)
 sopranoClef       = clef (CClef, -4)
 mezzoSopranoClef  = clef (CClef, -2)
-altoClef          = clef (CClef, -0)
+altoClef          = clef (CClef, 0)
 tenorClef         = clef (CClef, 2)
 baritoneClef      = clef (CClef, 4)
 bassClef          = clef (FClef, 2)

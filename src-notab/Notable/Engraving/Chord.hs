@@ -6,18 +6,26 @@
 -- | Chord-level engraving.
 module Notable.Engraving.Chord
 (
-NoteHead(..),
-NoteHeadPos,
+-- * Accidentals
 AccidentalType(..),
 Accidental(..),
+--accidentalSymbol,
+
+-- * Note heads
+NoteHead(..),
+NoteHeadPos,
+noteHeadSymbol,
+noteHeadNeedsStem,
+separeteNoteHeads,
+
+-- * Chords
 Dots,
 FlipStem,
-renderChord,
-separeteNoteHeads,
-assertNoPrimes,
+AdjustStem,
+-- Flags,
+-- CrossBeams
 renderNote,
-hasStem,
-noteSymbol,
+renderChord,
 )
 where
 
@@ -44,14 +52,10 @@ noteStemShortenAtOuterNote :: Double
 noteStemShortenAtOuterNote = 0.1 * space
 
 
--- | Represents a note head symbol.
-data NoteHead 
-    = Unfilled
-    | Filled 
-    | Whole 
-    | Brevis
 
-type NoteHeadPos = HalfSpaces
+--
+-- Accidentals
+--
 
 data AccidentalType 
     = Flat 
@@ -63,38 +67,84 @@ data Accidental
     | NormalAccidental AccidentalType 
     | RedundantAccidental AccidentalType
 
-type Dots = Int
+-- TODO accidentalSymbol
 
-type FlipStem = Bool
 
--- TODO cross-beams
--- TODO chord vertical lines
 
-renderChord :: [(NoteHead, NoteHeadPos, Accidental)] -> Dots -> FlipStem -> Engraving
-renderChord = undefined
 
--- | Separates note heads to be drawn to the left or the right of the stem.
 --
---   Seconds are always partitioned so that the lower note heads goes to the right 
---   of the stem, while other notes are put on the default side of the note.
+-- Note heads
+--
 
-separeteNoteHeads :: Direction -> [Int] -> ([Int], [Int])
+-- | Represents a note head symbol.
+data NoteHead 
+    = Unfilled
+    | Filled 
+    | Whole 
+    | Brevis
+
+type NoteHeadPos = HalfSpaces
+
+noteHeadSymbol :: NoteHead -> Symbol
+noteHeadSymbol Filled    =  (specialMusicFont, "f")
+noteHeadSymbol Unfilled  =  (specialMusicFont, "F")
+noteHeadSymbol Whole     =  (baseMusicFont, "w")
+noteHeadSymbol Brevis    =  (baseMusicFont, "W")
+
+-- | Whether a given notehead should be drawn with a stem or not.
+noteHeadNeedsStem :: NoteHead -> Bool
+noteHeadNeedsStem Unfilled  =  True
+noteHeadNeedsStem Filled    =  True
+noteHeadNeedsStem Whole     =  False
+noteHeadNeedsStem Brevis    =  False
+
+-- | Separates note heads to be drawn to the left and right of the stem respectively.
+--
+--   Seconds are partitioned so that the lower note heads goes to the right of the stem, 
+--   while all other notes are put on the default side of the note. The same layout 
+--   is used whether the chord actually has a stem or not. (Tyboni II.1 p 91)
+--
+separeteNoteHeads :: (Ord a, Num a) => Direction -> [a] -> ([a], [a])
 separeteNoteHeads d = separeteNoteHeads' d . assertNoPrimes . Data.List.sort
+    where
+        -- Sanity check as we do not handle primes yet
+        assertNoPrimes xs 
+            | null (filter2 (==) xs)  =  xs
+            | otherwise               =  error "assertNoPrimes"
+        
+        separeteNoteHeads' direction positions 
+            | direction  =  ( lowers `merge` others, uppers ) 
+            | otherwise  =  ( lowers, uppers `merge` others )
+                where 
+                    (pairs, others)  =  partitioner collides positions
+                    (lowers, uppers) =  unzip pairs
+                    collides x y     =  y - x < 2
+                    partitioner
+                        | direction  =  partition2
+                        | otherwise  =  reversePartition2
 
-separeteNoteHeads' direction positions 
-    | direction == upwards    =  (lowers `merge` others, uppers)
-    | direction == downwards  =  (lowers, uppers `merge` others)
-    where 
-        (pairs, others)  =  partitioner collides positions
-        (lowers, uppers) =  unzip pairs
-        partitioner      =  if direction then partition2 else reversePartition2
-        collides x y     =  y - x < 2
 
--- | Sanity check as we do not handle primes yet
-assertNoPrimes :: [Int] -> [Int]
-assertNoPrimes xs 
-    | null (filter2 (==) xs)  =  xs
-    | otherwise               =  error "assertNoPrimes"
+
+
+
+--
+-- Chords
+--
+
+type Dots = Int
+type FlipStem = Bool
+type AdjustStem = Double
+-- TODO type Flags = Int
+-- TODO type CrossBeams = Int
+
+-- | Engraves a chord.
+--
+--   
+
+-- NOTE origin in middle of "correct" note column, at system line 0
+
+renderChord :: [(NoteHead, NoteHeadPos, Accidental)] -> Dots -> FlipStem -> AdjustStem -> Engraving
+renderChord = undefined
 
 
 
@@ -109,7 +159,7 @@ renderNote pos dir nh =
         spacer     =  spaceRect (fst . unr2 $ noteHeadOffset) space
         noteHead   =  baselineText noteGlyph # font noteFont # translate (0.5 *^ noteHeadOffset)
 
-        noteStem   =  if (hasStem nh) then noteStem' else mempty
+        noteStem   =  if (noteHeadNeedsStem nh) then noteStem' else mempty
         noteStem'  =  rect noteStemWidth noteStemHeight 
                       # lc black
                       # fc black 
@@ -117,28 +167,11 @@ renderNote pos dir nh =
         
         noteStemHeight  =  space * 3.5 - noteStemShortenAtOuterNote
 
-        noteHeadOffset  =  noteHeadAdjustment nh
+        noteHeadOffset  =  symbolSpacer (noteHeadSymbol nh)
         noteStemOffset  =  r2 $ negateIf (const dir) (- (fst . unr2 $ noteHeadOffset / 2) - noteStemInset, 
                                                       space * 3.5 / 2 + (noteStemShortenAtOuterNote / 2))
         
-        (noteFont, noteGlyph)  =  noteSymbol nh
+        (noteFont, noteGlyph)  =  noteHeadSymbol nh
 
-noteHeadAdjustment Filled   = r2 (-0.3, 0)
-noteHeadAdjustment Unfilled = r2 (-0.3, 0)
-noteHeadAdjustment Whole    = r2 (-0.43, 0)
-noteHeadAdjustment Brevis   = r2 (-0.65, 0)
 
--- | Whether a given notehead should be drawn with a stem or not.
-hasStem :: NoteHead -> Bool
-hasStem Unfilled  =  True
-hasStem Filled    =  True
-hasStem Whole     =  False
-hasStem Brevis    =  False
 
-noteSymbol :: NoteHead -> Symbol
-noteSymbol Filled    =  (specialMusicFont, "f")
-noteSymbol Unfilled  =  (specialMusicFont, "F")
-noteSymbol Whole     =  (baseMusicFont, "w")
-noteSymbol Brevis    =  (baseMusicFont, "W")
-
-                                               
