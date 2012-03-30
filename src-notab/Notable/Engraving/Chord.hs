@@ -24,8 +24,8 @@ FlipStem,
 AdjustStem,
 -- Flags,
 -- CrossBeams
-renderNote,
-renderChord,
+engraveNote,
+engraveChord,
 )
 where
 
@@ -45,9 +45,11 @@ import Notable.Core.Symbols
 noteStemWidth :: Double
 noteStemWidth = 0.025
 
+-- FIXME shoud be reversed with stem
 noteStemInset :: Double
 noteStemInset = 0.013
 
+-- FIXME shoud be reversed with stem ?
 noteStemShortenAtOuterNote :: Double
 noteStemShortenAtOuterNote = 0.1 * space
 
@@ -86,6 +88,8 @@ data NoteHead
 type NoteHeadPos = HalfSpaces
 
 noteHeadSymbol :: NoteHead -> Symbol
+-- noteHeadSymbol Filled    =  (baseMusicFont, [toEnum 0x0153])
+-- noteHeadSymbol Unfilled  =  (baseMusicFont, [toEnum 0x02d9])
 noteHeadSymbol Filled    =  (specialMusicFont, "f")
 noteHeadSymbol Unfilled  =  (specialMusicFont, "F")
 noteHeadSymbol Whole     =  (baseMusicFont, "w")
@@ -143,13 +147,11 @@ type AdjustStem = Double
 
 -- NOTE origin in middle of "correct" note column, at system line 0
 
-renderChord :: [(NoteHead, NoteHeadPos, Accidental)] -> Dots -> FlipStem -> AdjustStem -> Engraving
-renderChord = undefined
+engraveChord :: [(NoteHead, NoteHeadPos, Accidental)] -> Dots -> FlipStem -> AdjustStem -> Engraving
+engraveChord = undefined
 
-
-
-renderNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
-renderNote pos dir nh = 
+engraveNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
+engraveNote pos dir nh = 
     moveToPosition pos $ 
         mempty
         <> noteHead 
@@ -157,7 +159,7 @@ renderNote pos dir nh =
         <> spacer
     where
         spacer     =  spaceRect (fst . unr2 $ noteHeadOffset) space
-        noteHead   =  baselineText noteGlyph # font noteFont # translate (0.5 *^ noteHeadOffset)
+        noteHead   =  engraveSymbol (noteHeadSymbol nh) # translate (0.5 *^ noteHeadOffset)
 
         noteStem   =  if (noteHeadNeedsStem nh) then noteStem' else mempty
         noteStem'  =  rect noteStemWidth noteStemHeight 
@@ -168,10 +170,8 @@ renderNote pos dir nh =
         noteStemHeight  =  space * 3.5 - noteStemShortenAtOuterNote
 
         noteHeadOffset  =  symbolSpacer (noteHeadSymbol nh)
-        noteStemOffset  =  r2 $ negateIf (const dir) (- (fst . unr2 $ noteHeadOffset / 2) - noteStemInset, 
-                                                      space * 3.5 / 2 + (noteStemShortenAtOuterNote / 2))
-        
-        (noteFont, noteGlyph)  =  noteHeadSymbol nh
+        noteStemOffset  =  r2 $ (negate `onlyIf` (const dir)) (- (fst . unr2 $ noteHeadOffset / 2) - noteStemInset, 
+                                                               space * 3.5 / 2 + (noteStemShortenAtOuterNote / 2))
 
 
 

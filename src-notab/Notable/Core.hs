@@ -24,12 +24,13 @@ Engraving,
 -- * Music engraving
 spaceRect,
 spaceRectR,
-moveToPosition
+moveToPosition,
+engraveSymbol
 )
 where
 
 import Notable.Core.Diagrams
-
+import Notable.Core.Symbols
 
 --
 -- Preliminaries
@@ -56,6 +57,7 @@ upwards   = True
 downwards = False
 
 
+
 --
 -- Notation and Engraving
 --
@@ -70,6 +72,11 @@ spaceRectR v = spaceRect (fst . unr2 $ v) (snd . unr2 $ v)
 
 moveToPosition :: (V t ~ R2, Transformable t) => Double -> t -> t
 moveToPosition pos = translate (r2 (0, space * pos / 2))
+
+engraveSymbol :: Symbol -> Engraving
+engraveSymbol (symFont, symGlyph) = baselineText symGlyph # font symFont
+
+
 
 -- | So far just a dummy type.
 data Notation = Notation

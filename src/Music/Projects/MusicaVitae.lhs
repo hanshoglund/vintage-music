@@ -198,9 +198,9 @@ partSection ( Cello 1 )  = High
 partSection ( Cello 2 )  = Low
 partSection DoubleBass = Middle
 
-sectionTuning Low    = 440 - 4
+sectionTuning Low    = 440 - 0
 sectionTuning Middle = 440
-sectionTuning High   = 440 + 4
+sectionTuning High   = 440 + 0
 
 partTuning = sectionTuning . partSection
 \end{code}
@@ -1317,12 +1317,12 @@ intro2 = instant
 
 
 -- TODO expand
--- middle1 = instant
---     ||| stretch 10 bass
---     ||| stretch 10 d
---     ||| (setPart (Cello  1) . setDynamics p . octaveDown . tonality . patternMelody) (pattern 2)
---     where
---         bass = (setDynamics pp . setPart DoubleBass $ naturalHarmonic I 3)
+middle1 = instant
+    ||| stretch 10 bass
+    ||| stretch 10 intro2
+    ||| (setPart (Cello  1) . setDynamics p . octaveDown . tonality . patternMelody) (pattern 2)
+    where
+        bass = (setDynamics pp . setPart DoubleBass $ naturalHarmonic I 3)
 
 
 canon1 = compress 1.1 . reverse $ instant

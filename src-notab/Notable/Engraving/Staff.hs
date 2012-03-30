@@ -127,13 +127,11 @@ clefSymbol FClef  =  (baseMusicFont, "?")
 -- | Engraves a standard size clef.
 clef :: Clef -> Engraving
 clef (clefType, pos) =
-    moveToPosition pos $ clefE <> spaceE
+    moveToPosition pos $ clefE <> spaceE # showOrigin
     where   
-        clefE   =  baselineText clefGlyph # font clefFont
-        spaceE  =  spaceRectR (symbolSpacer sym) # translate (symbolOffset sym)
-        
-        (clefFont, clefGlyph)  =  sym
-        sym                    =  clefSymbol clefType
+        clefE   =  engraveSymbol sym
+        spaceE  =  spaceRectR (symbolSpacer sym) # translate (symbolOffset sym)        
+        sym     =  clefSymbol clefType
 
 
 frenchClef        :: Engraving

@@ -61,19 +61,21 @@ Staff objects
     	Slurs  (II.x)
     	Tuplets (II.1 p 112)
     	
-    	Metronome marks
-    	Tempo text
     	Technique text
     	Expression text
 
 System objects
-    System bar numbers
     Staves (including line objects)
     Left line           
     Brackets/Braces (I.2)
+    
     Part names
-    Cross-staff barlines
+    Bar numbers
+	Metronome marks
+	Tempo text
 
+    Cross-staff barlines
+    Cross-staff beams
 
     
     

@@ -20,28 +20,28 @@ import Notable.Engraving.Staff
 instance Render Notation Graphic where
     render = Graphic . renderNot
 renderNot :: Notation -> Engraving
-renderNot x = clefE x === chordE x
+renderNot x = rotate (10 :: Deg) (clefE x) === (scale (1/4) . freeze) (chordE x) === chordE x
 
 chordE _ = mempty
     <> standardNoteLines 15
     <> (
         altoClef
         =>= strutX 0.5
-        =>= renderNote 1 False Unfilled
+        =>= engraveNote 1 False Unfilled
         =>= strutX 1
-        =>= renderNote 2 False Unfilled
+        =>= engraveNote 2 False Unfilled
         =>= strutX 1
-        =>= renderNote 0 False Unfilled
+        =>= engraveNote 0 False Unfilled
         =>= strutX 1
-        =>= renderNote (-1) True Unfilled
+        =>= engraveNote (-1) True Unfilled
         =>= strutX 1
-        =>= renderNote (-5) True Unfilled
+        =>= engraveNote (-5) True Unfilled
         =>= strutX 1
-        =>= renderNote (-3) True Filled
+        =>= engraveNote (-3) True Filled
         =>= strutX 1
-        =>= renderNote 0 True Whole
+        =>= engraveNote 0 True Whole
         =>= strutX 1
-        =>= renderNote 3 True Brevis
+        =>= engraveNote 3 True Brevis
     ) # translate (r2 (-7.2, 0))
 
 
@@ -50,13 +50,21 @@ clefE _ = mempty
     <> (
         mempty
         =>= frenchClef
+        =>= strutX 0.5
         =>= trebleClef
+        =>= strutX 0.5
         =>= sopranoClef
+        =>= strutX 0.5
         =>= mezzoSopranoClef
+        =>= strutX 0.5
         =>= altoClef
+        =>= strutX 0.5
         =>= tenorClef
+        =>= strutX 0.5
         =>= baritoneClef
+        =>= strutX 0.5
         =>= bassClef
+        =>= strutX 0.5
         =>= subBassClef
-       ) 
+       ) # translate (r2 (-5, 0)) 
 
