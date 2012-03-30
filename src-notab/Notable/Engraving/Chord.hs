@@ -45,11 +45,9 @@ import Notable.Core.Symbols
 noteStemWidth :: Double
 noteStemWidth = 0.025
 
--- FIXME shoud be reversed with stem
 noteStemInset :: Double
 noteStemInset = 0.013
 
--- FIXME shoud be reversed with stem ?
 noteStemShortenAtOuterNote :: Double
 noteStemShortenAtOuterNote = 0.1 * space
 
