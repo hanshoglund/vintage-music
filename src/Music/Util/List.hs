@@ -55,6 +55,9 @@ import Data.Maybe ( fromMaybe )
 import Data.Tuple ( swap )
 import Music.Util ( mapFirst, mapSecond )
 
+
+
+
 --
 -- Special searches
 --
@@ -94,6 +97,9 @@ remove3 pred = snd . findSublist 2 (list3 pred False)
 -- | Separate consequent triples matching the given predicate from the other elements in the list.
 partition3 :: (a -> a -> a -> Bool) -> [a] -> ([(a, a, a)], [a])
 partition3 pred = mapFirst (map $ fromMaybe undefined . tuple3) . findSublist 3 (list3 pred False)
+
+
+
 --
 -- Sublists
 --
@@ -107,6 +113,7 @@ findSublist n pred xs
     | otherwise   =  prependSecond (head xs) $ findSublist n pred (tail xs)
     where
         slice = take n xs
+
 
 --
 -- Lists and tuples
@@ -143,6 +150,7 @@ prependSecond :: b -> (a, [b]) -> (a, [b])
 prependSecond y (xs, ys) = (xs, y:ys)
 
 
+
 --
 -- Transformations
 --
@@ -154,6 +162,7 @@ cycleTimes n xs = take (n * length xs) $ cycle xs
 -- | Non-inclusive palindrome. For example:
 --
 --   > palindrome [1,2,3] = [1,2,3,2]
+--
 palindrome :: [a] -> [a]
 palindrome []        =  []
 palindrome [x]       =  [x]
@@ -162,8 +171,11 @@ palindrome (x : xs)  =  x : init xs ++ reverse xs
 -- | Inclusive palindrome. For example:
 --
 --   > palindromeInclusive [1,2,3] = [1,2,3,3,2,1]
+--
 palindromeInclusive :: [a] -> [a]
 palindromeInclusive xs = xs ++ reverse xs
+
+
 
 --
 -- Misc

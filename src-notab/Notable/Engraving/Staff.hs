@@ -7,32 +7,32 @@
 module Notable.Engraving.Staff
 (
 -- * Note lines
-noteLineWeight,
-noteLines,
-noteLines',
+    noteLineWeight,
+    noteLines,
+    noteLines',
 
 -- * Spaced objects
 -- ** Barlines
-barLineWeight,
-singleBarLine,
-doubleBarLine,
+    barLineWeight,
+    singleBarLine,
+    doubleBarLine,
 
 -- ** Clefs
-ClefPos,
-ClefType(..),
-Clef,
-clef,
-clefSymbol,
+    ClefPos,
+    ClefType(..),
+    Clef,
+    clef,
+    clefSymbol,
 
-frenchClef,
-trebleClef,
-sopranoClef,
-mezzoSopranoClef,
-altoClef,
-tenorClef,
-baritoneClef,
-bassClef,
-subBassClef,
+    frenchClef,
+    trebleClef,
+    sopranoClef,
+    mezzoSopranoClef,
+    altoClef,
+    tenorClef,
+    baritoneClef,
+    bassClef,
+    subBassClef,
 
 -- ** Key signatures
 -- ** Time signatures

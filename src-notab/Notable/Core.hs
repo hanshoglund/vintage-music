@@ -8,26 +8,26 @@
 module Notable.Core
 (
 -- * Base units
-Spaces,
-HalfSpaces,
-Direction,
+    Spaces,
+    HalfSpaces,
+    Direction,
 
-space,
-halfSpace,
-upwards,
-downwards,
+    space,
+    halfSpace,
+    upwards,
+    downwards,
           
-StaffLines,
+    StaffLines,
 
 -- * Core types
-Notation(..),
-Engraving,
+    Notation(..),
+    Engraving,
 
 -- * Music engraving
-spaceRect,
-spaceRectR,
-moveToPosition,
-engraveSymbol
+    spaceRect,
+    spaceRectR,
+    moveToPosition,
+    engraveSymbol
 )
 where
 

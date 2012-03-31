@@ -10,7 +10,6 @@
 {-# LANGUAGE
     MultiParamTypeClasses,
     FlexibleInstances,
-    TypeSynonymInstances,
     DeriveFunctor,
     DeriveFoldable #-}
 

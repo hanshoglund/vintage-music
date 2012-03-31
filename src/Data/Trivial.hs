@@ -7,7 +7,25 @@
     Portability :  portable
 -}
 
-module Data.Trivial where
+module Data.Trivial 
+(
+-- * Trivial class
+    Trivial(..),
+    
+-- * Maybe
+    always,
+    partial,
+    total,
+
+-- * Either
+    alwaysLeft,
+    alwaysRight,
+    partialLeft,
+    partialRight,
+    totalLeft,
+    totalRight,
+)
+where
     
 import Control.Monad
 import Data.Monoid

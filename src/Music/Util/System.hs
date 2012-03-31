@@ -26,5 +26,6 @@ openMidiFile name = execute "timidity" ["--quiet", name]
 exportMidiFile :: FilePath -> IO ()
 exportMidiFile    = openFileWith "/Applications/Sibelius 6.app/Contents/MacOS/Sibelius 6"
 
+-- | Audify the given Midi file using Timidity.
 exportMidiFileToAudio :: FilePath -> IO ()
 exportMidiFileToAudio path = execute "timidity" ["-Ow", path]

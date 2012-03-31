@@ -3,6 +3,7 @@
     TypeFamilies,
     RankNTypes,  
     MultiParamTypeClasses,
+    TypeSynonymInstances,
     NoMonomorphismRestriction,
     FlexibleContexts #-}
 
@@ -17,6 +18,8 @@ import Notable.Engraving.Staff
 import Music.Util.List
 
 
+
+
 -- Instance so we can use 'draw'
 instance Render Notation Graphic where
     render = Graphic . renderN
@@ -29,10 +32,9 @@ renderN _ = allE
 ledgersE = mempty
     <> noteLines 4
     <> trebleClef # translate (r2 (-2,0))
-    <> engraveNote 6 False Unfilled
-    <> engraveNote (-25) True Unfilled
-    <> engraveLedgerLines ((0,3),(0,10))
-
+    <> engraveNote 10 False Unfilled
+    <> engraveNote (-9) True Unfilled
+    <> engraveLedgerLines (ledgerLines True [-9,2,3,10])
 
 
 

@@ -6,11 +6,11 @@
 --   throughout Notable.
 module Notable.Core.Diagrams
 (
-module Diagrams.Prelude,
-module Diagrams.TwoD.Text,
-(===), 
-(=>=), 
-(=<=)
+    module Diagrams.Prelude,
+    module Diagrams.TwoD.Text,
+    (===), 
+    (=>=), 
+    (=<=)
 )
 where
 

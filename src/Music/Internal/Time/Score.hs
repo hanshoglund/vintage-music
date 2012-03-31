@@ -155,14 +155,15 @@ renderScore score = let (d, xs) = renderScore' 0 score
 -- offset -> score -> (dur, events)
 renderScore' t (RestS d)    =  (d, [])
 renderScore' t (NoteS d x)  =  (d, [Event t d x])
-renderScore' t (ParS x y)   =
-    let (dx, ex) = renderScore' t x
+renderScore' t (ParS x y)   =  (dx `max` dy, ex ++ ey)
+    where 
+        (dx, ex) = renderScore' t x
         (dy, ey) = renderScore' t y
-                       in (dx `max` dy, ex ++ ey)
-renderScore' t (SeqS x y)   =
-    let (dx, ex) = renderScore' t x
+
+renderScore' t (SeqS x y)   =  (dx + dy, ex ++ ey)
+    where
+        (dx, ex) = renderScore' t x
         (dy, ey) = renderScore' (t + dx) y
-                       in (dx + dy, ex ++ ey)
 
 
 unrenderScore :: Time t => EventList t a -> Score t a
@@ -237,14 +238,18 @@ foldScore' :: Time t =>
 
 foldScore' r n p s t (RestS d)    =  (d, r t d)
 foldScore' r n p s t (NoteS d x)  =  (d, n t d x)
-foldScore' r n p s t (ParS x y)   =
-    let (dx, sx) = foldScore' r n p s t x
+
+foldScore' r n p s t (ParS x y)   =  (dx `max` dy, p t sx sy)
+    where 
+        (dx, sx) = foldScore' r n p s t x
         (dy, sy) = foldScore' r n p s t y
-                                      in (dx `max` dy, p t sx sy)
-foldScore' r n p s t (SeqS x y)   =
-    let (dx, sx) = foldScore' r n p s t x
+
+foldScore' r n p s t (SeqS x y)   =  (dx + dy, s t sx sy)
+    where
+        (dx, sx) = foldScore' r n p s t x
         (dy, sy) = foldScore' r n p s (t + dx) y
-                                      in (dx + dy, s t sx sy)
+
+
 
 filterScore :: Time t =>
     (t -> t -> Bool) ->
@@ -253,6 +258,7 @@ filterScore :: Time t =>
     (t -> Bool) ->
     Score t a ->
     Score t a
+
 filterScore r n p s = foldScore ( \t d   -> if (r t d)   then RestS d   else instant )
                                 ( \t d x -> if (n t d x) then NoteS d x else instant )
                                 ( \t x y -> if (p t)     then ParS x y  else instant )
@@ -310,7 +316,8 @@ restBoth :: Time t => t -> Score t a -> Score t a
 restBoth t x
     | t <= 0     =  x
     | otherwise  =  r >>> x >>> r
-    where r = rest (t / 2)
+    where 
+        r = rest (t / 2)
 
 -- | Stretch the score to the given duration.
 stretchTo :: Time t => t -> Score t a -> Score t a
@@ -328,11 +335,13 @@ normalizeDuration score = stretch (1 / meanDuration score) score
 
 
 assureEqualDur :: Time t => Score t a -> Score t a -> (Score t a, Score t a)
-assureEqualDur x y | dx <  dy  =  (assureDur dy x, y)
-                   | dx == dy  =  (x, y)
-                   | dx >  dy  =  (x, assureDur dx y)
-    where dx = duration x
-          dy = duration y
+assureEqualDur x y 
+    | dx <  dy  =  (assureDur dy x, y)
+    | dx == dy  =  (x, y)
+    | dx >  dy  =  (x, assureDur dx y)
+    where 
+        dx = duration x
+        dy = duration y
 
 assureDur :: Time t => t -> Score t a -> Score t a
 assureDur t s | duration s < t  =  s >>> rest (t - duration s)
