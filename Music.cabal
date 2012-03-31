@@ -117,7 +117,6 @@ Library
         Notable.Engraving.System
         Notable.Engraving.Chord
         Notable.Engraving.Staff
-        Notable.Inspect
         
 
    Other-Modules:

@@ -5,32 +5,47 @@
 
 -- | Chord-level engraving.
 module Notable.Engraving.Chord
-(
+(  
+-- * Note heads
+NoteHead(..),
+NoteHeadPos,
+noteHead,
+noteHeadNeedsStem,
+separeteNoteHeads,
+partitionSmallIntervals,
+
+-- * Ledger lines
+LedgerLines,
+ledgerLines,
+ledgerLines',
+engraveLedgerLines,
+
 -- * Accidentals
 AccidentalType(..),
 Accidental(..),
 --accidentalSymbol,
 
--- * Note heads
-NoteHead(..),
-NoteHeadPos,
-noteHeadSymbol,
-noteHeadNeedsStem,
-separeteNoteHeads,
-partitionSeconds,
-
--- * Ledger lines
-Ledgers,
-ledgers,
-standardLedgers,
-engraveLedgers,
-
--- * Chords
+-- * Rests
+-- * Dots
 Dots,
+-- * Stems
 FlipStem,
 AdjustStem,
--- Flags,
--- CrossBeams
+Flags,
+CrossBeams,
+
+-- ** Cherry stems
+
+-- * Articulation
+-- ** Staccato
+-- ** Tenuto
+-- ** Staccato
+-- ** Fermata      
+
+-- * Vertical lines
+-- ** Arpeggios
+
+-- * Chords
 engraveNote,
 engraveChord,
 )
@@ -92,18 +107,23 @@ data NoteHead
     | Filled 
     | Whole 
     | Brevis
+    | Diamond
+    | Square
+    | Cross
 
+-- | Position of a note head, offset from middle line.
 type NoteHeadPos = HalfSpaces
 
-noteHeadSymbol :: NoteHead -> Symbol
--- noteHeadSymbol Filled    =  (baseMusicFont, [toEnum 0x0153])
--- noteHeadSymbol Unfilled  =  (baseMusicFont, [toEnum 0x02d9])
-noteHeadSymbol Filled    =  (specialMusicFont, "f")
-noteHeadSymbol Unfilled  =  (specialMusicFont, "F")
-noteHeadSymbol Whole     =  (baseMusicFont, "w")
-noteHeadSymbol Brevis    =  (baseMusicFont, "W")
+-- | Returns the symbol for a given note head.
+noteHead :: NoteHead -> Symbol
+-- noteHead Filled    =  (baseMusicFont, [toEnum 0x0153])
+-- noteHead Unfilled  =  (baseMusicFont, [toEnum 0x02d9])
+noteHead Filled    =  (specialMusicFont, "f")
+noteHead Unfilled  =  (specialMusicFont, "F")
+noteHead Whole     =  (baseMusicFont, "w")
+noteHead Brevis    =  (baseMusicFont, "W")
 
--- | Whether a given notehead should be drawn with a stem or not.
+-- | Whether a given notehead should be engraved with a stem or not.
 noteHeadNeedsStem :: NoteHead -> Bool
 noteHeadNeedsStem Unfilled  =  True
 noteHeadNeedsStem Filled    =  True
@@ -111,20 +131,13 @@ noteHeadNeedsStem Whole     =  False
 noteHeadNeedsStem Brevis    =  False
 
 
--- | Separate notes involved in seconds from other notes.
---
---   Each given position will only be returned once, so the following holds for all @d@ and @ps@:
---
---   > ps = sort (uppers ++ lowers ++ others)
---   >     where
---   >         (seconds, others)  =  partitionSeconds d ps
---   >         (uppers, lowers)   =  unzip seconds
+-- | Separate small intervals from others.
 --       
---   Search always start from the outermost note, so in cases like [1,2,3] would be groped
---   as @[(1,2)] [3]@ for an upward stem and [(2,3)] [1] for a downward stem.
+--   Search always start from the outermost note, so in cases like @[1,2,3]@ would be partitioned
+--   as @[(1,2)] [3]@ for an upward stem and @[(2,3)] [1]@ for a downward stem.
 --
-partitionSeconds :: Direction -> [NoteHeadPos] -> ([(NoteHeadPos, NoteHeadPos)], [NoteHeadPos])
-partitionSeconds direction positions =
+partitionSmallIntervals :: Direction -> [NoteHeadPos] -> ([(NoteHeadPos, NoteHeadPos)], [NoteHeadPos])
+partitionSmallIntervals direction positions =
     partitioner collides positions
     where
         collides x y     =  y - x < 2
@@ -132,9 +145,9 @@ partitionSeconds direction positions =
             | direction  =  partition2
             | otherwise  =  reversePartition2
 
--- | Separates note heads to be drawn to the left and right of the stem respectively.
+-- | Separates note heads to be engraved to the left and right of the stem respectively.
 --
---   Seconds are partitioned so that the lower note heads goes to the right of the stem, 
+--   Such intervals are partitioned so that the lower note heads goes to the right of the stem, 
 --   while all other notes are put on the default side of the note. The same layout 
 --   is used whether the chord actually has a stem or not. (Tyboni II.1 p 91)
 --   
@@ -150,27 +163,27 @@ separeteNoteHeads d = separeteNoteHeads' d . assertNoPrimes . Data.List.sort
             | direction  =  ( lowers `merge` others, uppers ) 
             | otherwise  =  ( lowers, others `merge` uppers )
                 where 
-                    (pairs, others)  =  partitionSeconds direction positions
+                    (pairs, others)  =  partitionSmallIntervals direction positions
                     (lowers, uppers) =  unzip pairs
+
 
 
 --
 -- Ledger lines
 --
 
--- | Number of ledger lines to draw for a particular chord. 
+-- | Number of ledger lines to engrave for a particular chord. 
 --   Specifically, @((longAbove, shortAbove), (longBelow, shortBelow))@.
+type LedgerLines = ((Int, Int), (Int, Int))
 
-type Ledgers = ((Int, Int), (Int, Int))
+-- | Returns the type of ledger lines to engrave for a given set of note heads.
+ledgerLines :: Direction -> [NoteHeadPos] -> LedgerLines
+ledgerLines = ledgerLines' 5
 
-
--- | Returns the type of ledger lines to draw above respectively below the ordinary staff lines.
---
---   @ledgers staffLines direction positions@ is the ledger lines needed for drawing the given
---   position on the given number of staff lines with the given stem direction.
-
-ledgers :: Int -> Direction -> [NoteHeadPos] -> Ledgers
-ledgers staffLines direction positions = 
+-- | Returns the type of ledger lines to engrave for a given set of note heads.
+--   This version works for any number of staff lines.
+ledgerLines' :: StaffLines -> Direction -> [NoteHeadPos] -> LedgerLines
+ledgerLines' staffLines direction positions = 
     ((0, shortAbove), (0, shortBelow)) 
     where              
         shortAbove          =  truncate . maybe 0 (\p -> (p - firstLedgerLineAbove + 1) / 2) $ shortAbovePos
@@ -186,14 +199,10 @@ ledgers staffLines direction positions =
         firstLedgerLineAbove  =  fromIntegral staffLines
         firstLedgerLineBelow  =  negate . fromIntegral $ staffLines
 
--- | Returns the type of ledger lines to draw above respectively below the ordinary staff lines
---   for a standard system.                                          
---
-standardLedgers :: Direction -> [NoteHeadPos] -> Ledgers
-standardLedgers = ledgers 5
-
-engraveLedgers :: Ledgers -> Engraving
-engraveLedgers ((la, sa), (lb, sb)) =
+-- | Engraves ledger lines, with the origin in at the default note column in the middle line.
+engraveLedgerLines :: LedgerLines -> Engraving
+engraveLedgerLines ((la, sa), (lb, sb)) =    
+    showOrigin $
        (cat unitY          . replicate sa $ ledgerE) # translate (r2 (0,  3 * space))
     <> (cat (negate unitY) . replicate sb $ ledgerE) # translate (r2 (0, -3 * space))
     where  
@@ -206,35 +215,43 @@ engraveLedgers ((la, sa), (lb, sb)) =
 -- Chords
 --
 
+-- | Number of dots.
 type Dots = Int
+
+-- | Wether the stem should be flipped.
 type FlipStem = Bool
+
+-- | Amount to add to stem length.
 type AdjustStem = Double
--- TODO type Flags = Int
--- TODO type CrossBeams = Int
+
+-- | Number of flags.
+type Flags = Int
+
+-- | Number of cross-staff beams.
+type CrossBeams = Int
 
 
 
 
 -- | Engraves a chord.
 --
---   
-
-
--- NOTE origin in middle of "correct" note column, at system line 0
-
+--   The origin of the chord will be at the middle line, at the default note column.
+--
 engraveChord :: [(NoteHead, NoteHeadPos, Accidental)] -> Dots -> FlipStem -> AdjustStem -> Engraving
 engraveChord = undefined
 
+-- | Engraves a single note.
 engraveNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
 engraveNote pos dir nh = 
+    showOrigin $
     moveToPosition pos $ 
         mempty
-        <> noteHead 
+        <> noteHeadE 
         <> noteStem
         <> spacer
     where
         spacer     =  spaceRect (fst . unr2 $ noteHeadOffset) space
-        noteHead   =  engraveSymbol (noteHeadSymbol nh) # translate (0.5 *^ noteHeadOffset)
+        noteHeadE   =  engraveSymbol (noteHead nh) # translate (0.5 *^ noteHeadOffset)
 
         noteStem   =  if (noteHeadNeedsStem nh) then noteStem' else mempty
         noteStem'  =  rect noteStemWidth noteStemHeight 
@@ -244,7 +261,7 @@ engraveNote pos dir nh =
         
         noteStemHeight  =  space * 3.5 - noteStemShortenAtOuterNote
 
-        noteHeadOffset  =  symbolSpacer (noteHeadSymbol nh)
+        noteHeadOffset  =  symbolSpacer (noteHead nh)
         noteStemOffset  =  r2 $ (negate `onlyIf` (const dir)) (- (fst . unr2 $ noteHeadOffset / 2) - noteStemInset, 
                                                                space * 3.5 / 2 + (noteStemShortenAtOuterNote / 2))
 

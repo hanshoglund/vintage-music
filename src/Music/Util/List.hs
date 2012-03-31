@@ -19,6 +19,8 @@
 module Music.Util.List
 (
 -- * Special searches
+    maximum',
+    minimum',
     filter2,
     remove2,
     partition2,
@@ -31,12 +33,10 @@ module Music.Util.List
     findSublist,
 
 -- * Lists and tuples
-    match,
-    match3,
+    list,
+    list3,
     tuple2,
     tuple3,
-    prependFirst,
-    prependSecond,
 
 -- * Transformations
     cycleTimes,
@@ -44,6 +44,7 @@ module Music.Util.List
     palindromeInclusive,
 
 -- * Misc
+    nonEmpty,
     merge,
     mergeBy,
 )
@@ -58,17 +59,25 @@ import Music.Util ( mapFirst, mapSecond )
 -- Special searches
 --
 
+-- | Arguably what the Prelude 'maximum' function should have been.
+maximum' :: Ord a => [a] -> Maybe a
+maximum' = fmap maximum . nonEmpty
+
+-- | Arguably what the Prelude 'minimum' function should have been.
+minimum' :: Ord a => [a] -> Maybe a
+minimum' = fmap minimum . nonEmpty
+
 -- | Extracts all consequent pairs matching the given predicate.
 filter2 :: (a -> a -> Bool) -> [a] -> [(a, a)]
-filter2 pred = map (fromMaybe undefined . tuple2) . fst . findSublist 2 (match pred False)
+filter2 pred = map (fromMaybe undefined . tuple2) . fst . findSublist 2 (list pred False)
 
 -- | Extracts all elements that are not part of a consequent pair matching the given predicate.
 remove2 :: (a -> a -> Bool) -> [a] -> [a]
-remove2 pred = snd . findSublist 2 (match pred False)
+remove2 pred = snd . findSublist 2 (list pred False)
 
 -- | Separate consequent pairs matching the given predicate from the other elements in the list.
 partition2 :: (a -> a -> Bool) -> [a] -> ([(a, a)], [a])
-partition2 pred = mapFirst (map $ fromMaybe undefined . tuple2) . findSublist 2 (match pred False)
+partition2 pred = mapFirst (map $ fromMaybe undefined . tuple2) . findSublist 2 (list pred False)
 
 -- | Separate consequent pairs matching the given predicate from the other elements in the list.
 reversePartition2 :: (a -> a -> Bool) -> [a] -> ([(a, a)], [a])
@@ -76,21 +85,21 @@ reversePartition2 p xs = let (x, y) = partition2 (flip p) (reverse xs) in (rever
 
 -- | Extracts all consequent triples matching the given predicate.
 filter3 :: (a -> a -> a -> Bool) -> [a] -> [(a, a, a)]
-filter3 pred = map (fromMaybe undefined . tuple3) . fst . findSublist 3 (match3 pred False)
+filter3 pred = map (fromMaybe undefined . tuple3) . fst . findSublist 3 (list3 pred False)
 
 -- | Extracts all elements that are not part of a consequent triple matching the given predicate.
 remove3 :: (a -> a -> a -> Bool) -> [a] -> [a]
-remove3 pred = snd . findSublist 2 (match3 pred False)
+remove3 pred = snd . findSublist 2 (list3 pred False)
 
 -- | Separate consequent triples matching the given predicate from the other elements in the list.
 partition3 :: (a -> a -> a -> Bool) -> [a] -> ([(a, a, a)], [a])
-partition3 pred = mapFirst (map $ fromMaybe undefined . tuple3) . findSublist 3 (match3 pred False)
+partition3 pred = mapFirst (map $ fromMaybe undefined . tuple3) . findSublist 3 (list3 pred False)
 --
 -- Sublists
 --
 
 -- | Search through consecutive sublists of a length @n@.
---   The length of each sublist must be greater than 0 or the result is diverging.
+--   The length of each sublist must be greater than zero, or the result diverges.
 findSublist :: Int -> ([a] -> Bool) -> [a] -> ([[a]], [a])
 findSublist n pred [] = ([], [])
 findSublist n pred xs
@@ -104,14 +113,14 @@ findSublist n pred xs
 --
 
 -- | Pair to list conversion.
-match :: (a -> a -> b) -> b -> [a] -> b
-match f z xs
+list :: (a -> a -> b) -> b -> [a] -> b
+list f z xs
     | length xs < 2  =  z
     | otherwise      =  f (xs !! 0) (xs !! 1)
 
 -- | Triple to list conversion.
-match3 :: (a -> a -> a -> b) -> b -> [a] -> b
-match3 f z xs
+list3 :: (a -> a -> a -> b) -> b -> [a] -> b
+list3 f z xs
     | length xs < 3  =  z
     | otherwise      =  f (xs !! 0) (xs !! 1) (xs !! 2)
 
@@ -160,7 +169,12 @@ palindromeInclusive xs = xs ++ reverse xs
 -- Misc
 --
 
--- | Merge two lists.
+-- | If the list is empty, return nothing, otherwise return the list.
+nonEmpty :: [a] -> Maybe [a] 
+nonEmpty [] = Nothing
+nonEmpty xs = Just xs   
+
+-- | Merge two sorted lists.
 --
 --   @merge xs ys@ is equivalent to 'sort' @(xs ++ ys)@ but with O(n) complexity.
 merge :: Ord a => [a] -> [a] -> [a]

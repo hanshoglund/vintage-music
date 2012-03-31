@@ -858,22 +858,22 @@ This section needs some cleanup...
 
 \begin{code}
 setMidiChannel :: MidiChannel -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
-setMidiChannel c = fmapE f g
+setMidiChannel c = fmapEither f g
     where f = (\(MidiNote _ i p b n) -> MidiNote c i p b n)
           g = fmap (\(MidiNote _ i p b n) -> MidiNote c i p b n)
 
 setMidiInstrument :: MidiInstrument -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
-setMidiInstrument i = fmapE f g
+setMidiInstrument i = fmapEither f g
     where f = (\(MidiNote c _ p b n) -> MidiNote c i p b n)
           g = fmap (\(MidiNote c _ p b n) -> MidiNote c i p b n)
 
 setMidiBend :: MidiBend -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
-setMidiBend b = fmapE f g
+setMidiBend b = fmapEither f g
     where f = (\(MidiNote c i p _ n) -> MidiNote c i p b n)
           g = fmap (\(MidiNote c i p _ n) -> MidiNote c i p b n)
 
 setMidiDynamic :: Dynamics -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
-setMidiDynamic (Dynamics n) = tmapE f g
+setMidiDynamic (Dynamics n) = tmapEither f g
     where f = (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63))
           g = (\t x -> tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63)) x)
 \end{code}

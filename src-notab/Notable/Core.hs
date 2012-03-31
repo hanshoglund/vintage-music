@@ -16,6 +16,8 @@ space,
 halfSpace,
 upwards,
 downwards,
+          
+StaffLines,
 
 -- * Core types
 Notation(..),
@@ -55,6 +57,9 @@ halfSpace = space / 2
 type Direction = Bool
 upwards   = True
 downwards = False
+
+-- | Number of lines in a staff.
+type StaffLines = Int
 
 
 

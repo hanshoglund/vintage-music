@@ -1,20 +1,27 @@
 
 module Music.Util.Either
+(
+mapLeft,
+mapRight,
+fmapEither,
+fmapLeft,
+fmapRight,
+)
 where
     
 
-mapL :: (a -> b) -> Either a c -> Either b c
-mapR :: (a -> b) -> Either c a -> Either c b
-mapL f (Left x)  = Left (f x)
-mapL f (Right x) = Right x
-mapR f (Left x)  = Left x
-mapR f (Right x) = Right (f x)
+mapLeft :: (a -> b) -> Either a c -> Either b c
+mapRight :: (a -> b) -> Either c a -> Either c b
+mapLeft f (Left x)  = Left (f x)
+mapLeft f (Right x) = Right x
+mapRight f (Left x)  = Left x
+mapRight f (Right x) = Right (f x)
 
-fmapE :: Functor f => (a -> b) -> (c -> d) -> f (Either a c) -> f (Either b d)
-fmapE f g = fmap (mapL f . mapR g)
+fmapEither :: Functor f => (a -> b) -> (c -> d) -> f (Either a c) -> f (Either b d)
+fmapEither f g = fmap (mapLeft f . mapRight g)
 
-fmapL :: Functor f => (a -> b) -> f (Either a c) -> f (Either b c)
-fmapL f = fmap (mapL f)
+fmapLeft :: Functor f => (a -> b) -> f (Either a c) -> f (Either b c)
+fmapLeft f = fmap (mapLeft f)
 
-fmapR :: Functor f => (a -> b) -> f (Either c a) -> f (Either c b)
-fmapR f = fmap (mapR f)
+fmapRight :: Functor f => (a -> b) -> f (Either c a) -> f (Either c b)
+fmapRight f = fmap (mapRight f)

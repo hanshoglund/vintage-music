@@ -14,12 +14,12 @@
 module Music.Time.Functors
 (
     TimeFunctor(..),
-    tmapR,
-    dmapR,
-    tdmapR,
-    tmapE,
-    dmapE,
-    tdmapE,
+    tmapRight,
+    dmapRight,
+    tdmapRight,
+    tmapEither,
+    dmapEither,
+    tdmapEither,
 )
 where
 
@@ -42,30 +42,30 @@ class (Time t, Functor d) => TimeFunctor t d | d -> t where
     -- | Map with offset and duration.
     tdmap :: (t -> t -> a -> b) -> d a -> d b
     
-tmapR :: (Time t, TimeFunctor t f) => (t -> a -> b) -> f (Either c a) -> f (Either c b)
-tmapR f = tmap (\t -> mapR $ f t)
+tmapRight :: (Time t, TimeFunctor t f) => (t -> a -> b) -> f (Either c a) -> f (Either c b)
+tmapRight f = tmap (\t -> mapRight $ f t)
 
-dmapR :: (Time t, TimeFunctor t f) => (t -> a -> b) -> f (Either c a) -> f (Either c b)
-dmapR f = dmap (\t -> mapR $ f t)
+dmapRight :: (Time t, TimeFunctor t f) => (t -> a -> b) -> f (Either c a) -> f (Either c b)
+dmapRight f = dmap (\t -> mapRight $ f t)
 
-tdmapR :: (Time t, TimeFunctor t f) => (t -> t -> a -> b) -> f (Either c a) -> f (Either c b)
-tdmapR f = tdmap (\t d -> mapR $ f t d)
+tdmapRight :: (Time t, TimeFunctor t f) => (t -> t -> a -> b) -> f (Either c a) -> f (Either c b)
+tdmapRight f = tdmap (\t d -> mapRight $ f t d)
 
 
-tmapE :: (Time t, TimeFunctor t f) => (t -> a -> b) -> (t -> c -> d) -> f (Either a c) -> f (Either b d)
-tmapE f g = tmap (\t -> l t . r t)
-    where l t = mapL $ f t
-          r t = mapR $ g t
+tmapEither :: (Time t, TimeFunctor t f) => (t -> a -> b) -> (t -> c -> d) -> f (Either a c) -> f (Either b d)
+tmapEither f g = tmap (\t -> l t . r t)
+    where l t = mapLeft $ f t
+          r t = mapRight $ g t
 
-dmapE :: (Time t, TimeFunctor t f) => (t -> a -> b) -> (t -> c -> d) -> f (Either a c) -> f (Either b d)
-dmapE f g = dmap (\d -> l d . r d)
-    where l d = mapL $ f d
-          r d = mapR $ g d
+dmapEither :: (Time t, TimeFunctor t f) => (t -> a -> b) -> (t -> c -> d) -> f (Either a c) -> f (Either b d)
+dmapEither f g = dmap (\d -> l d . r d)
+    where l d = mapLeft $ f d
+          r d = mapRight $ g d
 
-tdmapE :: (Time t, TimeFunctor t f) => (t -> t -> a -> b) -> (t -> t -> c -> d) -> f (Either a c) -> f (Either b d)
-tdmapE f g = tdmap (\t d -> l t d . r t d)
-    where l t d = mapL $ f t d
-          r t d = mapR $ g t d
+tdmapEither :: (Time t, TimeFunctor t f) => (t -> t -> a -> b) -> (t -> t -> c -> d) -> f (Either a c) -> f (Either b d)
+tdmapEither f g = tdmap (\t d -> l t d . r t d)
+    where l t d = mapLeft $ f t d
+          r t d = mapRight $ g t d
 
 
 

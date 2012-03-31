@@ -14,6 +14,7 @@ module Music.Util
     triplicate
 )
 where
+         
 
 -- | Apply the original function only if a predicate holds.
 -- 
@@ -49,4 +50,4 @@ duplicate :: a -> (a, a)
 duplicate x = (x, x)
 
 triplicate :: a -> (a, a, a)
-triplicate x = (x, x, x)
+triplicate x = (x, x, x)   

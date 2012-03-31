@@ -9,14 +9,15 @@ module Notable.Engraving.Staff
 -- * Note lines
 noteLineWeight,
 noteLines,
-standardNoteLines,
+noteLines',
 
--- * Barlines
+-- * Spaced objects
+-- ** Barlines
 barLineWeight,
 singleBarLine,
 doubleBarLine,
 
--- * Clefs
+-- ** Clefs
 ClefPos,
 ClefType(..),
 Clef,
@@ -32,6 +33,21 @@ tenorClef,
 baritoneClef,
 bassClef,
 subBassClef,
+
+-- ** Key signatures
+-- ** Time signatures
+-- ** Chords
+-- ** Cesuras
+
+-- * Non-spaced objects
+-- * Beams
+-- * Tremolo beams
+-- * Ties
+-- * Slurs
+-- * Tuplets
+-- * Text
+
+
 )
 
 where
@@ -57,9 +73,14 @@ barLineWeight  = 0.04
 -- Note lines
 --
 
+                         
+-- | Engraves a set of note line.
+noteLines :: Double -> Engraving
+noteLines = noteLines' 5
+
 -- | Engraves a set of note lines.
-noteLines :: Int -> Double -> Engraving
-noteLines num width = 
+noteLines' :: StaffLines -> Double -> Engraving
+noteLines' num width = 
     foldr (===) mempty (replicate num noteLine)
         # moveOriginBy (r2 (0, (negate $ (fromIntegral num - 1) / 2) * space))
         where
@@ -67,10 +88,6 @@ noteLines num width =
                            <> 
                          {-spaceRect rect width space-}
                          strutY space
-                         
--- | Engraves a standard set of note line.
-standardNoteLines :: Double -> Engraving
-standardNoteLines = noteLines 5
 
 
 --
@@ -127,7 +144,7 @@ clefSymbol FClef  =  (baseMusicFont, "?")
 -- | Engraves a standard size clef.
 clef :: Clef -> Engraving
 clef (clefType, pos) =
-    moveToPosition pos $ clefE <> spaceE # showOrigin
+    moveToPosition pos $ clefE <> spaceE
     where   
         clefE   =  engraveSymbol sym
         spaceE  =  spaceRectR (symbolSpacer sym) # translate (symbolOffset sym)        
