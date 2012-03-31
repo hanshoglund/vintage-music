@@ -14,15 +14,30 @@ import Notable.Core
 import Notable.Core.Diagrams
 import Notable.Engraving.Chord
 import Notable.Engraving.Staff
+import Music.Util.List
 
 
 -- Instance so we can use 'draw'
 instance Render Notation Graphic where
-    render = Graphic . renderNot
-renderNot :: Notation -> Engraving
-renderNot x = rotate (10 :: Deg) (clefE x) === (scale (1/4) . freeze) (chordE x) === chordE x
+    render = Graphic . renderN
+renderN :: Notation -> Engraving
 
-chordE _ = mempty
+renderN _ = allE
+
+
+
+ledgersE = mempty
+    <> standardNoteLines 10
+    <> engraveNote 6 False Unfilled
+    <> engraveNote (-25) True Unfilled
+    <> engraveLedgers ((0,3),(0,10))
+
+
+
+
+allE = rotate (10 :: Deg) clefE === (scale (1/4) . freeze) chordE === chordE === ledgersE
+
+chordE = mempty
     <> standardNoteLines 15
     <> (
         altoClef
@@ -45,7 +60,7 @@ chordE _ = mempty
     ) # translate (r2 (-7.2, 0))
 
 
-clefE _ = mempty
+clefE = mempty
     <> standardNoteLines 15
     <> (
         mempty
@@ -67,4 +82,9 @@ clefE _ = mempty
         =>= strutX 0.5
         =>= subBassClef
        ) # translate (r2 (-5, 0)) 
+
+
+
+
+
 

@@ -64,8 +64,8 @@ downwards = False
 
 spaceRect :: Double -> Double -> Engraving
 spaceRect x y = rect x y # fc blue 
-    # opacity 0.1
-    -- # opacity 0
+    -- # opacity 0.1
+    # opacity 0
 
 spaceRectR :: R2 -> Engraving
 spaceRectR v = spaceRect (fst . unr2 $ v) (snd . unr2 $ v)

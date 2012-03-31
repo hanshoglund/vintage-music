@@ -17,6 +17,13 @@ NoteHeadPos,
 noteHeadSymbol,
 noteHeadNeedsStem,
 separeteNoteHeads,
+partitionSeconds,
+
+-- * Ledger lines
+Ledgers,
+ledgers,
+standardLedgers,
+engraveLedgers,
 
 -- * Chords
 Dots,
@@ -51,6 +58,9 @@ noteStemInset = 0.013
 noteStemShortenAtOuterNote :: Double
 noteStemShortenAtOuterNote = 0.1 * space
 
+-- | Thickness of ledger lines.
+ledgerLineWeight :: Double
+ledgerLineWeight = 0.035
 
 
 --
@@ -100,13 +110,35 @@ noteHeadNeedsStem Filled    =  True
 noteHeadNeedsStem Whole     =  False
 noteHeadNeedsStem Brevis    =  False
 
+
+-- | Separate notes involved in seconds from other notes.
+--
+--   Each given position will only be returned once, so the following holds for all @d@ and @ps@:
+--
+--   > ps = sort (uppers ++ lowers ++ others)
+--   >     where
+--   >         (seconds, others)  =  partitionSeconds d ps
+--   >         (uppers, lowers)   =  unzip seconds
+--       
+--   Search always start from the outermost note, so in cases like [1,2,3] would be groped
+--   as @[(1,2)] [3]@ for an upward stem and [(2,3)] [1] for a downward stem.
+--
+partitionSeconds :: Direction -> [NoteHeadPos] -> ([(NoteHeadPos, NoteHeadPos)], [NoteHeadPos])
+partitionSeconds direction positions =
+    partitioner collides positions
+    where
+        collides x y     =  y - x < 2
+        partitioner
+            | direction  =  partition2
+            | otherwise  =  reversePartition2
+
 -- | Separates note heads to be drawn to the left and right of the stem respectively.
 --
 --   Seconds are partitioned so that the lower note heads goes to the right of the stem, 
 --   while all other notes are put on the default side of the note. The same layout 
 --   is used whether the chord actually has a stem or not. (Tyboni II.1 p 91)
---
-separeteNoteHeads :: (Ord a, Num a) => Direction -> [a] -> ([a], [a])
+--   
+separeteNoteHeads :: Direction -> [NoteHeadPos] -> ([NoteHeadPos], [NoteHeadPos])
 separeteNoteHeads d = separeteNoteHeads' d . assertNoPrimes . Data.List.sort
     where
         -- Sanity check as we do not handle primes yet
@@ -116,17 +148,58 @@ separeteNoteHeads d = separeteNoteHeads' d . assertNoPrimes . Data.List.sort
         
         separeteNoteHeads' direction positions 
             | direction  =  ( lowers `merge` others, uppers ) 
-            | otherwise  =  ( lowers, uppers `merge` others )
+            | otherwise  =  ( lowers, others `merge` uppers )
                 where 
-                    (pairs, others)  =  partitioner collides positions
+                    (pairs, others)  =  partitionSeconds direction positions
                     (lowers, uppers) =  unzip pairs
-                    collides x y     =  y - x < 2
-                    partitioner
-                        | direction  =  partition2
-                        | otherwise  =  reversePartition2
 
 
+--
+-- Ledger lines
+--
 
+-- | Number of ledger lines to draw for a particular chord. 
+--   Specifically, @((longAbove, shortAbove), (longBelow, shortBelow))@.
+
+type Ledgers = ((Int, Int), (Int, Int))
+
+
+-- | Returns the type of ledger lines to draw above respectively below the ordinary staff lines.
+--
+--   @ledgers staffLines direction positions@ is the ledger lines needed for drawing the given
+--   position on the given number of staff lines with the given stem direction.
+
+ledgers :: Int -> Direction -> [NoteHeadPos] -> Ledgers
+ledgers staffLines direction positions = 
+    ((0, shortAbove), (0, shortBelow)) 
+    where              
+        shortAbove          =  truncate . maybe 0 (\p -> (p - firstLedgerLineAbove + 1) / 2) $ shortAbovePos
+        shortAbovePos       =  fmap maximum . nonEmpty $ shortLinesAbovePos
+        shortLinesAbovePos  =  filter (> firstLedgerLineAbove) $ positions
+
+        shortBelow          =  truncate . maybe 0 (negate . \p -> (p - firstLedgerLineBelow - 1) / 2) $ shortBelowPos
+        shortBelowPos       =  fmap minimum . nonEmpty $ shortLinesBelowPos
+        shortLinesBelowPos  =  filter (< firstLedgerLineBelow) $ positions
+
+        -- TODO find long lines as well    
+                                        
+        firstLedgerLineAbove  =  fromIntegral staffLines
+        firstLedgerLineBelow  =  negate . fromIntegral $ staffLines
+
+-- | Returns the type of ledger lines to draw above respectively below the ordinary staff lines
+--   for a standard system.                                          
+--
+standardLedgers :: Direction -> [NoteHeadPos] -> Ledgers
+standardLedgers = ledgers 5
+
+engraveLedgers :: Ledgers -> Engraving
+engraveLedgers ((la, sa), (lb, sb)) =
+       (cat unitY          . replicate sa $ ledgerE) # translate (r2 (0,  3 * space))
+    <> (cat (negate unitY) . replicate sb $ ledgerE) # translate (r2 (0, -3 * space))
+    where  
+        ledgerE = lineE <> spaceE
+        lineE  = hrule (2 * space) # lineWidth ledgerLineWeight
+        spaceE = spaceRect (2 * space) space
 
 
 --
@@ -139,9 +212,13 @@ type AdjustStem = Double
 -- TODO type Flags = Int
 -- TODO type CrossBeams = Int
 
+
+
+
 -- | Engraves a chord.
 --
 --   
+
 
 -- NOTE origin in middle of "correct" note column, at system line 0
 
