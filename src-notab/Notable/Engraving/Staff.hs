@@ -1,9 +1,18 @@
 
-{-# LANGUAGE 
+{-# LANGUAGE
     RankNTypes,
     FlexibleContexts #-}
 
--- | Staff-level engraving.
+-- | This module provides engraving of staff-level objects, such as note lines, bar lines, clefs, key and
+--   time signatures and so on. Notes, rests and associated objects are delegated to the
+--   "Notable.Engraving.Chord" module.
+--
+--   Staff-level objects are grouped into spaced an non-spaced. On the staff level, spaced objects are  take
+--   those objects that take up horizontal space, including notes, rests, clefs, time signatures etc. In the
+--   simplest possible case, such objects may simply be stacked as tightly as possible, using 'besideX'.
+--
+--   Non-spaced objects are typically placed in relation to spaced objects.
+--     
 module Notable.Engraving.Staff
 (
 -- * Note lines
@@ -21,9 +30,10 @@ module Notable.Engraving.Staff
     ClefPos,
     ClefType(..),
     Clef,
-    clef,
     clefSymbol,
+    engraveClef,
 
+-- *** Standard clefs
     frenchClef,
     trebleClef,
     sopranoClef,
@@ -40,12 +50,12 @@ module Notable.Engraving.Staff
 -- ** Cesuras
 
 -- * Non-spaced objects
--- * Beams
--- * Tremolo beams
--- * Ties
--- * Slurs
--- * Tuplets
--- * Text
+-- ** Beams
+-- *** Tremolo beams
+-- ** Ties
+-- ** Slurs
+-- ** Tuplets
+-- ** Text
 
 
 )
@@ -55,6 +65,7 @@ where
 import Notable.Core
 import Notable.Core.Diagrams
 import Notable.Core.Symbols
+import Notable.Engraving.Chord
 
 --
 -- Constants
@@ -73,28 +84,33 @@ barLineWeight  = 0.04
 -- Note lines
 --
 
-                         
--- | Engraves a set of note line.
-noteLines :: Double -> Engraving
+-- | A standard set of five note lines. The origin will be at the left edge on the middle line.
+--
+--   Note lines engraved at length one. To obtain other lengths, use 'stretchX' or 'stretchToX'.
+noteLines :: Engraving
 noteLines = noteLines' 5
 
--- | Engraves a set of note lines.
-noteLines' :: StaffLines -> Double -> Engraving
-noteLines' num width = 
+-- | A set of note lines. The origin will be at the left edge on the middle line or space.
+--
+--   Note lines engraved at length one. To obtain other lengths, use 'stretchX' or 'stretchToX'.
+noteLines' :: StaffLines -> Engraving
+noteLines' num =
     foldr (===) mempty (replicate num noteLine)
         # moveOriginBy (r2 (0, (negate $ (fromIntegral num - 1) / 2) * space))
         where
-            noteLine  =  hrule width # lw noteLineWeight 
-                           <> 
-                         {-spaceRect rect width space-}
+            noteLine  =  hrule 1 # lw noteLineWeight
+                           <>
+                         {-spaceRect rect 1 space-}
                          strutY space
-
 
 --
 -- Bar lines
 --
 
--- | Engraves a single bar line.
+-- | A single bar line.
+--
+--   Bar lines engraved at length four, to fit into a standard five-line system. To obtain other
+--   lengths, use 'stretchY' or 'stretchToY'.
 singleBarLine :: Engraving
 singleBarLine = lineE <> spaceE
     where
@@ -102,7 +118,10 @@ singleBarLine = lineE <> spaceE
         spaceE  =  spaceRect (space * 4/9) (space * 4)
 
 
--- | Engraves a double bar line.
+-- | A double bar line.
+--
+--   Bar lines engraved at length four, to fit into a standard five-line system. To obtain other
+--   lengths, use 'stretchY' or 'stretchToY'.
 doubleBarLine :: Engraving
 doubleBarLine = beside unitX (align unitX singleBarLine) singleBarLine
 
@@ -122,9 +141,9 @@ doubleBarLine = beside unitX (align unitX singleBarLine) singleBarLine
 --
 
 -- | Position that the clef will indicate, offset from the middle line.
--- 
---   For example, a standard alto clef has position 0, while a treble clef
---   has position -2.
+--
+--   For example, a standard alto clef has position @0@, while a treble clef
+--   has position @-2@.
 --
 type ClefPos = HalfSpaces
 
@@ -132,6 +151,7 @@ data ClefType
     = GClef
     | CClef
     | FClef
+    deriving (Show, Eq)
 
 type Clef = (ClefType, ClefPos)
 
@@ -142,12 +162,12 @@ clefSymbol CClef  =  (baseMusicFont, "B")
 clefSymbol FClef  =  (baseMusicFont, "?")
 
 -- | Engraves a standard size clef.
-clef :: Clef -> Engraving
-clef (clefType, pos) =
+engraveClef :: Clef -> Engraving
+engraveClef (clefType, pos) =
     moveToPosition pos $ clefE <> spaceE
-    where   
+    where
         clefE   =  engraveSymbol sym
-        spaceE  =  spaceRectR (symbolSpacer sym) # translate (symbolOffset sym)        
+        spaceE  =  spaceRectR (symbolSpacer sym) # translate (symbolOffset sym)
         sym     =  clefSymbol clefType
 
 
@@ -160,13 +180,13 @@ tenorClef         :: Engraving
 baritoneClef      :: Engraving
 bassClef          :: Engraving
 subBassClef       :: Engraving
-frenchClef        = clef (GClef, -4)
-trebleClef        = clef (GClef, -2)
-sopranoClef       = clef (CClef, -4)
-mezzoSopranoClef  = clef (CClef, -2)
-altoClef          = clef (CClef, 0)
-tenorClef         = clef (CClef, 2)
-baritoneClef      = clef (CClef, 4)
-bassClef          = clef (FClef, 2)
-subBassClef       = clef (FClef, 4)
+frenchClef        = engraveClef (GClef, -4)
+trebleClef        = engraveClef (GClef, -2)
+sopranoClef       = engraveClef (CClef, -4)
+mezzoSopranoClef  = engraveClef (CClef, -2)
+altoClef          = engraveClef (CClef, 0)
+tenorClef         = engraveClef (CClef, 2)
+baritoneClef      = engraveClef (CClef, 4)
+bassClef          = engraveClef (FClef, 2)
+subBassClef       = engraveClef (FClef, 4)
 

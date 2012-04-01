@@ -30,7 +30,7 @@ renderN _ = allE
 
 
 ledgersE = mempty
-    <> noteLines 4
+    <> noteLines # scaleX 4
     <> trebleClef # translate (r2 (-2,0))
     <> engraveNote 10 False Unfilled
     <> engraveNote (-9) True Unfilled
@@ -41,7 +41,7 @@ ledgersE = mempty
 allE = rotate (10 :: Deg) clefE === (scale (1/4) . freeze) chordE === chordE === ledgersE
 
 chordE = mempty
-    <> noteLines 15
+    <> noteLines # scaleX 15
     <> (
         altoClef
         =>= strutX 0.5
@@ -64,7 +64,7 @@ chordE = mempty
 
 
 clefE = mempty
-    <> noteLines 15
+    <> noteLines # scaleX 15
     <> (
         mempty
         =>= frenchClef

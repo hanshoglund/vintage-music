@@ -15,3 +15,5 @@ module Notable.Engraving.System
 -- ** Cross-staff barlines
 )
 where
+
+import Notable.Engraving.Staff

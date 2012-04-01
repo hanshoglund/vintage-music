@@ -4,16 +4,48 @@
     TypeSynonymInstances,
     FlexibleContexts #-}
 
--- | Chord-level engraving.
+-- | This module provides engraving of rests and notes, along with associated objects such as accidentals,
+--   dots, stems, flags, articulations and so on. Note that the term chord is used to indicate a set of note
+--   heads and associated objects, which is referred to as a rest if empty.
+--
+--   Objects that span multiple chords, including beams, ties and slurs are engraved separately, but this
+--   module provides anchor points that indicate how to connect such objects to chords.
+--
 module Notable.Engraving.Chord
 (
--- * Note heads
+-- * Basic components
+-- ** Rests
+    Rest(..),
+    restSymbol,
+
+-- ** Note heads
     NoteHead(..),
     NoteHeadPos,
-    noteHead,
+    noteHeadSymbol,
     noteHeadNeedsStem,
     separeteNoteHeads,
     partitionSmallIntervals,
+
+-- ** Stems
+    FlipStem,
+    AdjustStem,
+    Flags,
+    CrossBeams,
+
+-- * Additional components
+-- ** Dots
+    Dots,
+
+-- ** Accidentals
+    Accidental(..),
+    accidentalSymbol,
+
+-- ** Articulation
+    Articulation(..),
+    articulationSymbol,
+
+-- ** Vertical lines
+    VerticalLine(..),
 
 -- * Ledger lines
     LongShortOffset,
@@ -23,32 +55,7 @@ module Notable.Engraving.Chord
     ledgerLines,
     ledgerLines',
     engraveLedgerLines,
-
--- * Accidentals
-    AccidentalType(..),
-    Accidental(..),
-    --accidentalSymbol,
-
--- * Rests
--- * Dots
-    Dots,
--- * Stems
-    FlipStem,
-    AdjustStem,
-    Flags,
-    CrossBeams,
-
--- ** Cherry stems
-
--- * Articulation
--- ** Staccato
--- ** Tenuto
--- ** Staccato
--- ** Fermata
-
--- * Vertical lines
--- ** Arpeggios
-
+                       
 -- * Chords
     engraveNote,
     engraveChord,
@@ -84,6 +91,29 @@ ledgerLineWeight = 0.035
 
 
 --
+-- Rests
+--
+
+data Rest
+    = WholeNoteRest
+    | HalfNoteRest
+    | QuarterNoteRest
+    | EightNoteRest
+    | SixteenthNoteRest
+    | ThirtySecondNoteRest
+    deriving (Show, Eq, Ord, Enum)
+
+-- | Returns the symbol for a given accidentalSymbol.
+restSymbol :: Rest -> Symbol
+restSymbol WholeNoteRest         =  (specialMusicFont, "\183")
+restSymbol HalfNoteRest          =  (specialMusicFont, "\238")
+restSymbol QuarterNoteRest       =  (specialMusicFont, "\206")
+restSymbol EightNoteRest         =  (specialMusicFont, "\228")
+restSymbol SixteenthNoteRest     =  (specialMusicFont, "\197")
+restSymbol ThirtySecondNoteRest  =  (specialMusicFont, "\168")
+
+
+--
 -- Note heads
 --
 
@@ -96,18 +126,17 @@ data NoteHead
     | Diamond
     | Square
     | Cross
+    deriving (Show, Eq)
 
 -- | Position of a note head, offset from middle line.
 type NoteHeadPos = HalfSpaces
 
 -- | Returns the symbol for a given note head.
-noteHead :: NoteHead -> Symbol
--- noteHead Filled    =  (baseMusicFont, "\207")
--- noteHead Unfilled  =  (baseMusicFont, "\250")
-noteHead Filled    =  (specialMusicFont, "f")
-noteHead Unfilled  =  (specialMusicFont, "F")
-noteHead Whole     =  (baseMusicFont, "w")
-noteHead Brevis    =  (baseMusicFont, "W")
+noteHeadSymbol :: NoteHead -> Symbol
+noteHeadSymbol Filled    =  (specialMusicFont, "f")
+noteHeadSymbol Unfilled  =  (specialMusicFont, "F")
+noteHeadSymbol Whole     =  (baseMusicFont, "w")
+noteHeadSymbol Brevis    =  (baseMusicFont, "W")
 
 -- | Whether a given notehead should be engraved with a stem or not.
 noteHeadNeedsStem :: NoteHead -> Bool
@@ -119,9 +148,6 @@ noteHeadNeedsStem Brevis    =  False
 
 -- | Separate small intervals from others.
 --
---   Search always start from the outermost note, so in cases like @[1,2,3]@ would be partitioned
---   as @[(1,2)] [3]@ for an upward stem and @[(2,3)] [1]@ for a downward stem.
---
 partitionSmallIntervals :: Direction -> [NoteHeadPos] -> ([(NoteHeadPos, NoteHeadPos)], [NoteHeadPos])
 partitionSmallIntervals direction positions =
     partitioner collides positions
@@ -132,10 +158,6 @@ partitionSmallIntervals direction positions =
             | otherwise  =  reversePartition2
 
 -- | Separates note heads to be engraved to the left and right of the stem respectively.
---
---   Such intervals are partitioned so that the lower note heads goes to the right of the stem,
---   while all other notes are put on the default side of the note. The same layout
---   is used whether the chord actually has a stem or not. (Tyboni II.1 p 91)
 --
 separeteNoteHeads :: Direction -> [NoteHeadPos] -> ([NoteHeadPos], [NoteHeadPos])
 separeteNoteHeads d = separeteNoteHeads' d . assertNoPrimes . Data.List.sort
@@ -152,6 +174,88 @@ separeteNoteHeads d = separeteNoteHeads' d . assertNoPrimes . Data.List.sort
                     (pairs, others)  =  partitionSmallIntervals direction positions
                     (lowers, uppers) =  unzip pairs
 
+--
+-- Dots
+--
+
+-- | Number of dots.
+type Dots = Int
+
+
+--
+-- Accidentals
+--
+
+data Accidental
+    = DoubleFlat
+    | Flat
+    | Natural
+    | Sharp
+    | DoubleSharp
+    deriving (Show, Eq)
+
+-- | Returns the symbol for a given accidentalSymbol.
+accidentalSymbol :: Accidental -> Symbol
+accidentalSymbol DoubleFlat   =  (specialMusicFont, "\186")
+accidentalSymbol Flat         =  (specialMusicFont, "b")
+accidentalSymbol Natural      =  (specialMusicFont, "n")
+accidentalSymbol Sharp        =  (specialMusicFont, "#")
+accidentalSymbol DoubleSharp  =  (specialMusicFont, "\192")
+
+
+--
+-- Stems
+--
+
+-- | Wether the stem should be flipped.
+type FlipStem = Bool
+
+-- | Amount to add to stem length.
+type AdjustStem = Double
+
+-- | Number of flags.
+type Flags = Int
+
+--
+-- Crossbeams
+--
+
+-- | Number of crossbeams.
+type CrossBeams = Int
+
+
+--
+-- Articulation
+--
+
+data Articulation
+    = Fermata
+    | Staccato
+    | Tenuto
+    | Marcato
+    | Accent
+    | Circle
+    | Plus
+    deriving (Show, Eq, Ord, Enum)
+
+-- | Returns the symbol for a given accidental.
+articulationSymbol :: Articulation -> Symbol
+articulationSymbol Fermata   =   (baseMusicFont, "u")
+articulationSymbol Staccato  =   (baseMusicFont, ".")
+articulationSymbol Tenuto    =   (baseMusicFont, "-")
+articulationSymbol Marcato   =   (baseMusicFont, "v")
+articulationSymbol Accent    =   (baseMusicFont, ">")
+articulationSymbol Circle    =   (baseMusicFont, "o")
+articulationSymbol Plus      =   (baseMusicFont, "+")
+
+
+--
+-- Vertical lines
+--    
+
+data VerticalLine
+    = Arpeggio
+    deriving (Eq, Show)
 
 
 --
@@ -172,14 +276,14 @@ newtype LedgerLines = LedgerLines { getLedgerLines :: (LedgerLinesAbove, LedgerL
 
 -- | Monoid over ledger lines. This can be used to join ledger lines required by different chords.
 --
---   `mappend` raises an error if called on ledger lines with different offsets, as joining ledger
+--   Note that `mappend` raises an error if called on ledger lines with different offsets, as joining ledger
 --   lines from different types of staves makes no sense.
 instance Monoid LedgerLines where
     mempty  =  LedgerLines (none, none) where none = (0, 0, 0)
     LedgerLines x `mappend` LedgerLines y  =  LedgerLines $ prod2 apLines apLines x y
         where
             apLines         =  prod3 max max apOffset
-            x `apOffset` y  =  if (x == y) then x 
+            x `apOffset` y  =  if (x == y) then x
                 else error "LedgerLines.mappend: unequal offset"
 
 
@@ -192,6 +296,8 @@ ledgerLines = ledgerLines' 5
 --   staff lines (but see note about `mappend` above).
 ledgerLines' :: StaffLines -> Direction -> [NoteHeadPos] -> LedgerLines
 ledgerLines' s d p = LedgerLines $ (ledgerLinesAbove s d p, ledgerLinesBelow s d p)
+
+-- TODO prettify this
 
 ledgerLinesAbove staffLines direction positions = (0, shortAbove, firstLedgerLineAbove)
     where
@@ -217,73 +323,9 @@ engraveLedgerLines (LedgerLines ((la, sa, oa), (lb, sb, ob))) = mempty
         ledgerE  =  lineE <> spaceE
         lineE    =  hrule width # lineWidth ledgerLineWeight
         spaceE   =  spaceRect width space
-        width    =  2 * space
-
-
---
--- Accidentals
---
-
-data AccidentalType
-    = Flat
-    | Natural
-    | Sharp
-
-data Accidental
-    = NoAccidental
-    | NormalAccidental AccidentalType
-    | RedundantAccidental AccidentalType
-
--- TODO accidentalSymbol
-
-
-
---
--- Rests
---
-
-
---
--- Dots
---
-
--- | Number of dots.
-type Dots = Int
-
-
---
--- Stems
---
-
--- | Wether the stem should be flipped.
-type FlipStem = Bool
-
--- | Amount to add to stem length.
-type AdjustStem = Double
-
--- | Number of flags.
-type Flags = Int
-
-
-
-
---
--- Crossbeams
---
-
--- | Number of crossbeams.
-type CrossBeams = Int
-
-
---
--- Articulation
---
-
---
--- Vertical lines
---
-
-
+        width    =  2 * space          
+        
+        
 --
 -- Chords
 --
@@ -294,22 +336,22 @@ engraveNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
 engraveNote pos dir nh =
     moveToPosition pos $
         mempty
-        <> noteHeadE
-        <> noteStem
-        <> spacer
+        <> headE
+        <> stemE
+        <> spaceE
     where
-        spacer      =  spaceRect (fst . unr2 $ noteHeadOffset) space
-        noteHeadE   =  engraveSymbol (noteHead nh) # translate (0.5 *^ noteHeadOffset)
+        spaceE  =  spaceRect (fst . unr2 $ noteHeadOffset) space
+        headE   =  engraveSymbol (noteHeadSymbol nh) # translate (0.5 *^ noteHeadOffset)
 
-        noteStem   =  if (noteHeadNeedsStem nh) then noteStem' else mempty
-        noteStem'  =  rect noteStemWidth noteStemHeight
-                      # lc black
-                      # fc black
-                      # moveOriginBy noteStemOffset
+        stemE   =  if (noteHeadNeedsStem nh) then stemE' else mempty
+        stemE'  =  rect noteStemWidth noteStemHeight
+                       # lc black
+                       # fc black
+                       # moveOriginBy noteStemOffset
 
         noteStemHeight  =  space * 3.5 - noteStemShortenAtOuterNote
 
-        noteHeadOffset  =  symbolSpacer (noteHead nh)
+        noteHeadOffset  =  symbolSpacer (noteHeadSymbol nh)
         noteStemOffset  =  r2 $ (negate `onlyIf` (const dir)) (- (fst . unr2 $ noteHeadOffset / 2) - noteStemInset,
                                                                space * 3.5 / 2 + (noteStemShortenAtOuterNote / 2))
 
