@@ -58,7 +58,9 @@ module Notable.Engraving.Chord
                        
 -- * Chords
     engraveNote,
+    engraveRest,
     engraveChord,
+    engraveChord',
 )
 where
 
@@ -105,12 +107,12 @@ data Rest
 
 -- | Returns the symbol for a given accidentalSymbol.
 restSymbol :: Rest -> Symbol
-restSymbol WholeNoteRest         =  (specialMusicFont, "\183")
-restSymbol HalfNoteRest          =  (specialMusicFont, "\238")
-restSymbol QuarterNoteRest       =  (specialMusicFont, "\206")
-restSymbol EightNoteRest         =  (specialMusicFont, "\228")
-restSymbol SixteenthNoteRest     =  (specialMusicFont, "\197")
-restSymbol ThirtySecondNoteRest  =  (specialMusicFont, "\168")
+restSymbol WholeNoteRest         =  (baseMusicFont, "\183")
+restSymbol HalfNoteRest          =  (baseMusicFont, "\238")
+restSymbol QuarterNoteRest       =  (baseMusicFont, "\206")
+restSymbol EightNoteRest         =  (baseMusicFont, "\228")
+restSymbol SixteenthNoteRest     =  (baseMusicFont, "\197")
+restSymbol ThirtySecondNoteRest  =  (baseMusicFont, "\168")
 
 
 --
@@ -196,11 +198,11 @@ data Accidental
 
 -- | Returns the symbol for a given accidentalSymbol.
 accidentalSymbol :: Accidental -> Symbol
-accidentalSymbol DoubleFlat   =  (specialMusicFont, "\186")
-accidentalSymbol Flat         =  (specialMusicFont, "b")
-accidentalSymbol Natural      =  (specialMusicFont, "n")
-accidentalSymbol Sharp        =  (specialMusicFont, "#")
-accidentalSymbol DoubleSharp  =  (specialMusicFont, "\192")
+accidentalSymbol DoubleFlat   =  (baseMusicFont, "\186")
+accidentalSymbol Flat         =  (baseMusicFont, "b")
+accidentalSymbol Natural      =  (baseMusicFont, "n")
+accidentalSymbol Sharp        =  (baseMusicFont, "#")
+accidentalSymbol DoubleSharp  =  (baseMusicFont, "\192")
 
 
 --
@@ -299,19 +301,19 @@ ledgerLines' s d p = LedgerLines $ (ledgerLinesAbove s d p, ledgerLinesBelow s d
 
 -- TODO prettify this
 
-ledgerLinesAbove staffLines direction positions = (0, shortAbove, firstLedgerLineAbove)
+ledgerLinesAbove staffLines direction positions = (0, shortAbove, firstLedgerLineAbove + 1)
     where
-        shortAbove          =  truncate . maybe 0 (\p -> (p - firstLedgerLineAbove + 2) / 2) $ shortAbovePos
+        shortAbove          =  truncate . maybe 0 (\p -> (p - firstLedgerLineAbove + 1) / 2) $ shortAbovePos
         shortAbovePos       =  fmap maximum . nonEmpty $ shortLinesAbovePos
-        shortLinesAbovePos  =  filter (>= firstLedgerLineAbove) $ positions
-        firstLedgerLineAbove  =  (fromIntegral staffLines)            + 1
+        shortLinesAbovePos  =  filter (> firstLedgerLineAbove) $ positions
+        firstLedgerLineAbove  =  (fromIntegral staffLines)
 
-ledgerLinesBelow staffLines direction positions = (0, shortBelow, firstLedgerLineBelow)
+ledgerLinesBelow staffLines direction positions = (0, shortBelow, firstLedgerLineBelow - 1)
     where
-        shortBelow          =  truncate . maybe 0 (negate . \p -> (p - firstLedgerLineBelow - 2) / 2) $ shortBelowPos
+        shortBelow          =  truncate . maybe 0 (negate . \p -> (p - firstLedgerLineBelow - 1) / 2) $ shortBelowPos
         shortBelowPos       =  fmap minimum . nonEmpty $ shortLinesBelowPos
-        shortLinesBelowPos  =  filter (<= firstLedgerLineBelow) $ positions
-        firstLedgerLineBelow  =  (negate . fromIntegral $ staffLines) - 1
+        shortLinesBelowPos  =  filter (< firstLedgerLineBelow) $ positions
+        firstLedgerLineBelow  =  (negate . fromIntegral $ staffLines)
 
 -- | Engraves ledger lines, with the origin in at the default note column in the middle line.
 
@@ -330,6 +332,7 @@ engraveLedgerLines (LedgerLines ((la, sa, oa), (lb, sb, ob))) = mempty
 -- Chords
 --
 
+-- TODO rewrite as part of engraveChord
 
 -- | Engraves a single note.
 engraveNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
@@ -356,11 +359,29 @@ engraveNote pos dir nh =
                                                                space * 3.5 / 2 + (noteStemShortenAtOuterNote / 2))
 
 
+-- | Engraves a rest.
+engraveRest :: 
+    Rest
+    -> Engraving    
+engraveRest = undefined           
 
--- | Engraves a chord.
---
---   The origin of the chord will be at the middle line, at the default note column.
---
-engraveChord :: [(NoteHead, NoteHeadPos, Accidental)] -> Dots -> FlipStem -> AdjustStem -> Engraving
-engraveChord = undefined
+-- | Engraves a chord. The origin will be at the middle line, at the default note column.
+engraveChord :: 
+    [(NoteHead, NoteHeadPos, Accidental)]
+    -> Engraving    
+engraveChord = undefined           
+
+-- | Engraves a chord. The origin will be at the middle line, at the default note column.
+engraveChord' :: 
+    Rest
+    -> [(NoteHead, NoteHeadPos, Accidental)]
+    -> FlipStem 
+    -> AdjustStem
+    -> Flags
+    -> CrossBeams
+    -> Dots
+    -> [Articulation]
+    -> [VerticalLine]
+    -> Engraving
+engraveChord' = undefined
 
