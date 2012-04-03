@@ -316,26 +316,24 @@ ledgerLines' :: StaffLines -> Direction -> [NoteHeadPos] -> LedgerLines
 ledgerLines' s d p = LedgerLines $ (ledgerLinesAbove s d p, ledgerLinesBelow s d p)
 
 ledgerLinesAbove staffLines direction positions = 
-    (0, shortAbove, firstAbove')
+    (0, shortAbove, firstAbove)
     where
         shortAbove  =  
             truncate 
-                . maybe 0 (\p -> (p - firstAbove') / 2) 
+                . maybe 0 (\p -> (p - firstAbove + 2) / 2) 
                 . fmap maximum . nonEmpty 
                 . filter (> firstAbove) $ positions
-        firstAbove'  =  firstAbove + 1
-        firstAbove   =  fromIntegral staffLines
+        firstAbove   =  fromIntegral staffLines + 1
 
 ledgerLinesBelow staffLines direction positions = 
-    (0, shortBelow, firstBelow')
+    (0, shortBelow, firstBelow)
     where
         shortBelow  = 
             truncate 
-                . maybe 0 (negate . \p -> (p - firstBelow') / 2) 
+                . maybe 0 (negate . \p -> (p - firstBelow - 2) / 2) 
                 . fmap minimum . nonEmpty 
                 . filter (< firstBelow) $ positions
-        firstBelow'  =  firstBelow - 1
-        firstBelow   =  negate . fromIntegral $ staffLines
+        firstBelow  =  (negate . fromIntegral $ staffLines) - 1
 
 -- | Engraves ledger lines, with the origin in at the default note column in the middle line.
 
