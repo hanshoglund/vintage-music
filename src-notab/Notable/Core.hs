@@ -27,9 +27,11 @@ module Notable.Core
 
 -- * Music engraving
     spaceRect,
-    spaceRectR,
-    moveToPosition,
-    engraveSymbol
+    spaceRectV,
+    engraveSymbol,
+    engraveSymbolFloating,
+    engraveSpacer,
+    moveHalfSpacesUp,
 )
 where
 
@@ -74,18 +76,30 @@ type StaffLines = Int
 --
 
 spaceRect :: Double -> Double -> Engraving
-spaceRect x y = rect x y # fc blue 
-    -- # opacity 0.1
-    # opacity 0
+spaceRect x y = style $ rect x y
+    where
+        style = fillColor blue . opacity 0
 
-spaceRectR :: R2 -> Engraving
-spaceRectR v = spaceRect (fst . unr2 $ v) (snd . unr2 $ v)
-
-moveToPosition :: (V t ~ R2, Transformable t) => Double -> t -> t
-moveToPosition pos = translate (r2 (0, space * pos / 2))
+spaceRectV :: R2 -> Engraving
+spaceRectV v = spaceRect (getX v) (getY v)
 
 engraveSymbol :: Symbol -> Engraving
-engraveSymbol (symFont, symGlyph) = baselineText symGlyph # font symFont
+engraveSymbol s = engraveSymbolFloating s <> engraveSpacer s
+
+engraveSymbolFloating :: Symbol -> Engraving
+engraveSymbolFloating (font', glyph) = font font' $ baselineText glyph
+
+engraveSpacer :: Symbol -> Engraving
+engraveSpacer s = translate (symbolOffset s) $ spaceRectV (symbolSpacer s)
+
+
+--
+-- Positioning etc
+--
+
+moveHalfSpacesUp :: (V t ~ R2, Transformable t) => HalfSpaces -> t -> t
+moveHalfSpacesUp x = translate (r2 (0, x * halfSpace))
+
 
 
 

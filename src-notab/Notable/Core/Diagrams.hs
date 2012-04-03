@@ -8,9 +8,14 @@ module Notable.Core.Diagrams
 (
     module Diagrams.Prelude,
     module Diagrams.TwoD.Text,
-    (===), 
-    (=>=), 
-    (=<=)
+
+    leftTo,
+    rightTo,
+    above,
+    below,
+
+    getX,
+    getY,
 )
 where
 
@@ -19,13 +24,17 @@ import Data.Colour.SRGB ( sRGB24read )
 import Diagrams.Prelude hiding ( Render, render, (|||), (===) )
 import Diagrams.TwoD.Text ( Text )
 
-infixl 6 =<=
-infixl 6 =>=
-infixl 6 ===
+leftTo, rightTo, above, below :: (V a ~ R2, Semigroup a, Juxtaposable a) => a -> a -> a
 
-(===), (=>=), (=<=) :: (V a ~ R2, Semigroup a, Juxtaposable a) => a -> a -> a
-    
-(=>=) = beside unitX
-(=<=) = beside (negateV unitX)
-(===) = beside (negateV unitY)
+leftTo  = beside unitX
+rightTo = beside (negateV unitX)
+above   = beside (negateV unitY)
+below   = beside unitY
+
+
+getX :: R2 -> Double
+getX = fst . unr2
+
+getY :: R2 -> Double
+getY = snd . unr2
 

@@ -2,7 +2,9 @@
 {-# LANGUAGE 
     FlexibleContexts #-}
 
--- | System-level engraving.
+-- | Low-level engraving of system-level objects, including the joining left line, instrument
+--   names, brackets and so on. Staves and objects drawn on them including notes, chords and lines
+--   are handled by the "Notable.Engraving.Staff" module.
 module Notable.Engraving.System
 (
 -- * System objects

@@ -2,7 +2,7 @@
 {-# LANGUAGE
     FlexibleContexts #-}
 
--- | This module provides engraving of staff-level objects, such as note lines, bar lines, clefs, key and
+-- | Low-level engraving of staff-level objects, such as note lines, bar lines, clefs, key and
 --   time signatures and so on. Notes, rests and associated objects are delegated to the
 --   "Notable.Engraving.Chord" module.
 --
@@ -96,9 +96,9 @@ noteLines = noteLines' 5
 --   Note lines engraved at length one. To obtain other lengths, use 'stretchX' or 'stretchToX'.
 noteLines' :: StaffLines -> Engraving
 noteLines' num =
-    foldr (===) mempty (replicate num noteLine)
-        # moveOriginBy (r2 (0, (negate $ (fromIntegral num - 1) / 2) * space))
+    placement $ foldr above mempty (replicate num noteLine)
         where
+            placement = moveOriginBy (r2 (0, (negate $ (fromIntegral num - 1) / 2) * space))
             noteLine  =  hrule 1 # lw noteLineWeight
                            <>
                          {-spaceRect rect 1 space-}
@@ -115,9 +115,8 @@ noteLines' num =
 singleBarLine :: Engraving
 singleBarLine = lineE <> spaceE
     where
-        lineE   =  vrule (4 * space) # lw barLineWeight
+        lineE   =  style $ vrule (4 * space) where { style = lineWidth barLineWeight }
         spaceE  =  spaceRect (space * 4/9) (space * 4)
-
 
 -- | A double bar line.
 --
@@ -165,10 +164,10 @@ clefSymbol FClef  =  (baseMusicFont, "?")
 -- | Engraves a standard size clef.
 engraveClef :: Clef -> Engraving
 engraveClef (clefType, pos) =
-    moveToPosition pos $ clefE <> spaceE
+    moveHalfSpacesUp pos $ clefE <> spaceE
     where
-        clefE   =  engraveSymbol sym
-        spaceE  =  spaceRectR (symbolSpacer sym) # translate (symbolOffset sym)
+        clefE   =  engraveSymbolFloating sym
+        spaceE  =  spaceRectV (symbolSpacer sym) # translate (symbolOffset sym)
         sym     =  clefSymbol clefType
 
 
