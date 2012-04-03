@@ -17,7 +17,7 @@
 module Notable.Engraving.Staff
 (
 -- * Note lines
-    noteLineWeight,
+    noteLineWidth,
     noteLines,
     noteLines',
 
@@ -73,8 +73,8 @@ import Notable.Engraving.Chord
 --
 
 -- | Thickness of note lines.
-noteLineWeight :: Double
-noteLineWeight = 0.025
+noteLineWidth :: Double
+noteLineWidth = 0.025
 
 -- | Thickness of barlines.
 barLineWeight :: Double
@@ -99,10 +99,8 @@ noteLines' num =
     placement $ foldr above mempty (replicate num noteLine)
         where
             placement = moveOriginBy (r2 (0, (negate $ (fromIntegral num - 1) / 2) * space))
-            noteLine  =  hrule 1 # lw noteLineWeight
-                           <>
-                         {-spaceRect rect 1 space-}
-                         strutY space
+            noteLine  =  style $ hrule 1 <> {-spaceRect rect 1 space-} strutY space
+                where { style = lineWidth noteLineWidth}
 
 --
 -- Bar lines
@@ -115,8 +113,10 @@ noteLines' num =
 singleBarLine :: Engraving
 singleBarLine = lineE <> spaceE
     where
-        lineE   =  style $ vrule (4 * space) where { style = lineWidth barLineWeight }
         spaceE  =  spaceRect (space * 4/9) (space * 4)
+        lineE   =  style $ vrule (4 * space) 
+            where { style = lineWidth barLineWeight }
+        
 
 -- | A double bar line.
 --
@@ -124,6 +124,7 @@ singleBarLine = lineE <> spaceE
 --   lengths, use 'stretchY' or 'stretchToY'.
 doubleBarLine :: Engraving
 doubleBarLine = beside unitX (align unitX singleBarLine) singleBarLine
+-- TODO factor out this pattern
 
 -- TODO
 -- thickBarLine

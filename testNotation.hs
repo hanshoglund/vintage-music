@@ -39,28 +39,28 @@ ledgersE = mempty
 
 
 
-allE = rotate (10 :: Deg) clefE === (scale (1/4) . freeze) chordE === chordE === ledgersE
+allE = rotate (10 :: Deg) clefE `above` (scale (1/4) . freeze) chordE `above` chordE `above` ledgersE
 
 chordE = mempty
     <> noteLines # scaleX 15
     <> (
         altoClef
-        =>= strutX 0.5
-        =>= engraveNote 1 False Unfilled
-        =>= strutX 1
-        =>= engraveNote 2 False Unfilled
-        =>= strutX 1
-        =>= engraveNote 0 False Unfilled
-        =>= strutX 1
-        =>= engraveNote (-1) True Unfilled
-        =>= strutX 1
-        =>= engraveNote (-5) True Unfilled
-        =>= strutX 1
-        =>= engraveNote (-3) True Filled
-        =>= strutX 1
-        =>= engraveNote 0 True Whole
-        =>= strutX 1
-        =>= engraveNote 3 True Brevis
+        `leftTo` strutX 0.5
+        `leftTo` engraveNote 1 False Unfilled
+        `leftTo` strutX 1
+        `leftTo` engraveNote 2 False Unfilled
+        `leftTo` strutX 1
+        `leftTo` engraveNote 0 False Unfilled
+        `leftTo` strutX 1
+        `leftTo` engraveNote (-1) True Unfilled
+        `leftTo` strutX 1
+        `leftTo` engraveNote (-5) True Unfilled
+        `leftTo` strutX 1
+        `leftTo` engraveNote (-3) True Filled
+        `leftTo` strutX 1
+        `leftTo` engraveNote 0 True Whole
+        `leftTo` strutX 1
+        `leftTo` engraveNote 3 True Brevis
     ) # translate (r2 (-7.2, 0))
 
 
@@ -68,23 +68,23 @@ clefE = mempty
     <> noteLines # scaleX 15
     <> (
         mempty
-        =>= frenchClef
-        =>= strutX 0.5
-        =>= trebleClef
-        =>= strutX 0.5
-        =>= sopranoClef
-        =>= strutX 0.5
-        =>= mezzoSopranoClef
-        =>= strutX 0.5
-        =>= altoClef
-        =>= strutX 0.5
-        =>= tenorClef
-        =>= strutX 0.5
-        =>= baritoneClef
-        =>= strutX 0.5
-        =>= bassClef
-        =>= strutX 0.5
-        =>= subBassClef
+        `leftTo` frenchClef
+        `leftTo` strutX 0.5
+        `leftTo` trebleClef
+        `leftTo` strutX 0.5
+        `leftTo` sopranoClef
+        `leftTo` strutX 0.5
+        `leftTo` mezzoSopranoClef
+        `leftTo` strutX 0.5
+        `leftTo` altoClef
+        `leftTo` strutX 0.5
+        `leftTo` tenorClef
+        `leftTo` strutX 0.5
+        `leftTo` baritoneClef
+        `leftTo` strutX 0.5
+        `leftTo` bassClef
+        `leftTo` strutX 0.5
+        `leftTo` subBassClef
        ) # translate (r2 (-5, 0)) 
 
 

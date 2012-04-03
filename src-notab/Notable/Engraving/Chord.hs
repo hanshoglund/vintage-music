@@ -125,6 +125,8 @@ data Rest
     | ThirtySecondNoteRest
     deriving (Show, Eq, Ord, Enum, Bounded)
 
+restFromIndex x = toEnum (x + 1)
+
 -- | Returns the symbol for a given rest.
 restSymbol :: Rest -> Symbol
 restSymbol WholeNoteRest         =  (baseMusicFont, "\183")
@@ -133,8 +135,6 @@ restSymbol QuarterNoteRest       =  (baseMusicFont, "\206")
 restSymbol EightNoteRest         =  (baseMusicFont, "\228")
 restSymbol SixteenthNoteRest     =  (baseMusicFont, "\197")
 restSymbol ThirtySecondNoteRest  =  (baseMusicFont, "\168")
-
-restFromIndex x = toEnum (x + 1)
 
 
 --
@@ -156,6 +156,12 @@ data NoteHead
 -- | Position of a note head, offset from middle line.
 type NoteHeadPos = HalfSpaces
 
+noteHeadFromIndex x
+    | x <= (-1)  =  Brevis
+    | x <=   0   =  Whole
+    | x <=   1   =  Unfilled
+    | otherwise  =  Filled
+
 -- | Returns the symbol for a given note head.
 noteHeadSymbol :: NoteHead -> Symbol
 noteHeadSymbol Brevis    =  (baseMusicFont, "W")
@@ -170,11 +176,6 @@ noteHeadHasStem Whole     =  False
 noteHeadHasStem Unfilled  =  True
 noteHeadHasStem Filled    =  True
 
-noteHeadFromIndex x
-    | x <= (-1)  =  Brevis
-    | x <=   0   =  Whole
-    | x <=   1   =  Unfilled
-    | otherwise  =  Filled
 
 
 -- | Separates note heads to be engraved to the left and right of the stem respectively.
@@ -422,7 +423,8 @@ engraveNote pos dir nh =
     moveHalfSpacesUp pos $ headE <> stemE <> spaceE
     where
         spaceE  =  spaceRect (fst . unr2 $ noteHeadOffset) space
-        headE   =  engraveSymbolFloating (noteHeadSymbol nh) # translate (0.5 *^ noteHeadOffset)
+        headE   =  position $ engraveSymbolFloating (noteHeadSymbol nh)
+            where { position = translate (0.5 *^ noteHeadOffset) }
 
         stemE   =  if (noteHeadHasStem nh) then stemE' else mempty
         stemE'  =  moveOriginBy noteStemOffset . style $ rect noteStemWidth noteStemHeight
