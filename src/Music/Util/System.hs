@@ -1,4 +1,15 @@
 
+{-|
+    Module      :  Music.Util.System
+    Copyright   :  Hans Höglund 2012
+
+    Maintainer  :  hans@hanshoglund.se
+    Stability   :  experimental
+    Portability :  portable
+
+    System utilities.
+-}
+
 module Music.Util.System where
        
 import System.Posix.Process

@@ -9,7 +9,7 @@
 --   Staff-level objects are grouped into spaced an non-spaced. On the staff level, spaced objects are  take
 --   those objects that take up horizontal space, including notes, rests, clefs, time signatures etc. In 
 --   simple case such as tables or legends, such objects may simply be stacked using 'besideX'.
---   For more involved cases, see the "Notable.Engraving.Space" module.
+--   For more involved cases, see the "Notable.Spacing" module.
 --
 --   Non-spaced objects are placed in relation to spaced objects, using a position returned form the lower
 --   engraving level. 
@@ -26,7 +26,6 @@ module Notable.Engraving.Staff
     barLineWeight,
     singleBarLine,
     doubleBarLine,
-    
 -- *** Rehearsal marks
 
 -- ** Clefs
@@ -52,6 +51,7 @@ module Notable.Engraving.Staff
 -- ** Cesuras
 -- ** Chords
 
+
 -- * Non-spaced objects
 -- ** Beams
 -- *** Tremolo beams
@@ -59,15 +59,13 @@ module Notable.Engraving.Staff
 -- ** Slurs
 -- ** Tuplets
 -- ** Text
-
-
 )
 
 where
 
 import Notable.Core
-import Notable.Core.Diagrams
 import Notable.Core.Symbols
+import Notable.Core.Diagrams
 import Notable.Engraving.Chord
 
 --
@@ -192,4 +190,53 @@ tenorClef         = engraveClef (CClef, 2)
 baritoneClef      = engraveClef (CClef, 4)
 bassClef          = engraveClef (FClef, 2)
 subBassClef       = engraveClef (FClef, 4)
+
+
+
+
+--
+-- Key signatures
+--
+
+--
+-- Time signatures
+--
+
+--
+-- Cesuras
+--
+
+--
+-- Chords
+--
+
+
+
+
+--
+-- Beams
+--
+
+--
+-- Tremolo beams
+--
+
+--
+-- Ties
+--
+
+--
+-- Slurs
+--
+
+--
+-- Tuplets
+--
+
+
+--
+-- Text
+--
+
+
 

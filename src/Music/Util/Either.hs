@@ -1,6 +1,19 @@
 
+{-|
+    Module      :  Music.Util.Either
+    Copyright   :  Hans Höglund 2012
+
+    Maintainer  :  hans@hanshoglund.se
+    Stability   :  experimental
+    Portability :  portable
+
+    This module reexports and augments 'Data.Either' with some new functions.
+-}
+
 module Music.Util.Either
 (
+    module Data.Either,
+    
     mapLeft,
     mapRight,
     fmapEither,
@@ -9,6 +22,7 @@ module Music.Util.Either
 )
 where
 
+import Data.Either
 
 mapLeft :: (a -> b) -> Either a c -> Either b c
 mapLeft f (Left x)    =  Left (f x)

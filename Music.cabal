@@ -114,6 +114,9 @@ Library
         Notable.Core.Symbols
         Notable.Core.Diagrams
         Notable.Core.Diagrams.Cairo
+        Notable.Spacing   
+        Notable.Voicing
+        Notable.Paging
         Notable.Engraving.System
         Notable.Engraving.Chord
         Notable.Engraving.Staff

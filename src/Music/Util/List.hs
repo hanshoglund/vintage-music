@@ -1,26 +1,24 @@
 
 {-|
-    Module      :  Music.Time
+    Module      :  Music.Util.List
     Copyright   :  Hans Höglund 2012
 
     Maintainer  :  hans@hanshoglund.se
     Stability   :  experimental
     Portability :  portable
 
-    Some utilities not present in 'Data.List'.
-
-    Includes:
-    
-      * Versions of 'filter' and 'partition' for consecutive elements.
-
-      * Tuple/List conversions.    
+    This module reexports and augments "Data.List" with some new functions.
 -}
 
 module Music.Util.List
-(
--- * Special searches
+(   
+    module Data.List,
+    
+-- * Safe versions
     maximum',
     minimum',
+
+-- * Special searches
     filter2,
     remove2,
     partition2,
@@ -55,20 +53,22 @@ import Data.Maybe ( fromMaybe )
 import Data.Tuple ( swap )
 import Music.Util ( mapFirst, mapSecond )
 
+--
+-- Safe versions
+--
 
+-- | Safe version of 'maximum'.
+maximum' :: Ord a => [a] -> Maybe a
+maximum' = fmap maximum . nonEmpty
+
+-- | Safe version of 'minimum'.
+minimum' :: Ord a => [a] -> Maybe a
+minimum' = fmap minimum . nonEmpty
 
 
 --
 -- Special searches
 --
-
--- | Arguably what the Prelude 'maximum' function should have been.
-maximum' :: Ord a => [a] -> Maybe a
-maximum' = fmap maximum . nonEmpty
-
--- | Arguably what the Prelude 'minimum' function should have been.
-minimum' :: Ord a => [a] -> Maybe a
-minimum' = fmap minimum . nonEmpty
 
 -- | Extracts all consequent pairs matching the given predicate.
 filter2 :: (a -> a -> Bool) -> [a] -> [(a, a)]

@@ -12,6 +12,7 @@ import Music.Inspect
 import Music.Render
 import Music.Render.Graphics
 import Notable.Core
+import Notable.Spacing
 import Notable.Core.Diagrams
 import Notable.Engraving.Chord
 import Notable.Engraving.Staff

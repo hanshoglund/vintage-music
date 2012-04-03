@@ -1,4 +1,21 @@
 
+{-|
+    Module      :  Music.Util
+    Copyright   :  Hans Höglund 2012
+
+    Maintainer  :  hans@hanshoglund.se
+    Stability   :  experimental
+    Portability :  portable
+
+    Assorted utility functions. See also the submodules:
+    
+      * "Music.Util.List" 
+      
+      * "Music.Util.Either"
+      
+      * "Music.Util.System"
+-}
+
 module Music.Util
 (
 -- * Boolean
@@ -6,9 +23,11 @@ module Music.Util
     ifThenElse',        
     onlyIf,
     onlyIfNot,
+
 -- * Numbers
     negateIf,
     negateIfNot,
+
 -- * Tuples
     mapFirst,
     mapSecond,
@@ -67,26 +86,28 @@ negateIfNot = (negate `onlyIfNot`)
 -- Tuples
 --
 
+-- | Map over first element. Compare "Control.Arrow.first".
 mapFirst :: (a -> b) -> (a, c) -> (b, c)
 mapFirst f (x, y) = (f x, y)
 
+-- | Map over first element. Compare "Control.Arrow.second".
 mapSecond :: (a -> b) -> (c, a) -> (c, b)
 mapSecond f (x, y) = (x, f y)
 
+-- | Duplicate element.
 duplicate :: a -> (a, a)
 duplicate x = (x, x)
 
+-- | Triplicate element.
 triplicate :: a -> (a, a, a)
 triplicate x = (x, x, x)
 
+-- | Lift binary functions to square.
 prod2 :: (a -> b -> c) -> (x -> y -> z) -> (a, x) -> (b, y) -> (c, z)
 prod2 f g (x, y) (x', y') = (f x x', g y y')
  
+-- | Lift binary functions to cube.
 prod3 :: (a -> b -> c) -> (m -> n -> o) -> (x -> y -> z) -> (a, m, x) -> (b, n, y) -> (c, o, z)
 prod3 f g h (x, y, z) (x', y', z') = (f x x', g y y', h z z')
 
-
---
--- Duals
---
 

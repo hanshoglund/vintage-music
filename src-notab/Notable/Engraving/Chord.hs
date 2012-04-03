@@ -34,7 +34,6 @@ module Notable.Engraving.Chord
     Flags,
     CrossBeams,
 
--- * Additional components
 -- ** Dots
     Dots,
 
@@ -73,14 +72,16 @@ module Notable.Engraving.Chord
 )
 where
 
-import Data.Tuple (swap)
+import Data.Tuple ( swap )
 import qualified Data.List
+
 import Music.Util
 import Music.Util.List
 
 import Notable.Core
 import Notable.Core.Diagrams
 import Notable.Core.Symbols
+
 
 --
 -- Constants
@@ -186,6 +187,32 @@ separeteNoteHeads d = separeteNoteHeads' d . assertNoPrimes . Data.List.sort
                     (lowers, uppers) =  unzip pairs
 
 --
+-- Stems
+--
+
+-- | Whether the stem should be flipped.
+type FlipStem = (Direction -> Direction)
+
+stemUp   :: FlipStem
+stemDown :: FlipStem
+stemFlip :: FlipStem
+stemUp   = const upwards
+stemDown = const downwards
+stemFlip = not
+
+-- | Amount to add to stem length.
+type AdjustStem = Double
+
+-- | Number of flags.
+type Flags = Int
+
+-- | Number of crossbeams.
+type CrossBeams = Int
+
+
+
+
+--
 -- Dots
 --
 
@@ -212,34 +239,6 @@ accidentalSymbol Flat         =  (baseMusicFont, "b")
 accidentalSymbol Natural      =  (baseMusicFont, "n")
 accidentalSymbol Sharp        =  (baseMusicFont, "#")
 accidentalSymbol DoubleSharp  =  (baseMusicFont, "\192")
-
-
---
--- Stems
---
-
--- | Whether the stem should be flipped.
-type FlipStem = (Direction -> Direction)
-
-stemUp   :: FlipStem
-stemDown :: FlipStem
-stemFlip :: FlipStem
-stemUp   = const upwards
-stemDown = const downwards
-stemFlip = not
-
--- | Amount to add to stem length.
-type AdjustStem = Double
-
--- | Number of flags.
-type Flags = Int
-
---
--- Crossbeams
---
-
--- | Number of crossbeams.
-type CrossBeams = Int
 
 
 --
@@ -406,6 +405,10 @@ engraveChord' ::
     -> Engraving
 engraveChord' = undefined
 
+
+--
+-- Positions
+--
 
 notePositions :: a -> [R2]
 notePositions         = undefined

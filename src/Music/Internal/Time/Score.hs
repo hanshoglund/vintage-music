@@ -11,7 +11,8 @@
     MultiParamTypeClasses,
     FlexibleInstances,
     DeriveFunctor,
-    DeriveFoldable #-}
+    DeriveFoldable,
+    DeriveTraversable #-}
 
 module Music.Internal.Time.Score 
 where
@@ -24,6 +25,7 @@ import Control.Applicative
 import Data.Convert
 import Data.Monoid
 import Data.Foldable
+import Data.Traversable
 
 import Music.Time
 import Music.Time.Functors
@@ -52,7 +54,7 @@ data Score t a
     | NoteS t a
     | ParS (Score t a) (Score t a)
     | SeqS (Score t a) (Score t a)
-    deriving (Functor, Foldable)
+    deriving (Functor, Foldable, Traversable)
 
 
 instance Time t => Temporal (Score t) where

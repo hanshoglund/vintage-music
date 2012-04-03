@@ -132,8 +132,8 @@ import Music.Time.Functors
 import Music.Render
 import Music.Render.Midi
 import Music.Inspect
-import Music.Util.List
-import Music.Util.Either
+import qualified Music.Util.List as List
+import qualified Music.Util.Either as Either
 \end{code}
 
 \pagebreak
@@ -858,17 +858,17 @@ This section needs some cleanup...
 
 \begin{code}
 setMidiChannel :: MidiChannel -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
-setMidiChannel c = fmapEither f g
+setMidiChannel c = Either.fmapEither f g
     where f = (\(MidiNote _ i p b n) -> MidiNote c i p b n)
           g = fmap (\(MidiNote _ i p b n) -> MidiNote c i p b n)
 
 setMidiInstrument :: MidiInstrument -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
-setMidiInstrument i = fmapEither f g
+setMidiInstrument i = Either.fmapEither f g
     where f = (\(MidiNote c _ p b n) -> MidiNote c i p b n)
           g = fmap (\(MidiNote c _ p b n) -> MidiNote c i p b n)
 
 setMidiBend :: MidiBend -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
-setMidiBend b = fmapEither f g
+setMidiBend b = Either.fmapEither f g
     where f = (\(MidiNote c i p _ n) -> MidiNote c i p b n)
           g = fmap (\(MidiNote c i p _ n) -> MidiNote c i p b n)
 

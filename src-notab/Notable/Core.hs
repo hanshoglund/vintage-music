@@ -9,11 +9,13 @@ module Notable.Core
 (
 -- * Base units
     Spaces,
-    HalfSpaces,
-    Direction,
-
     space,
+    HalfSpaces,
     halfSpace,
+
+    NoteValue,
+    
+    Direction,
     upwards,
     downwards,
           
@@ -51,6 +53,10 @@ space = 0.25
 
 halfSpace :: HalfSpaces
 halfSpace = space / 2
+
+-- | Standard note value (1/4 for quarter note etc).
+type NoteValue = Double
+
 
 -- | Direction of note stem. 
 --   Needed for calculating placement of articulations, lines etc. 
