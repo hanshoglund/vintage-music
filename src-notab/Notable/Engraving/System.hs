@@ -1,18 +1,25 @@
 
 {-# LANGUAGE 
-    RankNTypes,
     FlexibleContexts #-}
 
 -- | System-level engraving.
 module Notable.Engraving.System
 (
 -- * System objects
--- ** System bar numbers
--- ** Staves
 -- ** Left line
--- ** Brackets/Braces
+-- ** Accolades
+-- ** Bar numbers
 -- ** Part names
--- ** Cross-staff barlines
+-- ** Staves
+
+-- * Cross-staff objects
+-- ** Barlines
+-- ** Beams
+-- *** Tremolo beams
+-- ** Ties
+-- ** Slurs
+-- ** Tuplets
+
 )
 where
 

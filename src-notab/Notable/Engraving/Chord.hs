@@ -1,6 +1,5 @@
 
 {-# LANGUAGE
-    RankNTypes,
     TypeSynonymInstances,
     FlexibleContexts #-}
 
@@ -28,6 +27,9 @@ module Notable.Engraving.Chord
 
 -- ** Stems
     FlipStem,
+    stemUp,
+    stemDown,
+    stemFlip,
     AdjustStem,
     Flags,
     CrossBeams,
@@ -55,12 +57,19 @@ module Notable.Engraving.Chord
     ledgerLines,
     ledgerLines',
     engraveLedgerLines,
-                       
+
 -- * Chords
     engraveNote,
     engraveRest,
     engraveChord,
     engraveChord',
+
+-- ** Positions
+    notePositions,
+    highestNotePosition,
+    lowestNotePosition,
+    stemRootPosition,
+    stemTopPosition,
 )
 where
 
@@ -209,8 +218,15 @@ accidentalSymbol DoubleSharp  =  (baseMusicFont, "\192")
 -- Stems
 --
 
--- | Wether the stem should be flipped.
-type FlipStem = Bool
+-- | Whether the stem should be flipped.
+type FlipStem = (Direction -> Direction)
+
+stemUp   :: FlipStem
+stemDown :: FlipStem
+stemFlip :: FlipStem
+stemUp   = const upwards
+stemDown = const downwards
+stemFlip = not
 
 -- | Amount to add to stem length.
 type AdjustStem = Double
@@ -299,28 +315,35 @@ ledgerLines = ledgerLines' 5
 ledgerLines' :: StaffLines -> Direction -> [NoteHeadPos] -> LedgerLines
 ledgerLines' s d p = LedgerLines $ (ledgerLinesAbove s d p, ledgerLinesBelow s d p)
 
--- TODO prettify this
-
-ledgerLinesAbove staffLines direction positions = (0, shortAbove, firstLedgerLineAbove + 1)
+ledgerLinesAbove staffLines direction positions = 
+    (0, shortAbove, firstAbove')
     where
-        shortAbove          =  truncate . maybe 0 (\p -> (p - firstLedgerLineAbove + 1) / 2) $ shortAbovePos
-        shortAbovePos       =  fmap maximum . nonEmpty $ shortLinesAbovePos
-        shortLinesAbovePos  =  filter (> firstLedgerLineAbove) $ positions
-        firstLedgerLineAbove  =  (fromIntegral staffLines)
+        shortAbove  =  
+            truncate 
+                . maybe 0 (\p -> (p - firstAbove') / 2) 
+                . fmap maximum . nonEmpty 
+                . filter (> firstAbove) $ positions
+        firstAbove'  =  firstAbove + 1
+        firstAbove   =  fromIntegral staffLines
 
-ledgerLinesBelow staffLines direction positions = (0, shortBelow, firstLedgerLineBelow - 1)
+ledgerLinesBelow staffLines direction positions = 
+    (0, shortBelow, firstBelow')
     where
-        shortBelow          =  truncate . maybe 0 (negate . \p -> (p - firstLedgerLineBelow - 1) / 2) $ shortBelowPos
-        shortBelowPos       =  fmap minimum . nonEmpty $ shortLinesBelowPos
-        shortLinesBelowPos  =  filter (< firstLedgerLineBelow) $ positions
-        firstLedgerLineBelow  =  (negate . fromIntegral $ staffLines)
+        shortBelow  = 
+            truncate 
+                . maybe 0 (negate . \p -> (p - firstBelow') / 2) 
+                . fmap minimum . nonEmpty 
+                . filter (< firstBelow) $ positions
+        firstBelow'  =  firstBelow - 1
+        firstBelow   =  negate . fromIntegral $ staffLines
 
 -- | Engraves ledger lines, with the origin in at the default note column in the middle line.
 
 engraveLedgerLines :: LedgerLines -> Engraving
-engraveLedgerLines (LedgerLines ((la, sa, oa), (lb, sb, ob))) = mempty
-    <> (cat unitY          . replicate sa $ ledgerE) # translate (r2 (0, oa * halfSpace))
-    <> (cat (negate unitY) . replicate sb $ ledgerE) # translate (r2 (0, ob * halfSpace))
+engraveLedgerLines (LedgerLines ((la, sa, oa), (lb, sb, ob))) = 
+    mempty
+        <> (cat unitY          . replicate sa $ ledgerE) # translate (r2 (0, oa * halfSpace))
+        <> (cat (negate unitY) . replicate sb $ ledgerE) # translate (r2 (0, ob * halfSpace))
     where
         ledgerE  =  lineE <> spaceE
         lineE    =  hrule width # lineWidth ledgerLineWeight
@@ -385,3 +408,18 @@ engraveChord' ::
     -> Engraving
 engraveChord' = undefined
 
+
+notePositions :: a -> [R2]
+notePositions         = undefined
+
+highestNotePosition :: a -> R2
+highestNotePosition   = undefined
+
+lowestNotePosition :: a -> R2
+lowestNotePosition    = undefined
+
+stemRootPosition :: a -> R2
+stemRootPosition      = undefined
+
+stemTopPosition :: a -> R2
+stemTopPosition       = undefined

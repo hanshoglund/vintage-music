@@ -1,6 +1,5 @@
 
 {-# LANGUAGE
-    RankNTypes,
     FlexibleContexts #-}
 
 -- | This module provides engraving of staff-level objects, such as note lines, bar lines, clefs, key and
@@ -8,10 +7,12 @@
 --   "Notable.Engraving.Chord" module.
 --
 --   Staff-level objects are grouped into spaced an non-spaced. On the staff level, spaced objects are  take
---   those objects that take up horizontal space, including notes, rests, clefs, time signatures etc. In the
---   simplest possible case, such objects may simply be stacked as tightly as possible, using 'besideX'.
+--   those objects that take up horizontal space, including notes, rests, clefs, time signatures etc. In 
+--   simple case such as tables or legends, such objects may simply be stacked using 'besideX'.
+--   For more involved cases, see the "Notable.Engraving.Space" module.
 --
---   Non-spaced objects are typically placed in relation to spaced objects.
+--   Non-spaced objects are placed in relation to spaced objects, using a position returned form the lower
+--   engraving level. 
 --     
 module Notable.Engraving.Staff
 (
@@ -25,6 +26,8 @@ module Notable.Engraving.Staff
     barLineWeight,
     singleBarLine,
     doubleBarLine,
+    
+-- *** Rehearsal marks
 
 -- ** Clefs
     ClefPos,
@@ -46,8 +49,8 @@ module Notable.Engraving.Staff
 
 -- ** Key signatures
 -- ** Time signatures
--- ** Chords
 -- ** Cesuras
+-- ** Chords
 
 -- * Non-spaced objects
 -- ** Beams
