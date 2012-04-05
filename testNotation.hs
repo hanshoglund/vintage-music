@@ -27,8 +27,22 @@ instance Render Notation Graphic where
     render = Graphic . renderN
 renderN :: Notation -> Engraving
 
-renderN _ = allE
+renderN _ = allE <> arcE
 
+
+arcE = mempty
+    <> noteLines # scaleX 4
+    <> hc2 # rotate ((0) :: Deg) # translate (r2 (0, 1.5 * space))
+--    <> (lw 0.05 $ hc)  # rotate ((-12) :: Deg) # translate (r2 (0, -1))
+    <> engraveNote 0 False UnfilledNoteHead # translate (r2 (-1, 0))
+    <> engraveNote (-0) False UnfilledNoteHead # translate (r2 (1, 0))
+    where                                                          
+        hc2 = caligraphy 10 $ hc
+        hc = scaleY 0.34 $ lw 0.04 $ stroke $ arc (0.45 * tau :: Rad) (0.05 * tau :: Rad)
+
+-- TODO this does not scale properly, i fear we need to render two close arcs and fill the space inbetween 
+caligraphy x = id
+--caligraphy x = scaleX (1/x) . freeze . scaleX x 
 
 
 ledgersE = mempty

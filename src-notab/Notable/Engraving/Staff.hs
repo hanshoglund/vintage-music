@@ -4,13 +4,12 @@
     FlexibleContexts #-}
 
 -- | Low-level engraving of staff-level objects, such as note lines, bar lines, clefs, key and
---   time signatures and so on. Notes, rests and associated objects are delegated to the
---   "Notable.Engraving.Chord" module.
+--   time signatures and so on. 
 --
---   Staff-level objects are grouped into spaced an non-spaced. On the staff level, spaced objects are  take
---   those objects that take up horizontal space, including notes, rests, clefs, time signatures etc. In 
---   simple case such as tables or legends, such objects may simply be stacked using 'besideX'.
---   For more involved cases, see the "Notable.Spacing" module.
+--   Staff-level objects are grouped into spaced an non-spaced. On the staff level, spaced objects are 
+--   take those objects that take up horizontal space, including notes, rests, clefs, time signatures etc.
+--   In simple case such as tables or legends, such objects may simply be stacked using 'besideX'. For more
+--   involved cases, see the "Notable.Spacing" module.
 --
 --   Non-spaced objects are placed in relation to spaced objects, using a position returned form the lower
 --   engraving level. 
@@ -22,7 +21,10 @@ module Notable.Engraving.Staff
     noteLines,
     noteLines',
 
+
+
 -- * Spaced objects
+
 -- ** Barlines
     barLineWeight,
     singleBarLine,
@@ -34,7 +36,6 @@ module Notable.Engraving.Staff
     ClefType(..),
     Clef,
     engraveClef,
-
 -- *** Standard clefs
     frenchClef,
     trebleClef,
@@ -70,31 +71,44 @@ module Notable.Engraving.Staff
 -- ** Cesuras
     apostrophe,
     cesura,
+
 -- ** Chords
-    engraveChords,    
+    engraveRest,    
+    engraveNote,    
+    engraveChord,    
+
+
 
 -- * Non-spaced objects
 
 -- ** Beams
     Beams,
     engraveBeams,
+
 -- *** Tremolo beams
     TremoloBeams,
-    engraveTremoloBeams,
+    engraveTremoloBeams,    
+
 -- ** Ties
     engraveTie,    
+
 -- ** Slurs    
     engraveSlur,
+
 -- ** Tuplets
     engraveTuplet,
+
 -- ** Text
     Instruction(..),
     engraveInstruction,
+
     
+
 -- * Staves
     NonSpacedObject(..),
     SpacedObject(..),
     Staff(..),
+    engraveStaff,
 )
 
 where
@@ -133,7 +147,8 @@ noteLines = noteLines' 5
 --
 --   Note lines engraved at length one. To obtain other lengths, use 'stretchX' or 'stretchToX'.
 noteLines' :: StaffLines -> Engraving
-noteLines' num =
+noteLines' num =     
+    -- TODO use cat' instead of foldr?
     placement $ foldr above mempty (replicate num noteLine)
         where
             placement = moveSpacesUp $ (fromIntegral num - 1) / 2
@@ -283,15 +298,6 @@ apostrophe = undefined
 cesura :: Engraving
 cesura = undefined
 
-
---
--- Chords
---
-
-engraveChords :: [(HalfSpaces, Chord)] -> [beamsEtc] -> Engraving
-engraveChords = undefined
-
-
 --
 -- Beams
 --
@@ -309,6 +315,7 @@ engraveBeams = undefined
 
 type TremoloBeams = Int
 
+engraveTremoloBeams :: TremoloBeams -> R2 -> R2 -> Engraving
 engraveTremoloBeams = undefined
 
 
@@ -345,17 +352,16 @@ engraveInstruction :: Instruction -> Engraving
 engraveInstruction = undefined
 
 
-
 --
--- High-level engraving
+-- Staves
 --
 
 data NonSpacedObject 
     = Beams Beams
     | TremoloBeams TremoloBeams 
-    | Tie (Direction, R2, R2)
-    | Slur (Direction, R2, R2) 
-    | TupletBracket (Direction, R2, R2)
+    | Tie Direction
+    | Slur Direction 
+    | TupletBracket Direction
     | Instruction String
     
 data SpacedObject 
@@ -366,5 +372,9 @@ data SpacedObject
     | Cesura
     | Chord Chord
     
-data Staff = Staff [(HalfSpaces, SpacedObject)] [([Index [SpacedObject]], NonSpacedObject)]
+data Staff = 
+    Staff { spacedObjects    :: [(HalfSpaces, SpacedObject)],
+            nonSpacedObjects :: [([Index [SpacedObject]], NonSpacedObject)] } 
 
+engraveStaff :: Staff -> Engraving
+engraveStaff = undefined

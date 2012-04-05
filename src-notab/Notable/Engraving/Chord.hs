@@ -3,9 +3,9 @@
     TypeSynonymInstances,
     FlexibleContexts #-}
 
--- | Low-level engraving of rests and notes, along with associated objects such as accidentals, dots,
---   stems, flags, articulations and so on. Note that the term chord is used to indicate a set of
---   note heads and associated objects, which is referred to as a rest if empty.
+-- | Low-level engraving of rests, notes, along with associated objects such as stems, dots, accidentals,
+--   articulations and so on. Note that the term chord is used to indicate a set of note heads and
+--   associated objects, which is referred to as a rest if empty.
 --
 --   Objects that span multiple chords, including beams, ties and slurs are engraved separately, but this
 --   module provides anchor points that indicate how to connect such objects to chords.
@@ -13,13 +13,13 @@
 module Notable.Engraving.Chord
 (
 -- * Basic components
+
 -- ** Rests
     Rest(..),
 
 -- ** Note heads
     NoteHead(..),
     hasStem,
-
 -- *** Position
     NoteHeadPosition,
     separateNoteHeads,
@@ -34,7 +34,6 @@ module Notable.Engraving.Chord
     stemDown,
     stemFlip,
     stemDirection,
-
 -- *** Flags
     Flags,
 -- *** Cross beams
@@ -49,6 +48,8 @@ module Notable.Engraving.Chord
     restFromNoteValue,
     dotsFromNoteValue,
     fromNoteValue,
+
+
 
 -- * Additional components
 -- ** Accidentals
@@ -71,6 +72,8 @@ module Notable.Engraving.Chord
     ledgerLines,
     ledgerLines',
     engraveLedgerLines,
+
+
 
 -- * Chords
     Stem(..),
@@ -105,8 +108,8 @@ import Music.Util
 import Music.Util.List
 
 import Notable.Core
-import Notable.Core.Diagrams
 import Notable.Core.Symbols
+import Notable.Core.Diagrams
 
 
 --
@@ -483,10 +486,10 @@ data Note =
            accidental       :: Accidental }
 
 data Chord =
-    Chord { notes :: [Note],
-            rest  :: Rest,
-            dots  :: Dots,
-            stem  :: Stem,
+    Chord { notes         :: [Note],
+            rest          :: Rest,
+            dots          :: Dots,
+            stem          :: Stem,
             articulations :: [Articulation],
             verticalLines :: [VerticalLine] }
 

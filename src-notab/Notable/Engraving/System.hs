@@ -1,83 +1,118 @@
 
-{-# LANGUAGE 
+{-# LANGUAGE
     FlexibleContexts #-}
 
--- | Low-level engraving of system-level objects, including the joining left line, instrument
---   names, brackets and so on. Staves and objects drawn on them including notes, chords and lines
---   are handled by the "Notable.Engraving.Staff" module.
+-- | Low-level engraving of system-level objects, including the joining left line, instrument names,
+--   brackets and so on. 
+--
 module Notable.Engraving.System
 (
 -- * System objects
--- ** Left line
+
+    BarNumber,
+    leftLine,
+    engraveBarNumber,
+    engravePartName,
+
 -- ** Accolades
--- ** Bar numbers
--- ** Part names
--- ** Staves
+    StaffList(..),
+    engraveBracket,
+    engraveBrace,
+    engraveStaffList,
+
+
+-- * Staves
+    engraveStaff,
 
 
 -- * Cross-staff objects
+
 -- ** Barlines
+
 -- ** Beams
+    Beams,
+    engraveBeams,
+
 -- *** Tremolo beams
+    TremoloBeams,
+    engraveTremoloBeams,
+
 -- ** Ties
+    engraveTie,
+
 -- ** Slurs
+    engraveSlur,
+
 -- ** Tuplets
+    engraveTuplet,
+
+-- ** Text
+    Instruction(..),
+    engraveInstruction,
+
+
+-- * Systems
+    CrossStaffObject(..),
+    System(..),
+    engraveSystem,
 )
 where
 
+import Data.Indexed
+
+import Notable.Core
+import Notable.Core.Symbols
+import Notable.Core.Diagrams
 import Notable.Engraving.Staff
 
 --
 -- System objects
 --
 
---
--- Left line
---
+leftLine :: Engraving
+leftLine = undefined
+
+type BarNumber = Int
+
+engraveBarNumber :: BarNumber -> Engraving
+engraveBarNumber = undefined
+
+engravePartName :: String -> Engraving
+engravePartName = undefined
+
+data StaffList a
+    = Staff a
+    | Bracketed (StaffList a)
+    | Bracced (StaffList a)
+
+engraveBracket :: Spaces -> Engraving
+engraveBracket = undefined
+
+engraveBrace :: Spaces -> Engraving
+engraveBrace = undefined
+
+engraveStaffList  :: StaffList a -> Engraving
+engraveStaffList = undefined
+
 
 --
--- Accolades
+-- Systems
 --
 
---
--- Bar numbers
---
+data CrossStaffObject
+    = BarLine
+    | Beam
+    | TremoloBeam
+    | Tie
+    | Slur
+    | TupletBracket
 
---
--- Part names
---
+data System = 
+    System { barNumber :: Maybe BarNumber,
+             staffList :: Maybe (StaffList String),
+             staves    :: [(HalfSpaces, Staff)],
+             crossStaffObjects :: [([Index [Staff]], CrossStaffObject)] }
 
---
--- Staves
---
-
-
-
---
--- Cross-staff objects
---
-
---
--- Barlines
---
-
---
--- Beams
---
-
---
--- Tremolo beams
---
-
---
--- Ties
---
-
---
--- Slurs
---
-
---
--- Tuplets
---
+engraveSystem :: System -> Engraving
+engraveSystem = undefined
 
