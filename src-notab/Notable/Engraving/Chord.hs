@@ -42,7 +42,7 @@ module Notable.Engraving.Chord
 
 -- ** Dots
     Dots,
-    
+
 -- ** From note values
     noteHeadFromNoteValue,
     flagsFromNoteValue,
@@ -79,7 +79,6 @@ module Notable.Engraving.Chord
     engraveNote,
     engraveRest,
     engraveChord,
-    engraveChord',
 
 -- ** Positions
     notePositions,
@@ -87,6 +86,15 @@ module Notable.Engraving.Chord
     lowestNotePosition,
     stemRootPosition,
     stemTopPosition,
+
+    slurAboveAnchor,
+    slurBelowAnchor,
+    tieAboveAnchor,
+    tieBelowAnchor,
+    tupletAboveAnchor,
+    tupletBelowAnchor,
+    glissandoBeforeAnchor,
+    glissandoAfterAnchor
 )
 where
 
@@ -289,7 +297,7 @@ dotsFromNoteValue x = d where (r, h, f, d) = fromNoteValue x
 fromNoteValue :: NoteValue -> (Rest, NoteHead, Flags, Dots)
 fromNoteValue x = (restFromIndex val, noteHeadFromIndex val, flagsFromIndex val, dots')
     where
-        (val, dots) = properFraction . negate . logBase 2 $ x
+        (val, dots) = properFraction . negate . logBase 2 $ x
         dots' = case dots of
             0.0 -> 0
             _   -> 1
@@ -315,7 +323,7 @@ instance Symbolic Accidental where
     symbol Flat         =  (baseMusicFont, "b")
     symbol Natural      =  (baseMusicFont, "n")
     symbol Sharp        =  (baseMusicFont, "#")
-    symbol DoubleSharp  =  (baseMusicFont, "\192")    
+    symbol DoubleSharp  =  (baseMusicFont, "\192")
 
 -- | Minimum space required above the given accidental (Tyboni p 24).
 minSpaceAbove :: Accidental -> HalfSpaces
@@ -445,7 +453,7 @@ ledgerLinesBelow staffLines direction positions =
 
 -- | Engraves ledger lines, with the origin in at the default note column in the middle line
 engraveLedgerLines :: LedgerLines -> Engraving
-engraveLedgerLines ( LedgerLines ( (longAbove, shortAbove, offsetAbove), 
+engraveLedgerLines ( LedgerLines ( (longAbove, shortAbove, offsetAbove),
                                    (longBelow, shortBelow, offsetBelow)) ) =
     aboveE <> belowE
     where
@@ -463,26 +471,26 @@ engraveLedgerLines ( LedgerLines ( (longAbove, shortAbove, offsetAbove),
 -- Chords
 --
 
-data Stem = 
-    Stem { stemType   :: StemType, 
-           adjustStem :: AdjustStem, 
-           flags      :: Flags, 
+data Stem =
+    Stem { stemType   :: StemType,
+           adjustStem :: AdjustStem,
+           flags      :: Flags,
            crossBeams :: CrossBeams }
 
-data Note = 
+data Note =
     Note { noteHeadPosition :: NoteHeadPosition,
-           noteHead         :: NoteHead, 
+           noteHead         :: NoteHead,
            accidental       :: Accidental }
 
-data Chord = 
-    Chord { notes :: [Note], 
+data Chord =
+    Chord { notes :: [Note],
             rest  :: Rest,
             dots  :: Dots,
             stem  :: Stem,
             articulations :: [Articulation],
             verticalLines :: [VerticalLine] }
 
--- TODO rewrite as part of engraveChord
+-- TODO reimplement in terms of engraveChord
 
 -- | Engraves a single note.
 engraveNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
@@ -503,75 +511,52 @@ engraveNote pos dir nh =
         noteStemOffset  =  r2 $ (negate `onlyIf` (const dir)) (- (getX $ noteHeadOffset / 2) - noteStemInset,
                                                                space * 3.5 / 2 + (noteStemShortenAtOuterNote / 2))
 
-
 -- | Engraves a rest.
-engraveRest ::
-    Rest
-    -> Engraving
+engraveRest :: Rest -> Engraving
 engraveRest = undefined
 
--- | Engraves a chord. The origin will be at the middle line, at the default note column.
-engraveChord ::
-    [(NoteHead, NoteHeadPosition, Accidental)]
-    -> Engraving
+-- | Engraves a chord. The origin will be at the middle line, at the standard note column.
+engraveChord :: Chord -> Engraving
 engraveChord = undefined
 
--- | Engraves a chord. The origin will be at the middle line, at the default note column.
-engraveChord' ::
-    Rest
-    -> [(NoteHead, NoteHeadPosition, Accidental)]
-    -> StemType
-    -> AdjustStem
-    -> Flags
-    -> CrossBeams
-    -> Dots
-    -> [Articulation]
-    -> [VerticalLine]
-    -> Engraving
-engraveChord' = undefined
 
-
---
--- Positions
---
-
-notePositions :: a -> [R2]
+notePositions :: Chord -> [R2]
 notePositions = undefined
 
-highestNotePosition :: a -> R2
+highestNotePosition :: Chord -> R2
 highestNotePosition = last . notePositions
 
-lowestNotePosition :: a -> R2
+lowestNotePosition :: Chord -> R2
 lowestNotePosition = head . notePositions
 
-stemRootPosition :: a -> R2
+stemRootPosition :: Chord -> R2
 stemRootPosition = undefined
 
-stemTopPosition :: a -> R2
+stemTopPosition :: Chord -> R2
 stemTopPosition = undefined
 
-slurAboveAnchor :: a -> R2
+slurAboveAnchor :: Chord -> R2
 slurAboveAnchor = undefined
 
-slurBelowAnchor :: a -> R2
+slurBelowAnchor :: Chord -> R2
 slurBelowAnchor = undefined
 
-tieAboveAnchor :: a -> R2
+tieAboveAnchor :: Chord -> R2
 tieAboveAnchor = undefined
 
-tieBelowAnchor :: a -> R2
+tieBelowAnchor :: Chord -> R2
 tieBelowAnchor = undefined
 
-tupletAboveAnchor :: a -> R2
+tupletAboveAnchor :: Chord -> R2
 tupletAboveAnchor = undefined
 
-tupletBelowAnchor :: a -> R2
+tupletBelowAnchor :: Chord -> R2
 tupletBelowAnchor = undefined
 
-glissandoBeforeAnchor :: a -> R2
+glissandoBeforeAnchor :: Chord -> R2
 glissandoBeforeAnchor = undefined
 
-glissandoAfterAnchor :: a -> R2
+glissandoAfterAnchor :: Chord -> R2
 glissandoAfterAnchor = undefined
 
 

@@ -47,27 +47,59 @@ module Notable.Engraving.Staff
     subBassClef,
 
 -- ** Key signatures
+    KeySignature,
+    engraveKeySignature,
+    gFlatMajor,
+    dFlatMajor,
+    aFlatMajor,
+    eFlatMajor,
+    bFlatMajor,
+    fMajor,
+    cMajor,
+    gMajor,
+    dMajor,
+    aMajor,
+    eMajor,
+    bMajor,
+    fSharpMajor,
+
 -- ** Time signatures
     TimeSignature,
     engraveTimeSignature,
+
 -- ** Cesuras
     apostrophe,
     cesura,
 -- ** Chords
-    engraveChords,
-
+    engraveChords,    
 
 -- * Non-spaced objects
+
 -- ** Beams
+    Beams,
+    engraveBeams,
 -- *** Tremolo beams
+    TremoloBeams,
+    engraveTremoloBeams,
 -- ** Ties
--- ** Slurs
+    engraveTie,    
+-- ** Slurs    
+    engraveSlur,
 -- ** Tuplets
+    engraveTuplet,
 -- ** Text
     Instruction(..),
+    engraveInstruction,
+    
+-- * Staves
+    NonSpacedObject(..),
+    SpacedObject(..),
+    Staff(..),
 )
 
 where
+
+import Data.Indexed
 
 import Notable.Core
 import Notable.Core.Symbols
@@ -198,11 +230,45 @@ subBassClef       = engraveClef (FClef, 4)
 -- Key signatures
 --
 
+type KeySignature = Int
+
+engraveKeySignature :: KeySignature -> Engraving
+engraveKeySignature = undefined
+
+gFlatMajor  :: Engraving
+dFlatMajor  :: Engraving
+aFlatMajor  :: Engraving
+eFlatMajor  :: Engraving
+bFlatMajor  :: Engraving
+fMajor      :: Engraving
+cMajor      :: Engraving
+gMajor      :: Engraving
+dMajor      :: Engraving
+aMajor      :: Engraving
+eMajor      :: Engraving
+bMajor      :: Engraving
+fSharpMajor :: Engraving
+gFlatMajor  = engraveKeySignature (-6)
+dFlatMajor  = engraveKeySignature (-5)
+aFlatMajor  = engraveKeySignature (-4)
+eFlatMajor  = engraveKeySignature (-3)
+bFlatMajor  = engraveKeySignature (-2)
+fMajor      = engraveKeySignature (-1)
+cMajor      = engraveKeySignature 0
+gMajor      = engraveKeySignature 1
+dMajor      = engraveKeySignature 2
+aMajor      = engraveKeySignature 3
+eMajor      = engraveKeySignature 4
+bMajor      = engraveKeySignature 5
+fSharpMajor = engraveKeySignature 6
+
+
 --
 -- Time signatures
 --
 
-type TimeSignature = ([Int], Int)
+-- TODO c, alla breve, pulse group time sig etc.
+type TimeSignature = (Int, Int)
 
 engraveTimeSignature :: TimeSignature -> Engraving
 engraveTimeSignature = undefined
@@ -217,41 +283,88 @@ apostrophe = undefined
 cesura :: Engraving
 cesura = undefined
 
+
 --
 -- Chords
 --
 
-engraveChords :: [(spacing, chordNotation)] -> [beamsEtc] -> Engraving
+engraveChords :: [(HalfSpaces, Chord)] -> [beamsEtc] -> Engraving
 engraveChords = undefined
+
 
 --
 -- Beams
 --
 
+-- TODO sub-beams, vertical positioning in case of multiple beams etc.
+type Beams = Int
+
+engraveBeams :: Beams -> R2 -> R2 -> Engraving
+engraveBeams = undefined
+
+
 --
 -- Tremolo beams
 --
+
+type TremoloBeams = Int
+
+engraveTremoloBeams = undefined
+
 
 --
 -- Ties
 --
 
+engraveTie :: Direction -> R2 -> R2 -> Engraving
+engraveTie = undefined
+
+
 --
 -- Slurs
 --
+
+engraveSlur :: Direction -> R2 -> R2 -> Engraving
+engraveSlur = undefined
+
 
 --
 -- Tuplets
 --
 
-
+engraveTuplet :: String -> Direction -> R2 -> R2 -> Engraving
+engraveTuplet = undefined
 
 --
 -- Instructions
 --
 
-data Instruction = Instruction String
+type Instruction = String
 
 engraveInstruction :: Instruction -> Engraving
 engraveInstruction = undefined
+
+
+
+--
+-- High-level engraving
+--
+
+data NonSpacedObject 
+    = Beams Beams
+    | TremoloBeams TremoloBeams 
+    | Tie (Direction, R2, R2)
+    | Slur (Direction, R2, R2) 
+    | TupletBracket (Direction, R2, R2)
+    | Instruction String
+    
+data SpacedObject 
+    = Clef Clef
+    | KeySignature KeySignature 
+    | TimeSignature TimeSignature 
+    | Barline 
+    | Cesura
+    | Chord Chord
+    
+data Staff = Staff [(HalfSpaces, SpacedObject)] [([Index [SpacedObject]], NonSpacedObject)]
 
