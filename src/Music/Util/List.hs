@@ -41,7 +41,9 @@ module Music.Util.List
     palindrome,
     palindromeInclusive,
 
--- * Misc
+-- * Misc  
+    update,
+    adjust,
     nonEmpty,
     merge,
     mergeBy,
@@ -180,6 +182,18 @@ palindromeInclusive xs = xs ++ reverse xs
 --
 -- Misc
 --
+
+-- | Adjust the given index.
+adjust :: Int -> (a -> a) -> [a] -> [a]
+adjust i f []     = []
+adjust 0 f (x:xs) = (f x):xs
+adjust n f (x:xs) = x:(adjust (pred n) f xs)
+
+-- | Update the given index.
+update :: Int -> a -> [a] -> [a]
+update i z []     = []
+update 0 z (_:xs) = z:xs
+update n z (x:xs) = x:(update (pred n) z xs)
 
 -- | If the list is empty, return nothing, otherwise return the list.
 nonEmpty :: [a] -> Maybe [a] 

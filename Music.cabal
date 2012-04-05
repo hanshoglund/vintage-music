@@ -49,8 +49,7 @@ Library
         Data.Trivial
         Data.Undefined
         Data.Convert
-
-
+        Data.Indexed
         
         Music
 

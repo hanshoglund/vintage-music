@@ -13,7 +13,9 @@
 module Music.Util.Either
 (
     module Data.Either,
-    
+
+    getLeft,
+    getRight,
     mapLeft,
     mapRight,
     fmapEither,
@@ -23,6 +25,12 @@ module Music.Util.Either
 where
 
 import Data.Either
+
+getLeft :: Either a b -> a
+getLeft (Left x)   = x
+
+getRight :: Either a b -> b
+getRight (Right x) = x
 
 mapLeft :: (a -> b) -> Either a c -> Either b c
 mapLeft f (Left x)    =  Left (f x)

@@ -18,6 +18,7 @@ import Notable.Engraving.Chord
 import Notable.Engraving.Staff
 import Music.Util.List
 
+import Data.Indexed
 
 
 
@@ -33,8 +34,8 @@ renderN _ = allE
 ledgersE = mempty
     <> noteLines # scaleX 4
     <> trebleClef # translate (r2 (-2,0))
-    <> engraveNote 10 False Unfilled
-    <> engraveNote (-9) True Unfilled
+    <> engraveNote 10 False UnfilledNoteHead
+    <> engraveNote (-9) True UnfilledNoteHead
     <> engraveLedgerLines (ledgerLines True [-9,2,3,10])
 
 
@@ -46,21 +47,21 @@ chordE = mempty
     <> (
         altoClef
         `leftTo` strutX 0.5
-        `leftTo` engraveNote 1 False Unfilled
+        `leftTo` engraveNote 1 False UnfilledNoteHead
         `leftTo` strutX 1
-        `leftTo` engraveNote 2 False Unfilled
+        `leftTo` engraveNote 2 False UnfilledNoteHead
         `leftTo` strutX 1
-        `leftTo` engraveNote 0 False Unfilled
+        `leftTo` engraveNote 0 False UnfilledNoteHead
         `leftTo` strutX 1
-        `leftTo` engraveNote (-1) True Unfilled
+        `leftTo` engraveNote (-1) True UnfilledNoteHead
         `leftTo` strutX 1
-        `leftTo` engraveNote (-5) True Unfilled
+        `leftTo` engraveNote (-5) True UnfilledNoteHead
         `leftTo` strutX 1
-        `leftTo` engraveNote (-3) True Filled
+        `leftTo` engraveNote (-3) True FilledNoteHead
         `leftTo` strutX 1
-        `leftTo` engraveNote 0 True Whole
+        `leftTo` engraveNote 0 True WholeNoteHead
         `leftTo` strutX 1
-        `leftTo` engraveNote 3 True Brevis
+        `leftTo` engraveNote 3 True BrevisNoteHead
     ) # translate (r2 (-7.2, 0))
 
 
