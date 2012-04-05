@@ -1,5 +1,6 @@
 
 {-# LANGUAGE
+    TypeSynonymInstances,
     FlexibleContexts #-}
 
 -- | Low-level engraving of staff-level objects, such as note lines, bar lines, clefs, key and
@@ -17,7 +18,7 @@
 module Notable.Engraving.Staff
 (
 -- * Note lines
-    noteLineWidth,
+    noteLineWeight,
     noteLines,
     noteLines',
 
@@ -32,7 +33,6 @@ module Notable.Engraving.Staff
     ClefPos,
     ClefType(..),
     Clef,
-    clefSymbol,
     engraveClef,
 
 -- *** Standard clefs
@@ -48,8 +48,13 @@ module Notable.Engraving.Staff
 
 -- ** Key signatures
 -- ** Time signatures
+    TimeSignature,
+    engraveTimeSignature,
 -- ** Cesuras
+    apostrophe,
+    cesura,
 -- ** Chords
+    engraveChords,
 
 
 -- * Non-spaced objects
@@ -59,6 +64,7 @@ module Notable.Engraving.Staff
 -- ** Slurs
 -- ** Tuplets
 -- ** Text
+    Instruction(..),
 )
 
 where
@@ -73,8 +79,8 @@ import Notable.Engraving.Chord
 --
 
 -- | Thickness of note lines.
-noteLineWidth :: Double
-noteLineWidth = 0.025
+noteLineWeight :: Double
+noteLineWeight = 0.025
 
 -- | Thickness of barlines.
 barLineWeight :: Double
@@ -98,9 +104,9 @@ noteLines' :: StaffLines -> Engraving
 noteLines' num =
     placement $ foldr above mempty (replicate num noteLine)
         where
-            placement = moveOriginBy (r2 (0, (negate $ (fromIntegral num - 1) / 2) * space))
+            placement = moveSpacesUp $ (fromIntegral num - 1) / 2
             noteLine  =  style $ hrule 1 <> {-spaceRect rect 1 space-} strutY space
-                where { style = lineWidth noteLineWidth}
+                where { style = lineWidth noteLineWeight }
 
 --
 -- Bar lines
@@ -145,7 +151,6 @@ doubleBarLine = beside unitX (align unitX singleBarLine) singleBarLine
 --
 --   For example, a standard alto clef has position @0@, while a treble clef
 --   has position @-2@.
---
 type ClefPos = HalfSpaces
 
 data ClefType
@@ -156,20 +161,15 @@ data ClefType
 
 type Clef = (ClefType, ClefPos)
 
--- | Symbol used to represent a given clef type.
-clefSymbol :: ClefType -> Symbol
-clefSymbol GClef  =  (baseMusicFont, "&")
-clefSymbol CClef  =  (baseMusicFont, "B")
-clefSymbol FClef  =  (baseMusicFont, "?")
+instance Symbolic ClefType where
+    symbol GClef  =  (baseMusicFont, "&")
+    symbol CClef  =  (baseMusicFont, "B")
+    symbol FClef  =  (baseMusicFont, "?")
 
 -- | Engraves a standard size clef.
 engraveClef :: Clef -> Engraving
 engraveClef (clefType, pos) =
-    moveHalfSpacesUp pos $ clefE <> spaceE
-    where
-        clefE   =  engraveSymbolFloating sym
-        spaceE  =  spaceRectV (symbolSpacer sym) # translate (symbolOffset sym)
-        sym     =  clefSymbol clefType
+    moveHalfSpacesUp pos $ engraveSymbol (symbol clefType)
 
 
 frenchClef        :: Engraving
@@ -202,16 +202,27 @@ subBassClef       = engraveClef (FClef, 4)
 -- Time signatures
 --
 
+type TimeSignature = ([Int], Int)
+
+engraveTimeSignature :: TimeSignature -> Engraving
+engraveTimeSignature = undefined
+
 --
 -- Cesuras
 --
+
+apostrophe :: Engraving
+apostrophe = undefined
+
+cesura :: Engraving
+cesura = undefined
 
 --
 -- Chords
 --
 
-
-
+engraveChords :: [(spacing, chordNotation)] -> [beamsEtc] -> Engraving
+engraveChords = undefined
 
 --
 -- Beams
@@ -234,9 +245,13 @@ subBassClef       = engraveClef (FClef, 4)
 --
 
 
+
 --
--- Text
+-- Instructions
 --
 
+data Instruction = Instruction String
 
+engraveInstruction :: Instruction -> Engraving
+engraveInstruction = undefined
 

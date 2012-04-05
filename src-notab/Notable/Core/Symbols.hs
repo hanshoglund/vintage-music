@@ -5,6 +5,7 @@ module Notable.Core.Symbols
     Font,
     Glyph,
     Symbol,
+    Symbolic(..),
     baseMusicFont,
     specialMusicFont,
     symbolSpacer,
@@ -13,6 +14,9 @@ module Notable.Core.Symbols
 where
 
 import Notable.Core.Diagrams
+
+class Symbolic a where
+    symbol :: a -> Symbol
 
 type Font   = String
 type Glyph  = String

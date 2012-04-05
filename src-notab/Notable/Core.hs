@@ -13,6 +13,15 @@ module Notable.Core
     HalfSpaces,
     halfSpace,
 
+    -- prime,
+    -- second,
+    -- third,
+    -- fourth,
+    -- fifth,
+    -- sixth,
+    -- seventh,
+    -- octave,
+    
     NoteValue,
     
     Direction,
@@ -31,6 +40,7 @@ module Notable.Core
     engraveSymbol,
     engraveSymbolFloating,
     engraveSpacer,
+    moveSpacesUp,
     moveHalfSpacesUp,
 )
 where
@@ -56,9 +66,18 @@ space = 0.25
 halfSpace :: HalfSpaces
 halfSpace = space / 2
 
--- | Standard note value (1/4 for quarter note etc).
-type NoteValue = Double
+-- prime   = 0 * halfSpace
+-- second  = 1 * halfSpace
+-- third   = 2 * halfSpace
+-- fourth  = 3 * halfSpace
+-- fifth   = 4 * halfSpace
+-- sixth   = 5 * halfSpace
+-- seventh = 6 * halfSpace
+-- octave  = 7 * halfSpace
 
+
+-- | Standard note value (@1/4@ for quarter note etc).
+type NoteValue = Double
 
 -- | Direction of note stem. 
 --   Needed for calculating placement of articulations, lines etc. 
@@ -75,6 +94,8 @@ type StaffLines = Int
 -- Notation and Engraving
 --
 
+-- | Creates a transparent rectangle.
+--   This is useful as an alternative to 'withEnvelope' for debugging purposes.
 spaceRect :: Double -> Double -> Engraving
 spaceRect x y = style $ rect x y
     where
@@ -96,6 +117,9 @@ engraveSpacer s = translate (symbolOffset s) $ spaceRectV (symbolSpacer s)
 --
 -- Positioning etc
 --
+
+moveSpacesUp :: (V t ~ R2, Transformable t) => HalfSpaces -> t -> t
+moveSpacesUp x = translate (r2 (0, x * space))
 
 moveHalfSpacesUp :: (V t ~ R2, Transformable t) => HalfSpaces -> t -> t
 moveHalfSpacesUp x = translate (r2 (0, x * halfSpace))
