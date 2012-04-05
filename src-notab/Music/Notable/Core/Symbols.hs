@@ -1,6 +1,6 @@
 
 -- | Notable symbols are simply represented as a pair of font and glyph.
-module Notable.Core.Symbols
+module Music.Notable.Core.Symbols
 (
     Font,
     Glyph,
@@ -13,7 +13,7 @@ module Notable.Core.Symbols
 )
 where
 
-import Notable.Core.Diagrams
+import Music.Notable.Core.Diagrams
 
 class Symbolic a where
     symbol :: a -> Symbol

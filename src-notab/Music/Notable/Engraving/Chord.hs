@@ -10,7 +10,7 @@
 --   Objects that span multiple chords, including beams, ties and slurs are engraved separately, but this
 --   module provides anchor points that indicate how to connect such objects to chords.
 --
-module Notable.Engraving.Chord
+module Music.Notable.Engraving.Chord
 (
 -- * Basic components
 
@@ -106,9 +106,9 @@ import qualified Data.List
 import Music.Util
 import Music.Util.List
 
-import Notable.Core
-import Notable.Core.Symbols
-import Notable.Core.Diagrams
+import Music.Notable.Core
+import Music.Notable.Core.Symbols
+import Music.Notable.Core.Diagrams
 
 
 --

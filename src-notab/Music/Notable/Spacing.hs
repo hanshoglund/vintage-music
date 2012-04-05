@@ -3,7 +3,7 @@
     FlexibleContexts #-}
 
 -- | This module handles horizontal and vertical spacing.
-module Notable.Spacing
+module Music.Notable.Spacing
 (
     Spacing,
     standardSpacing,
@@ -14,12 +14,12 @@ module Notable.Spacing
 
 where
 
-import Notable.Core
-import Notable.Core.Diagrams
-import Notable.Core.Symbols                                                             
-
 import Data.Convert
 import qualified Data.List as List
+
+import Music.Notable.Core
+import Music.Notable.Core.Diagrams
+import Music.Notable.Core.Symbols                                                             
 
 -- TODO a should not just accept NoteValues, but also absolute values for barlines, clefs etc
 

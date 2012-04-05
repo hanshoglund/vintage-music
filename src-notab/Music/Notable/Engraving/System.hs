@@ -5,7 +5,7 @@
 -- | Low-level engraving of system-level objects, including the joining left line, instrument names,
 --   brackets and so on. 
 --
-module Notable.Engraving.System
+module Music.Notable.Engraving.System
 (
 -- * System objects
 
@@ -60,10 +60,10 @@ where
 
 import Data.Indexed
 
-import Notable.Core
-import Notable.Core.Symbols
-import Notable.Core.Diagrams
-import Notable.Engraving.Staff
+import Music.Notable.Core
+import Music.Notable.Core.Symbols
+import Music.Notable.Core.Diagrams
+import Music.Notable.Engraving.Staff
 
 --
 -- System objects

@@ -14,7 +14,7 @@
 --   Non-spaced objects are placed in relation to spaced objects, using a position returned form the lower
 --   engraving level. 
 --     
-module Notable.Engraving.Staff
+module Music.Notable.Engraving.Staff
 (
 -- * Note lines
     noteLineWeight,
@@ -114,10 +114,10 @@ where
 import Data.Convert
 import Data.Indexed
 
-import Notable.Core
-import Notable.Core.Symbols
-import Notable.Core.Diagrams
-import Notable.Engraving.Chord
+import Music.Notable.Core
+import Music.Notable.Core.Symbols
+import Music.Notable.Core.Diagrams
+import Music.Notable.Engraving.Chord
 
 --
 -- Constants

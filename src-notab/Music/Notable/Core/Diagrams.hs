@@ -5,7 +5,7 @@
 -- | This module reexports the components of the Diagrams API used throughout Notable, as
 --   well as some handy synonyms.
 
-module Notable.Core.Diagrams
+module Music.Notable.Core.Diagrams
 (
     module Diagrams.Prelude,
     module Diagrams.TwoD.Text,

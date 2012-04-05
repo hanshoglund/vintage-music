@@ -109,17 +109,17 @@ Library
                               
         -- Notable music engraving engine
         -- To be moved to separate library soon (!)
-        Notable.Core
-        Notable.Core.Symbols
-        Notable.Core.Diagrams
-        Notable.Core.Diagrams.Cairo
-        Notable.Beaming
-        Notable.Spacing   
-        Notable.Voicing
-        Notable.Paging
-        Notable.Engraving.System
-        Notable.Engraving.Chord
-        Notable.Engraving.Staff
+        Music.Notable.Core
+        Music.Notable.Core.Symbols
+        Music.Notable.Core.Diagrams
+        Music.Notable.Core.Diagrams.Cairo
+        Music.Notable.Beaming
+        Music.Notable.Spacing   
+        Music.Notable.Voicing
+        Music.Notable.Paging
+        Music.Notable.Engraving.System
+        Music.Notable.Engraving.Chord
+        Music.Notable.Engraving.Staff
         
 
    Other-Modules:

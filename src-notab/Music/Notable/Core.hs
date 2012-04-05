@@ -7,7 +7,7 @@
     GeneralizedNewtypeDeriving #-}
 
 -- | This module contains preliminaries for music engraving.
-module Notable.Core
+module Music.Notable.Core
 (
 -- * Core types
 -- ** Space
@@ -57,8 +57,8 @@ where
 
 import Data.Convert
 
-import Notable.Core.Diagrams
-import Notable.Core.Symbols
+import Music.Notable.Core.Diagrams
+import Music.Notable.Core.Symbols
 
 --
 -- Preliminaries
