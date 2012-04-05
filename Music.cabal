@@ -113,6 +113,7 @@ Library
         Notable.Core.Symbols
         Notable.Core.Diagrams
         Notable.Core.Diagrams.Cairo
+        Notable.Beaming
         Notable.Spacing   
         Notable.Voicing
         Notable.Paging
