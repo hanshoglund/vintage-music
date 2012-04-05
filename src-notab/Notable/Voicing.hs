@@ -2,6 +2,8 @@
 {-# LANGUAGE
     FlexibleContexts #-}
 
+-- | This module will eventually be responsible for partitioning music into voices and parts.
+--
 module Notable.Voicing
 (
 )

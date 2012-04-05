@@ -50,7 +50,6 @@ module Notable.Engraving.Chord
     fromNoteValue,
 
 
-
 -- * Additional components
 -- ** Accidentals
     Accidental(..),
@@ -72,7 +71,6 @@ module Notable.Engraving.Chord
     ledgerLines,
     ledgerLines',
     engraveLedgerLines,
-
 
 
 -- * Chords
@@ -101,6 +99,7 @@ module Notable.Engraving.Chord
 )
 where
 
+import Data.Convert
 import Data.Tuple ( swap )
 import qualified Data.List
 
@@ -123,7 +122,7 @@ noteStemInset :: Double
 noteStemInset = 0.013
 
 noteStemShortenAtOuterNote :: Double
-noteStemShortenAtOuterNote = 0.1 * space
+noteStemShortenAtOuterNote = convert $ Spaces 0.1
 
 -- | Thickness of ledger lines.
 ledgerLineWeight :: Double
@@ -171,8 +170,10 @@ data NoteHead
     | UnfilledNoteHead
     | FilledNoteHead
     | DiamondNoteHead
-    | SquareNoteHead
     | CrossNoteHead
+    | CircledCrossNoteHead
+    | UnfilledSquareNoteHead
+    | FilledSquareNoteHead
     deriving (Show, Eq)
 
 instance Symbolic NoteHead where
@@ -180,9 +181,10 @@ instance Symbolic NoteHead where
     symbol WholeNoteHead     =  (baseMusicFont, "w")
     symbol UnfilledNoteHead  =  (specialMusicFont, "F")
     symbol FilledNoteHead    =  (specialMusicFont, "f")
+    -- TODO add remaining
 
 
--- | Position of a note head, offset from middle line.
+-- | Vertical position of a note head, offset from middle line.
 type NoteHeadPosition = HalfSpaces
 
 -- (internal)
@@ -210,23 +212,23 @@ separateNoteHeads d = separateNoteHeads' d . assertNoPrimes . Data.List.sort
             | null (filter2 (==) xs)  =  xs
             | otherwise               =  error "assertNoPrimes"
 
-        separateNoteHeads' direction positions
-            | direction  =  ( lowers `merge` others, uppers )
-            | otherwise  =  ( lowers, others `merge` uppers )
+        separateNoteHeads' stemDir positions
+            | isUp   stemDir  =  ( lowers `merge` others, uppers )
+            | isDown stemDir  =  ( lowers, others `merge` uppers )
                 where
-                    (pairs, others)  =  partitionNoteHeads direction positions
+                    (pairs, others)  =  partitionNoteHeads stemDir positions
                     (lowers, uppers) =  unzip pairs
 
 -- | Separate small intervals (i.e. primes and seconds) from others.
 --   Such intervals must be engraved on opposite sides of the stem to avoid collisions.
 partitionNoteHeads :: Direction -> [NoteHeadPosition] -> ([(NoteHeadPosition, NoteHeadPosition)], [NoteHeadPosition])
-partitionNoteHeads direction positions =
+partitionNoteHeads stemDir positions =
     partitioner collides positions
     where
         collides x y     =  y - x < 2
         partitioner
-            | direction  =  partition2
-            | otherwise  =  reversePartition2
+            | isUp   stemDir  =  partition2
+            | isDown stemDir  =  reversePartition2
 
 
 
@@ -239,22 +241,22 @@ type StemType = (Direction -> Direction)
 
 -- | Always use an upward stem.
 stemUp :: StemType
-stemUp = const upwards
+stemUp = const up
 
 -- | Always use a downward stem.
 stemDown :: StemType
-stemDown = const downwards
+stemDown = const down
 
 -- | Flip the default stem direction.
 stemFlip :: StemType
-stemFlip = not
+stemFlip = Direction . not . getDirection
 
 -- | Amount to add to stem length. May be negative.
 type AdjustStem = Double
 
 -- | Returns the default direction for the given note heads.
 stemDirection :: [NoteHeadPosition] -> Direction
-stemDirection x = upwards
+stemDirection x = up
 -- TODO see Tyboni
 
 
@@ -465,9 +467,9 @@ engraveLedgerLines ( LedgerLines ( (longAbove, shortAbove, offsetAbove),
 
         ledgerE  =  lineE <> spaceE
         lineE    =  style $ hrule width where { style = lineWidth ledgerLineWeight }
-        spaceE   =  spaceRect width space
+        spaceE   =  spaceRect width (convert space)
 
-        width    =  2 * space
+        width    =  convert (2 * space) :: Double
 
 
 --
@@ -500,7 +502,7 @@ engraveNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
 engraveNote pos dir nh =
     moveHalfSpacesUp pos $ headE <> stemE <> spaceE
     where
-        spaceE  =  spaceRect (fst . unr2 $ noteHeadOffset) space
+        spaceE  =  spaceRect (fst . unr2 $ noteHeadOffset) (convert space)
         headE   =  position $ engraveSymbolFloating (symbol nh)
             where { position = translate (0.5 *^ noteHeadOffset) }
 
@@ -508,11 +510,11 @@ engraveNote pos dir nh =
         stemE'  =  moveOriginBy noteStemOffset . style $ rect noteStemWidth noteStemHeight
             where { style = lineColor black . fillColor black }
 
-        noteStemHeight  =  space * 3.5 - noteStemShortenAtOuterNote
+        noteStemHeight  =  convert (space * 3.5) - noteStemShortenAtOuterNote
 
         noteHeadOffset  =  symbolSpacer (symbol nh)
-        noteStemOffset  =  r2 $ (negate `onlyIf` (const dir)) (- (getX $ noteHeadOffset / 2) - noteStemInset,
-                                                               space * 3.5 / 2 + (noteStemShortenAtOuterNote / 2))
+        noteStemOffset  =  r2 $ (negate `onlyIf` (const $ isUp dir)) (- (getX $ noteHeadOffset / 2) - noteStemInset,
+                                                                        convert space * 3.5 / 2 + (noteStemShortenAtOuterNote / 2))
 
 -- | Engraves a rest.
 engraveRest :: Rest -> Engraving

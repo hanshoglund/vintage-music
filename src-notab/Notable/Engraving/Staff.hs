@@ -22,7 +22,6 @@ module Notable.Engraving.Staff
     noteLines',
 
 
-
 -- * Spaced objects
 
 -- ** Barlines
@@ -32,7 +31,7 @@ module Notable.Engraving.Staff
 -- *** Rehearsal marks
 
 -- ** Clefs
-    ClefPos,
+    ClefPosition,
     ClefType(..),
     Clef,
     engraveClef,
@@ -78,7 +77,6 @@ module Notable.Engraving.Staff
     engraveChord,    
 
 
-
 -- * Non-spaced objects
 
 -- ** Beams
@@ -113,6 +111,7 @@ module Notable.Engraving.Staff
 
 where
 
+import Data.Convert
 import Data.Indexed
 
 import Notable.Core
@@ -152,7 +151,7 @@ noteLines' num =
     placement $ foldr above mempty (replicate num noteLine)
         where
             placement = moveSpacesUp $ (fromIntegral num - 1) / 2
-            noteLine  =  style $ hrule 1 <> {-spaceRect rect 1 space-} strutY space
+            noteLine  =  style $ hrule 1 <> {-spaceRect rect 1 space-} strutY (convert space)
                 where { style = lineWidth noteLineWeight }
 
 --
@@ -166,8 +165,8 @@ noteLines' num =
 singleBarLine :: Engraving
 singleBarLine = lineE <> spaceE
     where
-        spaceE  =  spaceRect (space * 4/9) (space * 4)
-        lineE   =  style $ vrule (4 * space) 
+        spaceE  =  spaceRect (convert space * 4/9) (convert space * 4)
+        lineE   =  style $ vrule (4 * convert space) 
             where { style = lineWidth barLineWeight }
         
 
@@ -194,11 +193,11 @@ doubleBarLine = beside unitX (align unitX singleBarLine) singleBarLine
 -- Clefs
 --
 
--- | Position that the clef will indicate, offset from the middle line.
+-- | Vertical position that the clef will indicate, offset from the middle line.
 --
 --   For example, a standard alto clef has position @0@, while a treble clef
 --   has position @-2@.
-type ClefPos = HalfSpaces
+type ClefPosition = HalfSpaces
 
 data ClefType
     = GClef
@@ -206,7 +205,7 @@ data ClefType
     | FClef
     deriving (Show, Eq)
 
-type Clef = (ClefType, ClefPos)
+type Clef = (ClefType, ClefPosition)
 
 instance Symbolic ClefType where
     symbol GClef  =  (baseMusicFont, "&")
