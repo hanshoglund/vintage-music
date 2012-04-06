@@ -41,7 +41,8 @@ module Music.Util.List
     palindrome,
     palindromeInclusive,
 
--- * Misc  
+-- * Misc 
+    divide,
     update,
     adjust,
     nonEmpty,
@@ -183,6 +184,11 @@ palindromeInclusive xs = xs ++ reverse xs
 --
 -- Misc
 --
+
+-- | Divide into smaller parts.
+divide :: Int -> [a] -> [[a]]
+divide n [] = []
+divide n xs = take n xs : divide n (drop n xs)
 
 -- | Adjust the given index.
 adjust :: Int -> (a -> a) -> [a] -> [a]

@@ -63,10 +63,12 @@ module Music.Notable.Engraving.Chord
     Accidental(..),
     minSpaceAbove,
     minSpaceBelow,
+    engraveAccidental,
 
 -- ** Articulation
     Articulation(..),
     alwaysAbove,
+    engraveArticulation,
 
 -- ** Vertical lines
     VerticalLine(..),
@@ -145,8 +147,8 @@ ledgerLineWeight = 0.035
 -- | Represents a rest.
 --   Typically, a rest is engraved when the set of notes in a chord is empty.
 data Rest
-    = BrevisNoteHeadNoteRest
-    | WholeNoteHeadNoteRest
+    = BrevisRest
+    | WholeNoteRest
     | HalfNoteRest
     | QuarterNoteRest
     | EightNoteRest
@@ -159,12 +161,12 @@ restFromIndex :: Int -> Rest
 restFromIndex x = toEnum (x + 1)
 
 instance Symbolic Rest where
-    symbol WholeNoteHeadNoteRest  =  (baseMusicFont, "\183")
-    symbol HalfNoteRest           =  (baseMusicFont, "\238")
-    symbol QuarterNoteRest        =  (baseMusicFont, "\206")
-    symbol EightNoteRest          =  (baseMusicFont, "\228")
-    symbol SixteenthNoteRest      =  (baseMusicFont, "\197")
-    symbol ThirtySecondNoteRest   =  (baseMusicFont, "\168")
+    symbol WholeNoteRest          =  (baseMusicFont, "\xd3")
+    symbol HalfNoteRest           =  (baseMusicFont, "\x2211") 
+    symbol QuarterNoteRest        =  (baseMusicFont, "\x152")
+    symbol EightNoteRest          =  (baseMusicFont, "\x2030")
+    symbol SixteenthNoteRest      =  (baseMusicFont, "\x2248")
+    symbol ThirtySecondNoteRest   =  (baseMusicFont, "\xae")
 
 -- | Engraves a rest.
 engraveRest :: Rest -> Engraving
@@ -435,11 +437,11 @@ data Accidental
     deriving (Show, Eq, Ord, Bounded, Enum)
 
 instance Symbolic Accidental where
-    symbol DoubleFlat   =  (baseMusicFont, "\186")
+    symbol DoubleFlat   =  (baseMusicFont, "\x222b")
     symbol Flat         =  (baseMusicFont, "b")
     symbol Natural      =  (baseMusicFont, "n")
     symbol Sharp        =  (baseMusicFont, "#")
-    symbol DoubleSharp  =  (baseMusicFont, "\192")
+    symbol DoubleSharp  =  (baseMusicFont, "\x2039")
 
 -- | Minimum space required above the given accidental (Tyboni p 24).
 minSpaceAbove :: Accidental -> HalfSpaces
@@ -456,6 +458,11 @@ minSpaceBelow Flat         =  3
 minSpaceBelow Natural      =  3
 minSpaceBelow Sharp        =  3
 minSpaceBelow DoubleSharp  =  2
+
+-- | Engraves a rest.
+engraveAccidental :: Accidental -> Engraving
+engraveAccidental = engraveSymbol . symbol
+
 
 --
 -- Articulation
@@ -498,6 +505,10 @@ alwaysAbove Marcato   =   True
 alwaysAbove Accent    =   False
 alwaysAbove Tenuto    =   False
 alwaysAbove Staccato  =   False
+
+-- | Engraves an articulation mark.
+engraveArticulation :: Articulation -> Engraving
+engraveArticulation = engraveSymbol . symbol
 
 
 --

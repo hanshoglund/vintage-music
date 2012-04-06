@@ -29,6 +29,13 @@ specialMusicFont :: Font
 specialMusicFont = "Helsinki Special"
 
 
+-- symbol WholeNoteHeadNoteRest  =  (baseMusicFont, "\xd3")
+-- symbol HalfNoteRest           =  (baseMusicFont, "\x2211") 
+-- symbol QuarterNoteRest        =  (baseMusicFont, "\x152")
+-- symbol EightNoteRest          =  (baseMusicFont, "\x2030")
+-- symbol SixteenthNoteRest      =  (baseMusicFont, "\x2248")
+-- symbol ThirtySecondNoteRest   =  (baseMusicFont, "\xae")
+
 --
 -- Spacing data
 --
@@ -42,12 +49,12 @@ symbolSpacer ("Helsinki",         "B")     =  r2 (0.72,   1)
 symbolSpacer ("Helsinki",         "?")     =  r2 (0.72,   1)
 
 -- Rests
-symbolSpacer ("Helsinki",         "\183")  =  r2 (0, 0)
-symbolSpacer ("Helsinki",         "\238")  =  r2 (0, 0)
-symbolSpacer ("Helsinki",         "\206")  =  r2 (0, 0)
-symbolSpacer ("Helsinki",         "\228")  =  r2 (0, 0)
-symbolSpacer ("Helsinki",         "\197")  =  r2 (0, 0)
-symbolSpacer ("Helsinki",         "\168")  =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "\xd3")    =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         "\x2211")  =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         "\x152")   =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         "\x2030")  =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         "\x2248")  =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         "\xae")    =  r2 (0.3, 0.3)
 
 -- Note heads
 symbolSpacer ("Helsinki Special", "f")     =  r2 (-0.305, 0.25)
@@ -63,20 +70,21 @@ symbolSpacer ("Helsinki Special", "\41")   =  r2 (-0.26, 0.25)
 symbolSpacer ("Helsinki Special", "\54")   =  r2 (-0.26, 0.25)
 
 -- Accidentals
-symbolSpacer ("Helsinki",         "\186")  =  r2 (0, 0)
-symbolSpacer ("Helsinki",         "b")     =  r2 (0, 0)
-symbolSpacer ("Helsinki",         "n")     =  r2 (0, 0)
-symbolSpacer ("Helsinki",         "#")     =  r2 (0, 0)
-symbolSpacer ("Helsinki",         "\192")  =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "\x222b")  =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         "b")     =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         "n")     =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         "#")     =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         "\x2039")  =  r2 (0.3, 0.3)
 
 -- Articulations
-symbolSpacer ("Helsinki",         "u")     =  r2 (0, 0)
-symbolSpacer ("Helsinki",         "+")     =  r2 (0, 0)
-symbolSpacer ("Helsinki",         "o")     =  r2 (0, 0)
-symbolSpacer ("Helsinki",         "v")     =  r2 (0, 0)
-symbolSpacer ("Helsinki",         ">")     =  r2 (0, 0)
-symbolSpacer ("Helsinki",         "-")     =  r2 (0, 0)
-symbolSpacer ("Helsinki",         ".")     =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "U")     =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         "u")     =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         "+")     =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         "o")     =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         "v")     =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         ">")     =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         "-")     =  r2 (0.3, 0.3)
+symbolSpacer ("Helsinki",         ".")     =  r2 (0.3, 0.3)
 
 
 
@@ -90,12 +98,12 @@ symbolOffset ("Helsinki",         "B")     =  r2 (0.34, 0)
 symbolOffset ("Helsinki",         "?")     =  r2 (0.34, 0)
 
 -- Rests
-symbolOffset ("Helsinki",         "\183")  =  r2 (0, 0)
-symbolOffset ("Helsinki",         "\238")  =  r2 (0, 0)
-symbolOffset ("Helsinki",         "\206")  =  r2 (0, 0)
-symbolOffset ("Helsinki",         "\228")  =  r2 (0, 0)
-symbolOffset ("Helsinki",         "\197")  =  r2 (0, 0)
-symbolOffset ("Helsinki",         "\168")  =  r2 (0, 0)
+symbolOffset ("Helsinki",         "\xd3")    =  r2 (0.3, 0.3)
+symbolOffset ("Helsinki",         "\x2211")  =  r2 (0.3, 0.3)
+symbolOffset ("Helsinki",         "\x152")   =  r2 (0.3, 0.3)
+symbolOffset ("Helsinki",         "\x2030")  =  r2 (0.3, 0.3)
+symbolOffset ("Helsinki",         "\x2248")  =  r2 (0.3, 0.3)
+symbolOffset ("Helsinki",         "\xae")    =  r2 (0.3, 0.3)
 
 -- Note heads
 symbolOffset ("Helsinki Special", "f")     =  r2 (0.305/2, 0)
@@ -111,13 +119,14 @@ symbolOffset ("Helsinki Special", "\41")   =  r2 (0.26/2, 0)
 symbolOffset ("Helsinki Special", "\54")   =  r2 (0.26/2, 0)
 
 -- Accidentals
-symbolOffset ("Helsinki",         "\186")  =  r2 (0, 0)
-symbolOffset ("Helsinki",         "b")     =  r2 (0, 0)
-symbolOffset ("Helsinki",         "n")     =  r2 (0, 0)
-symbolOffset ("Helsinki",         "#")     =  r2 (0, 0)
-symbolOffset ("Helsinki",         "\192")  =  r2 (0, 0)
+symbolOffset ("Helsinki",         "\x222b")  =  r2 (0, 0)
+symbolOffset ("Helsinki",         "b")       =  r2 (0, 0)
+symbolOffset ("Helsinki",         "n")       =  r2 (0, 0)
+symbolOffset ("Helsinki",         "#")       =  r2 (0, 0)
+symbolOffset ("Helsinki",         "\x2039")  =  r2 (0, 0)
 
 -- Articulations
+symbolOffset ("Helsinki",         "U")     =  r2 (0, 0)
 symbolOffset ("Helsinki",         "u")     =  r2 (0, 0)
 symbolOffset ("Helsinki",         "+")     =  r2 (0, 0)
 symbolOffset ("Helsinki",         "o")     =  r2 (0, 0)
