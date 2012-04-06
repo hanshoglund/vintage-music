@@ -22,10 +22,6 @@ import Music.Notable.Core.Diagrams
 import Music.Notable.Engraving.Chord
 import Music.Notable.Engraving.Staff
 
-import Unsafe.Coerce
-
-removeBackend :: Engraving -> D R2
-removeBackend = unsafeCoerce
 
 -- Instance so we can use 'draw'
 instance Render Notation Graphic where

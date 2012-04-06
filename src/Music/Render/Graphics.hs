@@ -45,6 +45,8 @@ writeGraphics :: FilePath -> Graphic -> IO ()
 writeGraphics file (Graphic diagram) = do
     fst $ renderDia Cairo (CairoOptions file (Width 250) PDF) diagram
     fst $ renderDia Cairo (CairoOptions "test.ps" (Width 250) PS) diagram
+    -- fst $ renderDia Cairo (CairoOptions "test.svg" (Width 250) SVG) diagram
+    -- fst $ renderDia Cairo (CairoOptions "test.png" (Width 250) PNG) diagram
     return ()
 
 
