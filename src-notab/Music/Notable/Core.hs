@@ -230,13 +230,13 @@ type Engraving = (Renderable Text b, Renderable (Path R2) b, Backend b R2) => Di
 spaceRect :: Double -> Double -> Engraving
 spaceRect x y = style $ rect x y
     where
-        style = fillColor blue . opacity 0
+        style = fillColor blue . opacity 0.1
 
 spaceRectV :: R2 -> Engraving
 spaceRectV v = spaceRect (getX v) (getY v)
 
 engraveSymbol :: Symbol -> Engraving
-engraveSymbol s = engraveSymbolFloating s <> engraveSpacer s
+engraveSymbol s = showOrigin $ engraveSymbolFloating s <> engraveSpacer s
 
 engraveSymbolFloating :: Symbol -> Engraving
 engraveSymbolFloating (font', glyph) = font font' $ baselineText glyph

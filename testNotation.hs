@@ -16,6 +16,7 @@ import Music
 import Music.Inspect
 import Music.Render
 import Music.Render.Graphics
+import Music.Util ( negateIfNot )
 import Music.Util.List
 
 import Music.Notable.Core
@@ -33,12 +34,12 @@ instance Render Notation Graphic where
 renderN :: Notation -> Engraving
 
 renderN _ = mempty
-    -- <> allE
---    <> arcE
-    <> chord2E
+    <> allE
+    -- <> arcE # translate (r2 (0,3.5))
+    <> chord2E # translate (r2 (0,7))
 
 chord2E = mempty
-    <> noteLines # scaleX 10
+    <> noteLines # scaleX 10 
     <> engraveNoteHeads2 up
         [
             (2, UnfilledSquareNoteHead),
@@ -52,32 +53,39 @@ chord2E = mempty
     <> (engraveNoteHeads2 down
         [
             (2, UnfilledSquareNoteHead),
-            (1, FilledSquareNoteHead),
-            (0, DiamondNoteHead),
+            (1, DiamondNoteHead),
+            (0, FilledSquareNoteHead),
             (-7, FilledNoteHead),
             (-6, FilledNoteHead),
             (-12, UnfilledNoteHead)
         ]
         <> engraveLedgerLines (ledgerLines up [2,-12])
         ) # translate (r2 (1, 0))
+             
 
-
-type Dup a = (a, a)
-
-engraveNoteHead :: NoteHeadPosition -> NoteHead -> Engraving
-engraveNoteHead pos nh =
-    moveHalfSpacesUp pos $ position $ engraveSymbolFloating (symbol nh)
-        where { position = translate (0.5 *^ symbolSpacer (symbol nh)) }
-
+-- | Engraves the given set of note heads.
+--
+--   This function will partition the note heads into a main column and a side column, to avoid
+--   colliding seconds and primes whenever possible. The side column is to the right if the 
+--   stem direction is up, and to the left if the stem direction is down.
+--
+--   The origin will be in the main column at position 0.
+--
 engraveNoteHeads2 :: Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
 engraveNoteHeads2 stemDir noteHeads =
-    let (poses, heads)          = unzip (Data.List.sortBy (comparing fst) noteHeads)
-        (leftPoses, rightPoses) = separateNoteHeads stemDir poses
-        (lefts, rights)         = mergeZip leftPoses heads rightPoses
-        leftSide  = mconcat . fmap (\(p,n) -> engraveNoteHead p n) $ lefts
-        rightSide = mconcat . fmap (\(p,n) -> engraveNoteHead p n) $ rights
-      in leftSide <> translate (r2 (0.3, 0)) rightSide
--- FIXME engraveNoteHeads should have standard column as origin!
+    let noteHeads'  =  Data.List.sortBy (comparing fst) noteHeads
+        
+        (poses, heads)           =  unzip noteHeads'
+        (leftPoses, rightPoses)  =  separateNoteHeads stemDir poses
+        (lefts, rights)          =  mergeZip leftPoses heads rightPoses
+        
+        leftSide   =  mconcat . fmap (\(p,n) -> alignR $ engraveNoteHead p n) $ lefts
+        rightSide  =  mconcat . fmap (\(p,n) -> alignL $ engraveNoteHead p n) $ rights
+
+        -- TODO this value should be half the maximum with of the main column
+        move  =  negateIfNot (const $ isUp stemDir) 0.15
+
+     in translate (r2 (move, 0)) (leftSide <> rightSide)
 
 
 arcE = mempty

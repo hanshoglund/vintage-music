@@ -24,6 +24,7 @@ module Music.Notable.Engraving.Chord
     hasStem,
     separateNoteHeads,
     partitionNoteHeads,
+    engraveNoteHead,
     engraveNoteHeads,
     engraveRestOrNoteHeads,
 
@@ -237,6 +238,13 @@ partitionNoteHeads stemDir positions =
             | isDown stemDir  =  reversePartition2
 
 
+-- | Engraves a single note head.
+--   The origin will be at the left of the note at position 0.
+engraveNoteHead :: NoteHeadPosition -> NoteHead -> Engraving
+engraveNoteHead pos noteHead =
+    moveHalfSpacesUp pos $ engraveSymbol (symbol noteHead)
+
+-- TODO fix
 -- | Engraves the given set of note heads.
 engraveNoteHeads :: Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
 engraveNoteHeads stemDir noteHeads =
@@ -524,9 +532,9 @@ engraveNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
 engraveNote pos dir nh =
     moveHalfSpacesUp pos $ headE <> stemE <> spaceE
     where
-        spaceE  =  spaceRect (fst . unr2 $ noteHeadOffset) (convert space)
+        spaceE  =  spaceRect (fst . unr2 $ noteHeadSpace) (convert space)
         headE   =  position $ engraveSymbolFloating (symbol nh)
-            where { position = translate (0.5 *^ noteHeadOffset) }
+            where { position = translate (r2 (0.5 * getX noteHeadSpace,0)) }
 
         stemE   =  if (hasStem nh) then stemE' else mempty
         stemE'  =  moveOriginBy noteStemOffset . style $ rect noteStemWidth noteStemHeight
@@ -534,8 +542,8 @@ engraveNote pos dir nh =
 
         noteStemHeight  =  convert (space * 3.5) - noteStemShortenAtOuterNote
 
-        noteHeadOffset  =  symbolSpacer (symbol nh)
-        noteStemOffset  =  r2 $ (negate `onlyIf` (const $ isUp dir)) (- (getX $ noteHeadOffset / 2) - noteStemInset,
+        noteHeadSpace  =  symbolSpacer (symbol nh)
+        noteStemOffset  =  r2 $ (negate `onlyIf` (const $ isUp dir)) (- (getX $ noteHeadSpace / 2) - noteStemInset,
                                                                         convert space * 3.5 / 2 + (noteStemShortenAtOuterNote / 2))
 
 -- | Engraves a chord. The origin will be at the middle line, at the standard note column.

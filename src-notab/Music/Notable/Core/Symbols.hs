@@ -29,43 +29,54 @@ specialMusicFont :: Font
 specialMusicFont = "Helsinki Special"
 
 
+--
+-- Spacing data
+--
+
 -- | Spacer for this symbol (offset from lower left to upper right corner of bounding rectangle).
---   Has to be entered manually at the moment.
 symbolSpacer :: Symbol -> R2
 
--- symbolSpacer ("Modusnotes", x) = symbolSpacer ("Helsinki", x)
+-- Clefs
+symbolSpacer ("Helsinki",         "&")     =  r2 (0.72,   1.95)
+symbolSpacer ("Helsinki",         "B")     =  r2 (0.72,   1)
+symbolSpacer ("Helsinki",         "?")     =  r2 (0.72,   1)
 
--- symbolSpacer ("Petrucci", "\339")  =  r2 (-0.36, 0)
--- symbolSpacer ("Petrucci", "\729")  =  r2 (-0.36, 0)
--- symbolSpacer ("Petrucci", x) = symbolSpacer ("Helsinki", x)
+-- Rests
+symbolSpacer ("Helsinki",         "\183")  =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "\238")  =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "\206")  =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "\228")  =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "\197")  =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "\168")  =  r2 (0, 0)
 
--- symbolSpacer ("Feta", x) = symbolSpacer ("Helsinki", x)
+-- Note heads
+symbolSpacer ("Helsinki Special", "f")     =  r2 (-0.305, 0.25)
+symbolSpacer ("Helsinki Special", "F")     =  r2 (-0.308, 0.25)
+symbolSpacer ("Helsinki",         "\207")  =  r2 (-0.305, 0.25)
+symbolSpacer ("Helsinki",         "\250")  =  r2 (-0.308, 0.25)
+symbolSpacer ("Helsinki",         "w")     =  r2 (-0.43,  0.25)
+symbolSpacer ("Helsinki",         "W")     =  r2 (-0.65,  0.25)
+symbolSpacer ("Helsinki",         "O")     =  r2 (-0.305, 0.25)
+symbolSpacer ("Helsinki",         "\220")  =  r2 (-0.305, 0.25)
+symbolSpacer ("Helsinki Special", "\89")   =  r2 (-0.305, 0.25)
+symbolSpacer ("Helsinki Special", "\41")   =  r2 (-0.26, 0.25)
+symbolSpacer ("Helsinki Special", "\54")   =  r2 (-0.26, 0.25)
 
-symbolSpacer ("Opus Special",     "f")     =  r2 (-0.36, 0)
-symbolSpacer ("Opus Special",     "F")     =  r2 (-0.36, 0)
-symbolSpacer ("Opus",             "\207")  =  r2 (-0.36, 0)
-symbolSpacer ("Opus",             "\250")  =  r2 (-0.36, 0)
-symbolSpacer ("Opus",             "w")     =  r2 (-0.46, 0)
-symbolSpacer ("Opus",             "W")     =  r2 (-0.64, 0)
-symbolSpacer ("Opus",             "&")     =  r2 (0.72, 1.95) -- should Y be 1 as this is a clef?
-symbolSpacer ("Opus",             "B")     =  r2 (0.72, 1)
-symbolSpacer ("Opus",             "?")     =  r2 (0.72, 1)
+-- Accidentals
+symbolSpacer ("Helsinki",         "\186")  =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "b")     =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "n")     =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "#")     =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "\192")  =  r2 (0, 0)
 
-symbolSpacer ("Helsinki Special", "f")     =  r2 (-0.305, 0)
-symbolSpacer ("Helsinki Special", "F")     =  r2 (-0.308, 0)
-symbolSpacer ("Helsinki",         "\207")  =  r2 (-0.305, 0)
-symbolSpacer ("Helsinki",         "\250")  =  r2 (-0.308, 0)
-symbolSpacer ("Helsinki",         "w")     =  r2 (-0.43, 0)
-symbolSpacer ("Helsinki",         "W")     =  r2 (-0.65, 0)
-symbolSpacer ("Helsinki",         "&")     =  r2 (0.72, 1.95) -- should Y be 1 as this is a clef?
-symbolSpacer ("Helsinki",         "B")     =  r2 (0.72, 1)
-symbolSpacer ("Helsinki",         "?")     =  r2 (0.72, 1)
-
-symbolSpacer ("Helsinki",         "O")     =  r2 (-0.305, 0)
-symbolSpacer ("Helsinki",         "\220")  =  r2 (-0.305, 0)
-symbolSpacer ("Helsinki Special", "\89")   =  r2 (-0.305, 0)
-symbolSpacer ("Helsinki Special", "\41")   =  r2 (-0.305, 0)
-symbolSpacer ("Helsinki Special", "\54")   =  r2 (-0.305, 0)
+-- Articulations
+symbolSpacer ("Helsinki",         "u")     =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "+")     =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "o")     =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "v")     =  r2 (0, 0)
+symbolSpacer ("Helsinki",         ">")     =  r2 (0, 0)
+symbolSpacer ("Helsinki",         "-")     =  r2 (0, 0)
+symbolSpacer ("Helsinki",         ".")     =  r2 (0, 0)
 
 
 
@@ -73,17 +84,77 @@ symbolSpacer ("Helsinki Special", "\54")   =  r2 (-0.305, 0)
 -- | Offset from origo to lower left corner of bounding rectangle.
 symbolOffset :: Symbol -> R2
 
--- symbolOffset ("Modusnotes", x) = symbolOffset ("Helsinki", x)
--- symbolOffset ("Petrucci", x) = symbolOffset ("Helsinki", x)
--- symbolOffset ("Feta", x) = symbolOffset ("Helsinki", x)
-
-
+-- Clefs
 symbolOffset ("Helsinki",         "&")     =  r2 (0.33,-0.18) ^+^ r2 (0, 0.5)
 symbolOffset ("Helsinki",         "B")     =  r2 (0.34, 0)
 symbolOffset ("Helsinki",         "?")     =  r2 (0.34, 0)
 
-symbolOffset ("Opus",             "&")     =  r2 (0.33,-0.18) ^+^ r2 (0, 0.5)
-symbolOffset ("Opus",             "B")     =  r2 (0.34, 0)
-symbolOffset ("Opus",             "?")     =  r2 (0.34, 0)
+-- Rests
+symbolOffset ("Helsinki",         "\183")  =  r2 (0, 0)
+symbolOffset ("Helsinki",         "\238")  =  r2 (0, 0)
+symbolOffset ("Helsinki",         "\206")  =  r2 (0, 0)
+symbolOffset ("Helsinki",         "\228")  =  r2 (0, 0)
+symbolOffset ("Helsinki",         "\197")  =  r2 (0, 0)
+symbolOffset ("Helsinki",         "\168")  =  r2 (0, 0)
+
+-- Note heads
+symbolOffset ("Helsinki Special", "f")     =  r2 (0.305/2, 0)
+symbolOffset ("Helsinki Special", "F")     =  r2 (0.305/2, 0)
+symbolOffset ("Helsinki",         "\207")  =  r2 (0.305/2, 0)
+symbolOffset ("Helsinki",         "\250")  =  r2 (0.308/2, 0)
+symbolOffset ("Helsinki",         "w")     =  r2 (0.43/2, 0)
+symbolOffset ("Helsinki",         "W")     =  r2 (0.65/2, 0)
+symbolOffset ("Helsinki",         "O")     =  r2 (0.305/2, 0)
+symbolOffset ("Helsinki",         "\220")  =  r2 (0.305/2, 0)
+symbolOffset ("Helsinki Special", "\89")   =  r2 (0.305/2, 0)
+symbolOffset ("Helsinki Special", "\41")   =  r2 (0.26/2, 0)
+symbolOffset ("Helsinki Special", "\54")   =  r2 (0.26/2, 0)
+
+-- Accidentals
+symbolOffset ("Helsinki",         "\186")  =  r2 (0, 0)
+symbolOffset ("Helsinki",         "b")     =  r2 (0, 0)
+symbolOffset ("Helsinki",         "n")     =  r2 (0, 0)
+symbolOffset ("Helsinki",         "#")     =  r2 (0, 0)
+symbolOffset ("Helsinki",         "\192")  =  r2 (0, 0)
+
+-- Articulations
+symbolOffset ("Helsinki",         "u")     =  r2 (0, 0)
+symbolOffset ("Helsinki",         "+")     =  r2 (0, 0)
+symbolOffset ("Helsinki",         "o")     =  r2 (0, 0)
+symbolOffset ("Helsinki",         "v")     =  r2 (0, 0)
+symbolOffset ("Helsinki",         ">")     =  r2 (0, 0)
+symbolOffset ("Helsinki",         "-")     =  r2 (0, 0)
+symbolOffset ("Helsinki",         ".")     =  r2 (0, 0)
+
+
+
+
+
+
+
+
+
+
+
+-- Opus offsets
+-- Clefs
+-- symbolOffset ("Opus",             "&")     =  r2 (0.33,-0.18) ^+^ r2 (0, 0.5)
+-- symbolOffset ("Opus",             "B")     =  r2 (0.34, 0)
+-- symbolOffset ("Opus",             "?")     =  r2 (0.34, 0)
+
+-- Opus spacer
+-- Clefs
+-- symbolSpacer ("Opus",             "&")     =  r2 (0.72, 1.95)
+-- symbolSpacer ("Opus",             "B")     =  r2 (0.72, 1)
+-- symbolSpacer ("Opus",             "?")     =  r2 (0.72, 1)
+
+-- Note heads
+-- symbolSpacer ("Opus Special",     "f")     =  r2 (-0.36, 0.25)
+-- symbolSpacer ("Opus Special",     "F")     =  r2 (-0.36, 0.25)
+-- symbolSpacer ("Opus",             "\207")  =  r2 (-0.36, 0.25)
+-- symbolSpacer ("Opus",             "\250")  =  r2 (-0.36, 0.25)
+-- symbolSpacer ("Opus",             "w")     =  r2 (-0.46, 0.25)
+-- symbolSpacer ("Opus",             "W")     =  r2 (-0.64, 0.25)
+
 
 

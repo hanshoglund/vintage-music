@@ -47,6 +47,7 @@ module Music.Util.List
     nonEmpty,
     merge,
     mergeBy,
+    mergeZip,
 )
 where
 
@@ -200,7 +201,8 @@ nonEmpty :: [a] -> Maybe [a]
 nonEmpty [] = Nothing
 nonEmpty xs = Just xs   
 
--- | Merge two sorted lists.
+
+-- | Merge two sorted lists, preserving order of elements.
 --
 --   @merge xs ys@ is equivalent to 'sort' @(xs ++ ys)@ but with O(n) complexity.
 merge :: Ord a => [a] -> [a] -> [a]
@@ -218,3 +220,21 @@ mergeBy comp (x:xs) (y:ys)
     | x `comp` y == LT = x : mergeBy comp xs (y:ys)
     | otherwise        = y : mergeBy comp (x:xs) ys
 
+-- | Zip a list with two sorted lists, preserving the order of elements in relation
+--   to the natural order of the sorted lists.
+--
+--   In particular:
+--  
+--   > merge xs' ys' where (xs', ys') = mergeZip xs ys zs
+--  
+--   is equivalent to
+--  
+--   > zip (merge xs zs) ys
+--
+mergeZip :: Ord a => [a] -> [b] -> [a] -> ([(a, b)], [(a, b)])
+mergeZip [] bs ys  =  ([], ys `zip` bs)
+mergeZip xs [] ys  =  ([], [])
+mergeZip xs bs []  =  (xs `zip` bs, [])
+mergeZip (x:xs) (b:bs) (y:ys)
+    | x < y   =  let (xbs, ybs) = mergeZip xs bs (y:ys) in ((x,b):xbs, ybs)
+    | x >= y  =  let (xbs, ybs) = mergeZip (x:xs) bs ys in (xbs, (y,b):ybs)
