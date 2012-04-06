@@ -8,16 +8,12 @@
     FlexibleContexts #-}
 
 import Data.Convert
-import Data.Indexed
-import Data.Ord ( comparing )
 import qualified Data.List
 
 import Music
 import Music.Inspect
 import Music.Render
 import Music.Render.Graphics
-import Music.Util ( negateIfNot )
-import Music.Util.List
 
 import Music.Notable.Core
 import Music.Notable.Core.Symbols
@@ -26,7 +22,10 @@ import Music.Notable.Core.Diagrams
 import Music.Notable.Engraving.Chord
 import Music.Notable.Engraving.Staff
 
+import Unsafe.Coerce
 
+removeBackend :: Engraving -> D R2
+removeBackend = unsafeCoerce
 
 -- Instance so we can use 'draw'
 instance Render Notation Graphic where
@@ -38,54 +37,29 @@ renderN _ = mempty
     -- <> arcE # translate (r2 (0,3.5))
     <> chord2E # translate (r2 (0,7))
 
+
 chord2E = mempty
-    <> noteLines # scaleX 10 
-    <> engraveNoteHeads2 up
-        [
-            (2, UnfilledSquareNoteHead),
-            (1, FilledSquareNoteHead),
-            (0, DiamondNoteHead),
-            (-7, FilledNoteHead),
-            (-6, FilledNoteHead),
-            (-12, UnfilledNoteHead)
-        ]
-    <> engraveLedgerLines (ledgerLines up [2,-12])
-    <> (engraveNoteHeads2 down
-        [
-            (2, UnfilledSquareNoteHead),
-            (1, DiamondNoteHead),
-            (0, FilledSquareNoteHead),
-            (-7, FilledNoteHead),
-            (-6, FilledNoteHead),
-            (-12, UnfilledNoteHead)
-        ]
-        <> engraveLedgerLines (ledgerLines up [2,-12])
-        ) # translate (r2 (1, 0))
+    <> noteLines # scaleX 10
+    <> drawNotes up
+    <> drawNotes down # translate (r2 (3, 0))
+    where
+        drawNotes stemDir = mempty
+            <> engraveStem stemDir notes # showOrigin
+            <> engraveNoteHeads stemDir notes # showOrigin
+            <> engraveLedgerLines (ledgerLines stemDir (map fst notes))
+        notes = 
+            [
+                (2, UnfilledSquareNoteHead),
+                (1, FilledSquareNoteHead),
+                (0, DiamondNoteHead),
+                (-7, FilledNoteHead),
+                (-6, FilledNoteHead),
+                (-12, UnfilledNoteHead)
+            ]
              
+---------
 
--- | Engraves the given set of note heads.
---
---   This function will partition the note heads into a main column and a side column, to avoid
---   colliding seconds and primes whenever possible. The side column is to the right if the 
---   stem direction is up, and to the left if the stem direction is down.
---
---   The origin will be in the main column at position 0.
---
-engraveNoteHeads2 :: Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
-engraveNoteHeads2 stemDir noteHeads =
-    let noteHeads'  =  Data.List.sortBy (comparing fst) noteHeads
-        
-        (poses, heads)           =  unzip noteHeads'
-        (leftPoses, rightPoses)  =  separateNoteHeads stemDir poses
-        (lefts, rights)          =  mergeZip leftPoses heads rightPoses
-        
-        leftSide   =  mconcat . fmap (\(p,n) -> alignR $ engraveNoteHead p n) $ lefts
-        rightSide  =  mconcat . fmap (\(p,n) -> alignL $ engraveNoteHead p n) $ rights
 
-        -- TODO this value should be half the maximum with of the main column
-        move  =  negateIfNot (const $ isUp stemDir) 0.15
-
-     in translate (r2 (move, 0)) (leftSide <> rightSide)
 
 
 arcE = mempty

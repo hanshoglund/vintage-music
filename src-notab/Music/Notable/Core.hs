@@ -43,6 +43,7 @@ module Music.Notable.Core
     down,  
     isUp,
     isDown,
+    negateIfDown,
           
 -- * Notation
     Notation(..),
@@ -59,6 +60,9 @@ where
 
 import Data.Convert
 
+import Diagrams.Backend.Cairo
+
+import Music.Util ( negateIfNot )
 import Music.Notable.Core.Diagrams
 import Music.Notable.Core.Symbols
 
@@ -213,6 +217,9 @@ isUp = getDirection
 isDown :: Direction -> Bool
 isDown = not . getDirection
 
+negateIfDown :: Num a => Direction -> a -> a
+negateIfDown dir = negateIfNot (const $ isUp dir)
+
 
 
 -- | So far just a dummy type.
@@ -222,7 +229,9 @@ data Notation = Notation
 --
 --   This is just a synonym for 'Diagram', so it supports all transformations and outputs offered
 --   by the Diagrams API. See <http://projects.haskell.org/diagrams/manual/diagrams-manual.html>.
-type Engraving = (Renderable Text b, Renderable (Path R2) b, Backend b R2) => Diagram b R2
+--type Engraving = (Renderable Text b, Renderable (Path R2) b, Backend b R2) => Diagram b R2
+type Engraving = Diagram Cairo R2
+
 
 
 -- | Creates a transparent rectangle.
@@ -230,13 +239,13 @@ type Engraving = (Renderable Text b, Renderable (Path R2) b, Backend b R2) => Di
 spaceRect :: Double -> Double -> Engraving
 spaceRect x y = style $ rect x y
     where
-        style = fillColor blue . opacity 0.1
+        style = fillColor blue . opacity 0
 
 spaceRectV :: R2 -> Engraving
 spaceRectV v = spaceRect (getX v) (getY v)
 
 engraveSymbol :: Symbol -> Engraving
-engraveSymbol s = showOrigin $ engraveSymbolFloating s <> engraveSpacer s
+engraveSymbol s = {-showOrigin $ -}engraveSymbolFloating s <> engraveSpacer s
 
 engraveSymbolFloating :: Symbol -> Engraving
 engraveSymbolFloating (font', glyph) = font font' $ baselineText glyph

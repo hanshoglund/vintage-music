@@ -22,14 +22,19 @@ module Music.Notable.Engraving.Chord
     NoteHead(..),
     NoteHeadPosition,
     hasStem,
-    separateNoteHeads,
     partitionNoteHeads,
+    separateNoteHeads,
+    separateNoteHeadsWith,
     engraveNoteHead,
+    engraveLeftNoteHeadColumn,
+    engraveRightNoteHeadColumn,
     engraveNoteHeads,
     engraveRestOrNoteHeads,
 
 -- ** Stems
     AdjustStem,
+    engraveStem,
+    
     -- stemUp,
     -- stemDown,
     -- stemFlip,
@@ -99,6 +104,7 @@ module Music.Notable.Engraving.Chord
 where
 
 import Data.Convert
+import Data.Ord ( comparing )
 import Data.Tuple ( swap )
 import qualified Data.List
 
@@ -114,14 +120,14 @@ import Music.Notable.Core.Diagrams
 -- Constants
 --
 
-noteStemWidth :: Double
-noteStemWidth = 0.025
+stemWeight :: Double
+stemWeight = 0.025
 
-noteStemInset :: Double
-noteStemInset = 0.013
+stemInset :: Double
+stemInset = 0.013
 
-noteStemShortenAtOuterNote :: Double
-noteStemShortenAtOuterNote = convert $ Spaces 0.1
+stemShortenAtOuterNote :: Double
+stemShortenAtOuterNote = convert $ Spaces 0.1
 
 -- | Thickness of ledger lines.
 ledgerLineWeight :: Double
@@ -208,7 +214,20 @@ hasStem :: NoteHead -> Bool
 hasStem BrevisNoteHead    =  False
 hasStem WholeNoteHead     =  False
 hasStem UnfilledNoteHead  =  True
-hasStem FilledNoteHead    =  True
+hasStem FilledNoteHead    =  True 
+
+
+
+-- | Separate small intervals (i.e. primes and seconds) from others.
+--   Such intervals must be engraved on opposite sides of the stem to avoid collisions.
+partitionNoteHeads :: Direction -> [NoteHeadPosition] -> ([(NoteHeadPosition, NoteHeadPosition)], [NoteHeadPosition])
+partitionNoteHeads stemDir positions =
+    partitioner collides positions
+    where
+        collides x y     =  y - x < 2
+        partitioner
+            | isUp   stemDir  =  partition2
+            | isDown stemDir  =  reversePartition2
 
 -- | Separates note heads to be engraved to the left and right of the stem respectively.
 separateNoteHeads :: Direction -> [NoteHeadPosition] -> ([NoteHeadPosition], [NoteHeadPosition])
@@ -226,16 +245,14 @@ separateNoteHeads d = separateNoteHeads' d . {-assertNoPrimes . -}Data.List.sort
                     (pairs, others)  =  partitionNoteHeads stemDir positions
                     (lowers, uppers) =  unzip pairs
 
--- | Separate small intervals (i.e. primes and seconds) from others.
---   Such intervals must be engraved on opposite sides of the stem to avoid collisions.
-partitionNoteHeads :: Direction -> [NoteHeadPosition] -> ([(NoteHeadPosition, NoteHeadPosition)], [NoteHeadPosition])
-partitionNoteHeads stemDir positions =
-    partitioner collides positions
+-- | Like 'separateNoteHeads', but passing an arbitrary data type along.
+separateNoteHeadsWith :: Direction -> [(NoteHeadPosition, b)] -> ([(NoteHeadPosition, b)], [(NoteHeadPosition, b)])
+separateNoteHeadsWith stemDir noteHeads =
+    mergeZip leftPoses heads rightPoses
     where
-        collides x y     =  y - x < 2
-        partitioner
-            | isUp   stemDir  =  partition2
-            | isDown stemDir  =  reversePartition2
+        noteHeads'  =  Data.List.sortBy (comparing fst) noteHeads
+        (poses, heads)           =  unzip noteHeads'
+        (leftPoses, rightPoses)  =  separateNoteHeads stemDir poses
 
 
 -- | Engraves a single note head.
@@ -244,14 +261,40 @@ engraveNoteHead :: NoteHeadPosition -> NoteHead -> Engraving
 engraveNoteHead pos noteHead =
     moveHalfSpacesUp pos $ engraveSymbol (symbol noteHead)
 
--- TODO fix
--- | Engraves the given set of note heads.
+-- | Engraves the given set of note heads.
+--
+--   This function will partition the note heads into a main column and a side column, to avoid
+--   colliding seconds and primes whenever possible. The side column is to the right if the 
+--   stem direction is up, and to the left if the stem direction is down.
+--
+--   The origin will be in the main column at position 0.
+
+engraveLeftNoteHeadColumn :: [(NoteHeadPosition, NoteHead)] -> Engraving
+engraveLeftNoteHeadColumn = engraveNoteHeadColumn True
+
+engraveRightNoteHeadColumn :: [(NoteHeadPosition, NoteHead)] -> Engraving
+engraveRightNoteHeadColumn = engraveNoteHeadColumn False
+
+engraveNoteHeadColumn isLeft notes =
+    mconcat . fmap (\(p, n) -> align $ engraveNoteHead p n) $ notes
+        where
+            align = if isLeft then alignR else alignL    
+
 engraveNoteHeads :: Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
-engraveNoteHeads stemDir noteHeads =
-    let (poses, heads)          = unzip noteHeads
-        (leftPoses, rightPoses) = separateNoteHeads stemDir poses
-        (lefts, rights)         = mergeZip leftPoses heads rightPoses
-      in undefined
+engraveNoteHeads stemDir = snd . engraveNoteHeads' stemDir
+
+engraveNoteHeads' :: Direction -> [(NoteHeadPosition, NoteHead)] -> (Double, Engraving)
+engraveNoteHeads' stemDir notes =
+    (mainColumnXOffset, position $ leftColumn `leftTo` rightColumn)
+    where
+        (leftNotes, rightNotes)  =  separateNoteHeadsWith stemDir notes
+        leftColumn   =  engraveLeftNoteHeadColumn leftNotes
+        rightColumn  =  engraveRightNoteHeadColumn rightNotes        
+        mainColumn = if (isUp stemDir) then leftColumn else rightColumn 
+
+        mainColumnXOffset  =  negateIfDown stemDir (width mainColumn / 2)
+        position           =  translate (r2 (mainColumnXOffset, 0))
+
 
 engraveRestOrNoteHeads :: Rest -> Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
 engraveRestOrNoteHeads rest stemDir noteHeads
@@ -278,6 +321,35 @@ engraveRestOrNoteHeads rest stemDir noteHeads
 -- -- | Flip the default stem direction.
 -- stemFlip :: StemType
 -- stemFlip = Direction . not . getDirection
+
+engraveStem :: Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
+engraveStem stemDir notes =
+    pos $ style $ vrule (convert $ stemLength notes)
+    where                                                       
+        pos = translate (r2 (convert $ posX, convert $ posY))
+        posX = stemXOffset stemDir notes
+        posY = stemYOffset stemDir notes
+        style = lineWidth stemWeight
+
+stemLength :: [(NoteHeadPosition, NoteHead)] -> HalfSpaces
+stemLength notes 
+    | length notes == 0  =  error "stemLength: Note list is empty"
+    | otherwise       =  octave + (highest - lowest)
+    where
+        highest  =  maximum $ map (fst) notes
+        lowest   =  minimum $ map (fst) notes
+
+stemXOffset :: Direction -> [(NoteHeadPosition, NoteHead)] -> HalfSpaces
+stemXOffset stemDir = convert . fst . engraveNoteHeads' stemDir
+
+stemYOffset :: Direction -> [(NoteHeadPosition, NoteHead)] -> HalfSpaces
+stemYOffset stemDir notes 
+    | length notes == 0  =  error "stemYOffset: Note list is empty"
+    | otherwise          =  0 + (negateIfDown stemDir $ stemLength notes) / 2 + outerNote
+    where
+        outerNote = if (isUp stemDir) then lowest else highest
+        highest  =  maximum $ map (fst) notes
+        lowest   =  minimum $ map (fst) notes
 
 
 -- | Amount to add to stem length. May be negative.
@@ -308,6 +380,9 @@ type CrossBeams = Int
 
 -- | Number of dots.
 type Dots = Int
+
+
+
 
 
 -- | Returns the rest typically used to indicate the given note value.
@@ -537,14 +612,14 @@ engraveNote pos dir nh =
             where { position = translate (r2 (0.5 * getX noteHeadSpace,0)) }
 
         stemE   =  if (hasStem nh) then stemE' else mempty
-        stemE'  =  moveOriginBy noteStemOffset . style $ rect noteStemWidth noteStemHeight
+        stemE'  =  moveOriginBy noteStemOffset . style $ rect stemWeight noteStemHeight
             where { style = lineColor black . fillColor black }
 
-        noteStemHeight  =  convert (space * 3.5) - noteStemShortenAtOuterNote
+        noteStemHeight  =  convert (space * 3.5) - stemShortenAtOuterNote
 
         noteHeadSpace  =  symbolSpacer (symbol nh)
-        noteStemOffset  =  r2 $ (negate `onlyIf` (const $ isUp dir)) (- (getX $ noteHeadSpace / 2) - noteStemInset,
-                                                                        convert space * 3.5 / 2 + (noteStemShortenAtOuterNote / 2))
+        noteStemOffset  =  r2 $ (negate `onlyIf` (const $ isUp dir)) (- (getX $ noteHeadSpace / 2) - stemInset,
+                                                                        convert space * 3.5 / 2 + (stemShortenAtOuterNote / 2))
 
 -- | Engraves a chord. The origin will be at the middle line, at the standard note column.
 engraveChord :: Chord -> Engraving

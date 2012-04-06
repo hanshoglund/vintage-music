@@ -31,6 +31,7 @@ module Music.Util
 -- * Tuples
     mapFirst,
     mapSecond,
+    mapPair,
     duplicate,
     triplicate,
     prod2,
@@ -93,6 +94,10 @@ mapFirst f (x, y) = (f x, y)
 -- | Map over first element. Compare "Control.Arrow.second".
 mapSecond :: (a -> b) -> (c, a) -> (c, b)
 mapSecond f (x, y) = (x, f y)
+
+-- | Map over first element. Compare "Control.Arrow.second".
+mapPair :: (a -> b) -> (c -> d) -> (a, c) -> (b, d)
+mapPair f g (x, y) = (f x, g y)
 
 -- | Duplicate element.
 duplicate :: a -> (a, a)
