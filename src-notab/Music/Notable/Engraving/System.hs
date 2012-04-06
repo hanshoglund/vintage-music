@@ -111,7 +111,7 @@ data System =
     System { barNumber :: Maybe BarNumber,
              staffList :: Maybe (StaffList String),
              staves    :: [(HalfSpaces, Staff)],
-             crossStaffObjects :: [([Index [Staff]], CrossStaffObject)] }
+             crossStaffObjects :: [([(Index [Staff], Index [SpacedObject])], CrossStaffObject)] }
 
 engraveSystem :: System -> Engraving
 engraveSystem = undefined

@@ -29,6 +29,8 @@ module Music.Notable.Core
 -- *** Positioning
     moveSpacesUp,
     moveHalfSpacesUp,
+    moveHalfSpacesLeft,
+    moveHalfSpacesRight,
     
 -- ** Time
     NoteValue,
@@ -160,10 +162,16 @@ octave = 7 * halfSpace
 --
 
 moveSpacesUp :: (V t ~ R2, Transformable t) => Spaces -> t -> t
-moveSpacesUp x = translate (r2 (0, convert x))
+moveSpacesUp y = translate (r2 (0, convert y))
 
 moveHalfSpacesUp :: (V t ~ R2, Transformable t) => HalfSpaces -> t -> t
-moveHalfSpacesUp x = translate (r2 (0, convert x))
+moveHalfSpacesUp y = translate (r2 (0, convert y))
+
+moveHalfSpacesLeft :: (V t ~ R2, Transformable t) => HalfSpaces -> t -> t
+moveHalfSpacesLeft x = translate $ negateV (r2 (convert x, 0))
+
+moveHalfSpacesRight :: (V t ~ R2, Transformable t) => HalfSpaces -> t -> t
+moveHalfSpacesRight x = translate (r2 (convert x, 0))
 
 
 

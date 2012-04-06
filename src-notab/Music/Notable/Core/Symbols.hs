@@ -61,6 +61,13 @@ symbolSpacer ("Helsinki",         "&")     =  r2 (0.72, 1.95) -- should Y be 1 a
 symbolSpacer ("Helsinki",         "B")     =  r2 (0.72, 1)
 symbolSpacer ("Helsinki",         "?")     =  r2 (0.72, 1)
 
+symbolSpacer ("Helsinki",         "O")     =  r2 (-0.305, 0)
+symbolSpacer ("Helsinki",         "\220")  =  r2 (-0.305, 0)
+symbolSpacer ("Helsinki Special", "\89")   =  r2 (-0.305, 0)
+symbolSpacer ("Helsinki Special", "\41")   =  r2 (-0.305, 0)
+symbolSpacer ("Helsinki Special", "\54")   =  r2 (-0.305, 0)
+
+
 
 
 -- | Offset from origo to lower left corner of bounding rectangle.

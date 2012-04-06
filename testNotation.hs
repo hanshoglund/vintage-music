@@ -1,7 +1,7 @@
 
-{-# LANGUAGE  
+{-# LANGUAGE
     TypeFamilies,
-    RankNTypes,  
+    RankNTypes,
     MultiParamTypeClasses,
     TypeSynonymInstances,
     NoMonomorphismRestriction,
@@ -9,6 +9,8 @@
 
 import Data.Convert
 import Data.Indexed
+import Data.Ord ( comparing )
+import qualified Data.List
 
 import Music
 import Music.Inspect
@@ -17,6 +19,7 @@ import Music.Render.Graphics
 import Music.Util.List
 
 import Music.Notable.Core
+import Music.Notable.Core.Symbols
 import Music.Notable.Spacing
 import Music.Notable.Core.Diagrams
 import Music.Notable.Engraving.Chord
@@ -29,7 +32,52 @@ instance Render Notation Graphic where
     render = Graphic . renderN
 renderN :: Notation -> Engraving
 
-renderN _ = allE <> arcE
+renderN _ = mempty
+    -- <> allE
+--    <> arcE
+    <> chord2E
+
+chord2E = mempty
+    <> noteLines # scaleX 10
+    <> engraveNoteHeads2 up
+        [
+            (2, UnfilledSquareNoteHead),
+            (1, FilledSquareNoteHead),
+            (0, DiamondNoteHead),
+            (-7, FilledNoteHead),
+            (-6, FilledNoteHead),
+            (-12, UnfilledNoteHead)
+        ]
+    <> engraveLedgerLines (ledgerLines up [2,-12])
+    <> (engraveNoteHeads2 down
+        [
+            (2, UnfilledSquareNoteHead),
+            (1, FilledSquareNoteHead),
+            (0, DiamondNoteHead),
+            (-7, FilledNoteHead),
+            (-6, FilledNoteHead),
+            (-12, UnfilledNoteHead)
+        ]
+        <> engraveLedgerLines (ledgerLines up [2,-12])
+        ) # translate (r2 (1, 0))
+
+
+type Dup a = (a, a)
+
+engraveNoteHead :: NoteHeadPosition -> NoteHead -> Engraving
+engraveNoteHead pos nh =
+    moveHalfSpacesUp pos $ position $ engraveSymbolFloating (symbol nh)
+        where { position = translate (0.5 *^ symbolSpacer (symbol nh)) }
+
+engraveNoteHeads2 :: Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
+engraveNoteHeads2 stemDir noteHeads =
+    let (poses, heads)          = unzip (Data.List.sortBy (comparing fst) noteHeads)
+        (leftPoses, rightPoses) = separateNoteHeads stemDir poses
+        (lefts, rights)         = mergeZip leftPoses heads rightPoses
+        leftSide  = mconcat . fmap (\(p,n) -> engraveNoteHead p n) $ lefts
+        rightSide = mconcat . fmap (\(p,n) -> engraveNoteHead p n) $ rights
+      in leftSide <> translate (r2 (0.3, 0)) rightSide
+-- FIXME engraveNoteHeads should have standard column as origin!
 
 
 arcE = mempty
@@ -38,13 +86,13 @@ arcE = mempty
 --    <> (lw 0.05 $ hc)  # rotate ((-12) :: Deg) # translate (r2 (0, -1))
     <> engraveNote 0 up UnfilledNoteHead # translate (r2 (-1, 0))
     <> engraveNote (-0) down UnfilledNoteHead # translate (r2 (1, 0))
-    where                                                          
+    where
         hc2 = caligraphy 10 $ hc
         hc = scaleY 0.34 $ lw 0.04 $ stroke $ arc (0.45 * tau :: Rad) (0.05 * tau :: Rad)
 
--- TODO this does not scale properly, i fear we need to render two close arcs and fill the space inbetween 
+-- TODO this does not scale properly, i fear we need to render two close arcs and fill the space inbetween
 caligraphy x = id
---caligraphy x = scaleX (1/x) . freeze . scaleX x 
+--caligraphy x = scaleX (1/x) . freeze . scaleX x
 
 
 ledgersE = mempty
@@ -102,7 +150,7 @@ clefE = mempty
         `leftTo` bassClef
         `leftTo` strutX 0.5
         `leftTo` subBassClef
-       ) # translate (r2 (-5, 0)) 
+       ) # translate (r2 (-5, 0))
 
 
 

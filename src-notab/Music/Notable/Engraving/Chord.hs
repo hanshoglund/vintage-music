@@ -16,23 +16,22 @@ module Music.Notable.Engraving.Chord
 
 -- ** Rests
     Rest(..),
+    engraveRest,
 
 -- ** Note heads
     NoteHead(..),
-    hasStem,
--- *** Position
     NoteHeadPosition,
+    hasStem,
     separateNoteHeads,
     partitionNoteHeads,
+    engraveNoteHeads,
+    engraveRestOrNoteHeads,
 
 -- ** Stems
--- *** Size
     AdjustStem,
--- *** Direction
-    StemType,
-    stemUp,
-    stemDown,
-    stemFlip,
+    -- stemUp,
+    -- stemDown,
+    -- stemFlip,
     stemDirection,
 -- *** Flags
     Flags,
@@ -78,7 +77,6 @@ module Music.Notable.Engraving.Chord
     Note(..),
     Chord(..),
     engraveNote,
-    engraveRest,
     engraveChord,
 
 -- ** Positions
@@ -158,6 +156,11 @@ instance Symbolic Rest where
     symbol SixteenthNoteRest      =  (baseMusicFont, "\197")
     symbol ThirtySecondNoteRest   =  (baseMusicFont, "\168")
 
+-- | Engraves a rest.
+engraveRest :: Rest -> Engraving
+engraveRest = engraveSymbol . symbol
+
+
 --
 -- Notes
 --
@@ -176,24 +179,28 @@ data NoteHead
     | FilledSquareNoteHead
     deriving (Show, Eq)
 
-instance Symbolic NoteHead where
-    symbol BrevisNoteHead    =  (baseMusicFont, "W")
-    symbol WholeNoteHead     =  (baseMusicFont, "w")
-    symbol UnfilledNoteHead  =  (specialMusicFont, "F")
-    symbol FilledNoteHead    =  (specialMusicFont, "f")
-    -- TODO add remaining
-
-
--- | Vertical position of a note head, offset from middle line.
-type NoteHeadPosition = HalfSpaces
-
--- (internal)
-noteHeadFromIndex :: Int -> NoteHead
+--   I don't want to make it an instance of Enum, as the index only make sense for "standard"
+--   notes such as brevis, whole, filled etc.
 noteHeadFromIndex x
     | x  <= -1   =  BrevisNoteHead
     | x  <=  0   =  WholeNoteHead
     | x  <=  1   =  UnfilledNoteHead
     | otherwise  =  FilledNoteHead
+
+instance Symbolic NoteHead where
+    symbol BrevisNoteHead          =  (baseMusicFont, "W")
+    symbol WholeNoteHead           =  (baseMusicFont, "w")
+    symbol UnfilledNoteHead        =  (specialMusicFont, "F")
+    symbol FilledNoteHead          =  (specialMusicFont, "f")
+    symbol DiamondNoteHead         =  (baseMusicFont, "O")
+    symbol CrossNoteHead           =  (baseMusicFont, "\220")
+    symbol CircledCrossNoteHead    =  (specialMusicFont, "\89") -- or 88 or 90
+    symbol UnfilledSquareNoteHead  =  (specialMusicFont, "\41")
+    symbol FilledSquareNoteHead    =  (specialMusicFont, "\54")
+
+
+-- | Vertical position of a note head, offset from middle line.
+type NoteHeadPosition = HalfSpaces
 
 -- | Whether a given notehead should be engraved with a stem or not.
 hasStem :: NoteHead -> Bool
@@ -202,10 +209,9 @@ hasStem WholeNoteHead     =  False
 hasStem UnfilledNoteHead  =  True
 hasStem FilledNoteHead    =  True
 
-
 -- | Separates note heads to be engraved to the left and right of the stem respectively.
 separateNoteHeads :: Direction -> [NoteHeadPosition] -> ([NoteHeadPosition], [NoteHeadPosition])
-separateNoteHeads d = separateNoteHeads' d . assertNoPrimes . Data.List.sort
+separateNoteHeads d = separateNoteHeads' d . {-assertNoPrimes . -}Data.List.sort
     where
         -- Sanity check as we do not handle primes yet
         assertNoPrimes xs
@@ -231,25 +237,40 @@ partitionNoteHeads stemDir positions =
             | isDown stemDir  =  reversePartition2
 
 
+-- | Engraves the given set of note heads.
+engraveNoteHeads :: Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
+engraveNoteHeads stemDir noteHeads =
+    let (poses, heads)          = unzip noteHeads
+        (leftPoses, rightPoses) = separateNoteHeads stemDir poses
+        (lefts, rights)         = mergeZip leftPoses heads rightPoses
+      in undefined
+
+engraveRestOrNoteHeads :: Rest -> Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
+engraveRestOrNoteHeads rest stemDir noteHeads
+    | null noteHeads  =  engraveRest rest
+    | otherwise       =  engraveNoteHeads stemDir noteHeads
+
+
 
 --
 -- Stems
 --
 
--- | Whether the stem should be flipped.
-type StemType = (Direction -> Direction)
+-- -- | Whether the stem should be flipped.
+-- type StemType = (Direction -> Direction)
+--
+-- -- | Always use an upward stem.
+-- stemUp :: StemType
+-- stemUp = const up
+--
+-- -- | Always use a downward stem.
+-- stemDown :: StemType
+-- stemDown = const down
+--
+-- -- | Flip the default stem direction.
+-- stemFlip :: StemType
+-- stemFlip = Direction . not . getDirection
 
--- | Always use an upward stem.
-stemUp :: StemType
-stemUp = const up
-
--- | Always use a downward stem.
-stemDown :: StemType
-stemDown = const down
-
--- | Flip the default stem direction.
-stemFlip :: StemType
-stemFlip = Direction . not . getDirection
 
 -- | Amount to add to stem length. May be negative.
 type AdjustStem = Double
@@ -477,7 +498,7 @@ engraveLedgerLines ( LedgerLines ( (longAbove, shortAbove, offsetAbove),
 --
 
 data Stem =
-    Stem { stemType   :: StemType,
+    Stem { stemType   :: Direction,
            adjustStem :: AdjustStem,
            flags      :: Flags,
            crossBeams :: CrossBeams }
@@ -497,6 +518,7 @@ data Chord =
 
 -- TODO reimplement in terms of engraveChord
 
+
 -- | Engraves a single note.
 engraveNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
 engraveNote pos dir nh =
@@ -515,10 +537,6 @@ engraveNote pos dir nh =
         noteHeadOffset  =  symbolSpacer (symbol nh)
         noteStemOffset  =  r2 $ (negate `onlyIf` (const $ isUp dir)) (- (getX $ noteHeadOffset / 2) - noteStemInset,
                                                                         convert space * 3.5 / 2 + (noteStemShortenAtOuterNote / 2))
-
--- | Engraves a rest.
-engraveRest :: Rest -> Engraving
-engraveRest = undefined
 
 -- | Engraves a chord. The origin will be at the middle line, at the standard note column.
 engraveChord :: Chord -> Engraving

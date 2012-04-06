@@ -76,30 +76,23 @@ module Music.Notable.Engraving.Staff
     engraveNote,    
     engraveChord,    
 
-
 -- * Non-spaced objects
 
 -- ** Beams
     Beams,
     engraveBeams,
-
 -- *** Tremolo beams
     TremoloBeams,
     engraveTremoloBeams,    
-
 -- ** Ties
     engraveTie,    
-
 -- ** Slurs    
     engraveSlur,
-
 -- ** Tuplets
     engraveTuplet,
-
 -- ** Text
     Instruction(..),
     engraveInstruction,
-
     
 
 -- * Staves
