@@ -117,6 +117,7 @@ Library
         Music.Notable.Spacing   
         Music.Notable.Voicing
         Music.Notable.Paging
+        Music.Notable.Engraving
         Music.Notable.Engraving.System
         Music.Notable.Engraving.Chord
         Music.Notable.Engraving.Staff

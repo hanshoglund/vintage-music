@@ -72,9 +72,9 @@ module Music.Notable.Engraving.Staff
     cesura,
 
 -- ** Chords
-    engraveRest,    
-    engraveNote,    
-    engraveChord,    
+    -- engraveRest,    
+    -- engraveNote,    
+    -- engraveChord,    
 
 -- * Non-spaced objects
 
@@ -357,12 +357,12 @@ data NonSpacedObject
     | Instruction String
     
 data SpacedObject 
-    = Clef Clef
-    | KeySignature KeySignature 
-    | TimeSignature TimeSignature 
-    | Barline 
-    | Cesura
-    | Chord Chord
+    = StaffClef Clef
+    | StaffKeySignature KeySignature 
+    | StaffTimeSignature TimeSignature 
+    | StaffBarline 
+    | StaffCesura
+    | StaffChord Chord
     
 data Staff = 
     Staff { spacedObjects    :: [(HalfSpaces, SpacedObject)],

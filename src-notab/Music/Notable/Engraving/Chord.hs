@@ -31,24 +31,26 @@ module Music.Notable.Engraving.Chord
     engraveNoteHeads,
     engraveRestOrNoteHeads,
 
+-- ** Dots
+    Dots,
+
 -- ** Stems
     AdjustStem,
     engraveStem,
     stemLength,
     stemXOffset,
     stemYOffset,
-    
-    -- stemUp,
-    -- stemDown,
-    -- stemFlip,
+    StemDirection(..),
+    stemUp,
+    stemDown,
+    flipStem,
     defaultStemDirection,
+
 -- *** Flags
     Flags,
 -- *** Cross beams
     CrossBeams,
 
--- ** Dots
-    Dots,
 
 -- ** From note values
     noteHeadFromNoteValue,
@@ -87,6 +89,11 @@ module Music.Notable.Engraving.Chord
     Stem(..),
     Note(..),
     Chord(..),
+    splitNote,
+    splitNotes,
+    getNotePositions,
+    getNoteHeads,
+    getNoteAccidentals,    
     engraveNote,
     engraveChord,
 
@@ -628,9 +635,14 @@ data Note =
 
 data Chord =
     Chord { notes         :: [Note],
+            -- | Rest to display if the note list is empty.
             rest          :: Rest,
             dots          :: Dots,
             stem          :: Stem,
+            -- | Whether the note is to be tied (affects placement of slurs and articulations).
+            tied          :: Bool,
+            -- | Whether the note is to be slurred (affects placement of articulations).
+            slurred       :: Bool,
             articulations :: [Articulation],
             verticalLines :: [VerticalLine] }
     deriving (Eq, Show)
@@ -653,7 +665,9 @@ instance Trivial Chord where
         Chord { notes = [], 
                 rest = WholeNoteRest, 
                 dots = 0, 
-                stem = trivial, 
+                stem = trivial,  
+                tied = False,
+                slurred = False,
                 articulations = [], 
                 verticalLines = [] }
 
@@ -687,11 +701,11 @@ highestNotePosition = last . notePositions
 lowestNotePosition :: Chord -> R2
 lowestNotePosition = head . notePositions
 
--- | Lowest note head with x-offset for stems.
+-- | Lowest note head with x-offset for stems.
 stemRootPosition :: Chord -> R2
 stemRootPosition = undefined
 
--- | Highest note head + x-offset for stems + octave + adjustment.
+-- | Highest note head + x-offset for stems + octave + adjustment.
 stemTopPosition :: Chord -> R2
 stemTopPosition = undefined
 

@@ -14,9 +14,7 @@ import Music.Util.List
 
 import Music.Notable.Core
 import Music.Notable.Core.Diagrams
-import Music.Notable.Engraving.System
-import Music.Notable.Engraving.Staff
-import Music.Notable.Engraving.Chord
+import Music.Notable.Engraving
 
 
 renderN :: Notation -> Engraving

@@ -15,40 +15,39 @@ module Music.Notable.Engraving.System
     engravePartName,
 
 -- ** Accolades
-    StaffList(..),
+    Accolade(..),
     engraveBracket,
     engraveBrace,
-    engraveStaffList,
+    engraveAccolade,
 
 
--- * Staves
-    engraveStaff,
-
+-- -- * Staves
+--     engraveStaff,
 
 -- * Cross-staff objects
-
--- ** Barlines
-
--- ** Beams
-    Beams,
-    engraveBeams,
-
--- *** Tremolo beams
-    TremoloBeams,
-    engraveTremoloBeams,
-
--- ** Ties
-    engraveTie,
-
--- ** Slurs
-    engraveSlur,
-
--- ** Tuplets
-    engraveTuplet,
-
--- ** Text
-    Instruction(..),
-    engraveInstruction,
+-- 
+-- -- ** Barlines
+-- 
+-- -- ** Beams
+--     Beams,
+--     engraveBeams,
+-- 
+-- -- *** Tremolo beams
+--     TremoloBeams,
+--     engraveTremoloBeams,
+-- 
+-- -- ** Ties
+--     engraveTie,
+-- 
+-- -- ** Slurs
+--     engraveSlur,
+-- 
+-- -- ** Tuplets
+--     engraveTuplet,
+-- 
+-- -- ** Text
+--     Instruction(..),
+--     engraveInstruction,
 
 
 -- * Systems
@@ -80,10 +79,10 @@ engraveBarNumber = undefined
 engravePartName :: String -> Engraving
 engravePartName = undefined
 
-data StaffList a
-    = Staff a
-    | Bracketed (StaffList a)
-    | Bracced (StaffList a)
+data Accolade a
+    = NoAccolade a
+    | Bracketed (Accolade a)
+    | Bracced (Accolade a)
 
 engraveBracket :: Spaces -> Engraving
 engraveBracket = undefined
@@ -91,8 +90,8 @@ engraveBracket = undefined
 engraveBrace :: Spaces -> Engraving
 engraveBrace = undefined
 
-engraveStaffList  :: StaffList a -> Engraving
-engraveStaffList = undefined
+engraveAccolade  :: Accolade a -> Engraving
+engraveAccolade = undefined
 
 
 --
@@ -100,16 +99,16 @@ engraveStaffList = undefined
 --
 
 data CrossStaffObject
-    = BarLine
-    | Beam
-    | TremoloBeam
-    | Tie
-    | Slur
-    | TupletBracket
+    = CrossStaffBarLine
+    | CrossStaffBeam
+    | CrossStaffTremoloBeam
+    | CrossStaffTie
+    | CrossStaffSlur
+    | CrossStaffTupletBracket
 
 data System = 
     System { barNumber :: Maybe BarNumber,
-             staffList :: Maybe (StaffList String),
+             staffList :: Maybe (Accolade String),
              staves    :: [(HalfSpaces, Staff)],
              crossStaffObjects :: [([(Index [Staff], Index [SpacedObject])], CrossStaffObject)] }
 

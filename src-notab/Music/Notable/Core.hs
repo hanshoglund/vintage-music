@@ -229,8 +229,8 @@ data Notation = Notation
 --
 --   This is just a synonym for 'Diagram', so it supports all transformations and outputs offered
 --   by the Diagrams API. See <http://projects.haskell.org/diagrams/manual/diagrams-manual.html>.
---type Engraving = (Renderable Text b, Renderable (Path R2) b, Backend b R2) => Diagram b R2
 type Engraving = Diagram Cairo R2
+--type Engraving = (Renderable Text b, Renderable (Path R2) b, Backend b R2) => Diagram b R2
 
 
 
