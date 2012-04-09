@@ -619,6 +619,76 @@ data Chord =
             articulations :: [Articulation],
             verticalLines :: [VerticalLine] }
 
+splitNote :: Note -> ((NoteHeadPosition, NoteHead), Accidental)
+splitNote (Note p h a) = ((p, h), a)
+
+splitNotes :: [Note] -> ([(NoteHeadPosition, NoteHead)], [Accidental])
+splitNotes = unzip . map splitNote
+
+getNotePositions :: [Note] -> [NoteHeadPosition]
+getNotePositions = map fst . fst . splitNotes
+
+getNoteHeads :: [Note] -> [NoteHead]
+getNoteHeads = map snd . fst . splitNotes
+
+getNoteAccidentals :: [Note] -> [Accidental]
+getNoteAccidentals = snd . splitNotes
+
+
+-- | Engraves a chord. The origin will be at the middle line, at the standard note column.
+engraveChord :: Chord -> Engraving
+engraveChord = undefined
+
+
+notePositions :: Chord -> [R2]
+notePositions = map (\y -> r2 (0, y)) . map convert . getNotePositions . notes
+
+highestNotePosition :: Chord -> R2
+highestNotePosition = last . notePositions
+
+lowestNotePosition :: Chord -> R2
+lowestNotePosition = head . notePositions
+
+-- | Lowest note head with x-offset for stems.
+stemRootPosition :: Chord -> R2
+stemRootPosition = undefined
+
+-- | Highest note head + x-offset for stems + octave + adjustment.
+stemTopPosition :: Chord -> R2
+stemTopPosition = undefined
+
+-- Tricky, depends on accidentals.
+slurAboveAnchor :: Chord -> R2
+slurAboveAnchor = undefined
+
+-- Tricky, depends on accidentals.
+slurBelowAnchor :: Chord -> R2
+slurBelowAnchor = undefined
+
+-- Tricky, depends on accidentals.
+tieAboveAnchor :: Chord -> R2
+tieAboveAnchor = undefined
+
+-- Tricky, depends on accidentals.
+tieBelowAnchor :: Chord -> R2
+tieBelowAnchor = undefined
+
+-- Tricky, depends on accidentals.
+tupletAboveAnchor :: Chord -> R2
+tupletAboveAnchor = undefined
+
+-- Tricky, depends on accidentals.
+tupletBelowAnchor :: Chord -> R2
+tupletBelowAnchor = undefined
+
+-- Depends on stem direction.
+glissandoBeforeAnchor :: Chord -> R2
+glissandoBeforeAnchor = undefined
+
+-- Depends on stem direction.
+glissandoAfterAnchor :: Chord -> R2
+glissandoAfterAnchor = undefined
+
 
 
 -- TODO reimplement in terms of engraveChord
@@ -642,51 +712,4 @@ engraveNote pos dir noteHead =
         noteHeadSpace   =  symbolSpacer (symbol noteHead)
         noteStemOffset  =  r2 . negateIfDown dir $ (noteStemOffsetX, noteStemOffsetY)
         noteStemOffsetX =  (getX $ noteHeadSpace / 2) + stemInset
-        noteStemOffsetY =  negate $ convert space * 3.5 / 2 + (stemShortenAtOuterNote / 2)
-
--- | Engraves a chord. The origin will be at the middle line, at the standard note column.
-engraveChord :: Chord -> Engraving
-engraveChord = undefined
-
-
-notePositions :: Chord -> [R2]
-notePositions = undefined
-
-highestNotePosition :: Chord -> R2
-highestNotePosition = last . notePositions
-
-lowestNotePosition :: Chord -> R2
-lowestNotePosition = head . notePositions
-
-stemRootPosition :: Chord -> R2
-stemRootPosition = undefined
-
-stemTopPosition :: Chord -> R2
-stemTopPosition = undefined
-
-slurAboveAnchor :: Chord -> R2
-slurAboveAnchor = undefined
-
-slurBelowAnchor :: Chord -> R2
-slurBelowAnchor = undefined
-
-tieAboveAnchor :: Chord -> R2
-tieAboveAnchor = undefined
-
-tieBelowAnchor :: Chord -> R2
-tieBelowAnchor = undefined
-
-tupletAboveAnchor :: Chord -> R2
-tupletAboveAnchor = undefined
-
-tupletBelowAnchor :: Chord -> R2
-tupletBelowAnchor = undefined
-
-glissandoBeforeAnchor :: Chord -> R2
-glissandoBeforeAnchor = undefined
-
-glissandoAfterAnchor :: Chord -> R2
-glissandoAfterAnchor = undefined
-
-
-
+        noteStemOffsetY =  negate $ convert space * 3.5 / 2 + (stemShortenAtOuterNote / 2)      

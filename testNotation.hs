@@ -1,36 +1,24 @@
 
 {-# LANGUAGE
-    TypeFamilies,
-    RankNTypes,
     MultiParamTypeClasses,
-    TypeSynonymInstances,
-    NoMonomorphismRestriction,
-    FlexibleContexts #-}
+    NoMonomorphismRestriction #-}
 
-import Numeric(showHex)
 import Data.Convert
-import qualified Data.List
+import Data.Indexed
 
 import Music
 import Music.Inspect
-import Music.Render
 import Music.Render.Graphics
 import Music.Util.List
 
 import Music.Notable.Core
-import Music.Notable.Core.Symbols
-import Music.Notable.Spacing
 import Music.Notable.Core.Diagrams
-import Music.Notable.Engraving.Chord
+import Music.Notable.Engraving.System
 import Music.Notable.Engraving.Staff
+import Music.Notable.Engraving.Chord
 
-import Graphics.SVGFonts.ReadFont (textSVG,textSVG_, outlMap, TextOpts(..))
 
--- Instance so we can use 'draw'
-instance Render Notation Graphic where
-    render = Graphic . renderN
 renderN :: Notation -> Engraving
-
 renderN _ = mempty
     <> allE
     `below` (scale 1.3 . center 6 $ minorE)
@@ -145,5 +133,8 @@ clefE = mempty
 
 
 
+-- Instance so we can use 'draw'
+instance Render Notation Graphic where
+    render = Graphic . renderN
 
 
