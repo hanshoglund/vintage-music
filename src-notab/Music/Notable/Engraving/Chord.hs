@@ -482,18 +482,20 @@ data Articulation
     | Marcato
     | Accent
     | Tenuto
-    | MoltoStaccato
     | Staccato
     deriving (Show, Eq, Ord, Bounded, Enum)
 
 instance Symbolic Articulation where
     symbol Fermata   =   (baseMusicFont, "u")
+    symbol Downbow   =   (baseMusicFont, "^")
+    symbol Upbow     =   (baseMusicFont, "V")
     symbol Plus      =   (baseMusicFont, "+")
     symbol Circle    =   (baseMusicFont, "o")
     symbol Marcato   =   (baseMusicFont, "v")
     symbol Accent    =   (baseMusicFont, ">")
     symbol Tenuto    =   (baseMusicFont, "-")
     symbol Staccato  =   (baseMusicFont, ".")
+
 
 
 -- | Whether the accidental should always be drawn above the chord.
@@ -617,10 +619,9 @@ data Chord =
             articulations :: [Articulation],
             verticalLines :: [VerticalLine] }
 
+
+
 -- TODO reimplement in terms of engraveChord
-
-
--- moveHalfSpacesUp pos $ engraveSymbol (symbol noteHead)
 
 -- | Engraves a single note.
 engraveNote :: HalfSpaces -> Direction -> NoteHead -> Engraving

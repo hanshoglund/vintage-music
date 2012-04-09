@@ -239,7 +239,7 @@ type Engraving = Diagram Cairo R2
 spaceRect :: Double -> Double -> Engraving
 spaceRect x y = style $ rect x y
     where
-        style = fillColor blue . opacity 0.1
+        style = fillColor blue . opacity 0
 
 spaceRectV :: R2 -> Engraving
 spaceRectV v = spaceRect (getX v) (getY v)
