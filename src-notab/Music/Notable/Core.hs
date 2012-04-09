@@ -80,7 +80,7 @@ import Music.Notable.Core.Symbols
 --
 --
 newtype Spaces = Spaces { getSpaces :: Double }
-    deriving ( Show, Eq, Enum, Num, Ord, Fractional, Floating, RealFrac, Real )
+    deriving ( Eq, Show, Enum, Num, Ord, Fractional, Floating, RealFrac, Real )
 
 -- | Unit of half a space.
 --
@@ -91,7 +91,7 @@ newtype Spaces = Spaces { getSpaces :: Double }
 --   > convert space = halfSpace * 2   
 --
 newtype HalfSpaces = HalfSpaces { getHalfSpaces :: Double }
-    deriving ( Show, Eq, Enum, Num, Ord, Fractional, Floating, RealFrac, Real )
+    deriving ( Eq, Show, Enum, Num, Ord, Fractional, Floating, RealFrac, Real )
 
 
 -- (internal) The relation between Spaces and Diagram coordinates
@@ -206,7 +206,7 @@ type StaffLines = Int
 -- | Direction of note stem. 
 --   Needed for calculating placement of articulations, lines etc. 
 newtype Direction = Direction { getDirection :: Bool }
-    deriving ( Show, Eq )
+    deriving ( Eq, Show )
 
 up   = Direction True
 down = Direction False

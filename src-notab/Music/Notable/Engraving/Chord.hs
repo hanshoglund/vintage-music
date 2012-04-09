@@ -41,7 +41,7 @@ module Music.Notable.Engraving.Chord
     -- stemUp,
     -- stemDown,
     -- stemFlip,
-    stemDirection,
+    defaultStemDirection,
 -- *** Flags
     Flags,
 -- *** Cross beams
@@ -110,6 +110,7 @@ where
 
 import Data.Convert
 import Data.Ord ( comparing )
+import Data.Trivial
 import Data.Tuple ( swap )
 import qualified Data.List
 
@@ -125,14 +126,25 @@ import Music.Notable.Core.Diagrams
 -- Constants
 --
 
+-- | Thickness of stems.
 stemWeight :: Double
 stemWeight = 0.025
 
+-- | Move stem inwards by this amount.
 stemInset :: Double
 stemInset = 0.013
 
+-- | Shorten stem at outer note by this amount.
 stemShortenAtOuterNote :: Double
 stemShortenAtOuterNote = convert $ Spaces 0.1
+
+-- | Space between rightmost accidental column and leftmost note column.
+accidentalOffset :: Double
+accidentalOffset = convert $ Spaces 0.4
+
+-- | Space between accidental columns.
+accidentalColumnOffset :: Double
+accidentalColumnOffset = convert $ Spaces 0.3
 
 -- | Thickness of ledger lines.
 ledgerLineWeight :: Double
@@ -154,7 +166,7 @@ data Rest
     | EightNoteRest
     | SixteenthNoteRest
     | ThirtySecondNoteRest
-    deriving (Show, Eq, Ord, Enum, Bounded)
+    deriving (Eq, Show, Ord, Enum, Bounded)
 
 -- | (internal)
 restFromIndex :: Int -> Rest
@@ -189,7 +201,7 @@ data NoteHead
     | CircledCrossNoteHead
     | UnfilledSquareNoteHead
     | FilledSquareNoteHead
-    deriving (Show, Eq)
+    deriving (Eq, Show)
 
 --   I don't want to make it an instance of Enum, as the index only make sense for "standard"
 --   notes such as brevis, whole, filled etc.
@@ -310,25 +322,29 @@ engraveRestOrNoteHeads rest stemDir noteHeads
     | otherwise       =  engraveNoteHeads stemDir noteHeads
 
 
+-- | Number of dots.
+type Dots = Int
 
 --
 -- Stems
 --
 
--- -- | Whether the stem should be flipped.
--- type StemType = (Direction -> Direction)
---
--- -- | Always use an upward stem.
--- stemUp :: StemType
--- stemUp = const up
---
--- -- | Always use a downward stem.
--- stemDown :: StemType
--- stemDown = const down
---
--- -- | Flip the default stem direction.
--- stemFlip :: StemType
--- stemFlip = Direction . not . getDirection
+-- TODO change to (Chord -> D -> D) and compose with defaultStemDirection ??
+newtype StemDirection = StemDirection (Direction -> Direction)
+
+-- | Always use an upward stem.
+stemUp :: StemDirection
+stemUp = StemDirection $ const up
+
+-- | Always use a downward stem.
+stemDown :: StemDirection
+stemDown = StemDirection $ const down
+
+-- | Flip the default stem direction.
+flipStem :: StemDirection
+flipStem = StemDirection $ Direction . not . getDirection
+
+
 
 -- FIXME set line color to transparent and increase stemWeight
 engraveStem :: Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
@@ -364,10 +380,15 @@ stemYOffset stemDir notes
 -- | Amount to add to stem length. May be negative.
 type AdjustStem = Double
 
+
 -- | Returns the default direction for the given note heads.
-stemDirection :: [NoteHeadPosition] -> Direction
-stemDirection x = up
--- TODO see Tyboni
+defaultStemDirection :: [NoteHeadPosition] -> Direction
+defaultStemDirection [] = down
+defaultStemDirection xs | (m > 0)    =  up
+                        | otherwise  =  down 
+                        where
+                            m = mean . map signum $ xs
+                            mean xs = sum xs / fromIntegral (length xs)
 
 
 -- | Number of flags on a stem.
@@ -378,17 +399,9 @@ type Flags = Int
 flagsFromIndex :: Int -> Flags
 flagsFromIndex x = max 0 (x - 2)
 
-
 -- | Number of crossbeams.
 --   This is the number of crossbeams to actually engrave, irrespective of flags and beams.
 type CrossBeams = Int
-
---
--- Dots
---
-
--- | Number of dots.
-type Dots = Int
 
 
 
@@ -434,7 +447,7 @@ data Accidental
     | Natural
     | Sharp
     | DoubleSharp
-    deriving (Show, Eq, Ord, Bounded, Enum)
+    deriving (Eq, Show, Ord, Bounded, Enum)
 
 instance Symbolic Accidental where
     symbol DoubleFlat   =  (baseMusicFont, "\x222b")
@@ -483,10 +496,10 @@ data Articulation
     | Accent
     | Tenuto
     | Staccato
-    deriving (Show, Eq, Ord, Bounded, Enum)
+    deriving (Eq, Show, Ord, Bounded, Enum)
 
 instance Symbolic Articulation where
-    symbol Fermata   =   (baseMusicFont, "u")
+    symbol Fermata   =   (baseMusicFont, "U")
     symbol Downbow   =   (baseMusicFont, "^")
     symbol Upbow     =   (baseMusicFont, "V")
     symbol Plus      =   (baseMusicFont, "+")
@@ -605,11 +618,13 @@ data Stem =
            adjustStem :: AdjustStem,
            flags      :: Flags,
            crossBeams :: CrossBeams }
+    deriving (Eq, Show)
 
 data Note =
     Note { noteHeadPosition :: NoteHeadPosition,
            noteHead         :: NoteHead,
-           accidental       :: Accidental }
+           accidental       :: Maybe Accidental }
+    deriving (Eq, Show)
 
 data Chord =
     Chord { notes         :: [Note],
@@ -618,11 +633,34 @@ data Chord =
             stem          :: Stem,
             articulations :: [Articulation],
             verticalLines :: [VerticalLine] }
+    deriving (Eq, Show)
 
-splitNote :: Note -> ((NoteHeadPosition, NoteHead), Accidental)
+instance Trivial Stem where
+    trivial =
+        Stem { stemType = down,
+               adjustStem = 0,
+               flags = 0,
+               crossBeams = 0 }
+
+instance Trivial Note where
+    trivial = 
+        Note { noteHeadPosition = 0,
+               noteHead = WholeNoteHead,
+               accidental = Nothing }
+
+instance Trivial Chord where
+    trivial = 
+        Chord { notes = [], 
+                rest = WholeNoteRest, 
+                dots = 0, 
+                stem = trivial, 
+                articulations = [], 
+                verticalLines = [] }
+
+splitNote :: Note -> ((NoteHeadPosition, NoteHead), Maybe Accidental)
 splitNote (Note p h a) = ((p, h), a)
 
-splitNotes :: [Note] -> ([(NoteHeadPosition, NoteHead)], [Accidental])
+splitNotes :: [Note] -> ([(NoteHeadPosition, NoteHead)], [Maybe Accidental])
 splitNotes = unzip . map splitNote
 
 getNotePositions :: [Note] -> [NoteHeadPosition]
@@ -631,7 +669,7 @@ getNotePositions = map fst . fst . splitNotes
 getNoteHeads :: [Note] -> [NoteHead]
 getNoteHeads = map snd . fst . splitNotes
 
-getNoteAccidentals :: [Note] -> [Accidental]
+getNoteAccidentals :: [Note] -> [Maybe Accidental]
 getNoteAccidentals = snd . splitNotes
 
 
@@ -712,4 +750,6 @@ engraveNote pos dir noteHead =
         noteHeadSpace   =  symbolSpacer (symbol noteHead)
         noteStemOffset  =  r2 . negateIfDown dir $ (noteStemOffsetX, noteStemOffsetY)
         noteStemOffsetX =  (getX $ noteHeadSpace / 2) + stemInset
-        noteStemOffsetY =  negate $ convert space * 3.5 / 2 + (stemShortenAtOuterNote / 2)      
+        noteStemOffsetY =  negate $ convert space * 3.5 / 2 + (stemShortenAtOuterNote / 2)
+        
+        

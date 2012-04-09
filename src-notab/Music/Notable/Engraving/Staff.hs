@@ -196,7 +196,7 @@ data ClefType
     = GClef
     | CClef
     | FClef
-    deriving (Show, Eq)
+    deriving (Eq, Show)
 
 type Clef = (ClefType, ClefPosition)
 

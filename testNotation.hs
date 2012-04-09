@@ -5,6 +5,7 @@
 
 import Data.Convert
 import Data.Indexed
+import Data.Trivial
 
 import Music
 import Music.Inspect
