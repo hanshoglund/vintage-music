@@ -25,8 +25,9 @@ module Music.Notable.Engraving.Chord
     engraveNoteHead,
     engraveLeftNoteHeadColumn,
     engraveRightNoteHeadColumn,
-    separateNoteHeads,
-    separateNoteHeadsWith,
+    -- partitionNoteHeads,
+    -- separateNoteHeads,
+    -- separateNoteHeadsWith,
     engraveNoteHeads,
     engraveRestOrNoteHeads,
 
@@ -42,8 +43,8 @@ module Music.Notable.Engraving.Chord
     defaultStem,
     flipStem,
     stemLength,
-    stemXOffset,
-    stemYOffset,
+    stemHorizOffset,
+    stemVertOffset,
 
 -- *** Flags
     Flags,
@@ -71,7 +72,9 @@ module Music.Notable.Engraving.Chord
     AccidentalPosition(..),
     minSpaceAbove,
     minSpaceBelow,
-    engraveAccidental,
+    -- separateAccidentals,
+    engraveAccidental,      
+    engraveAccidentalColumn,
     engraveAccidentals,
 
 -- ** Articulation
@@ -85,13 +88,14 @@ module Music.Notable.Engraving.Chord
     engraveVerticalLines,
 
 -- * Ledger lines
-    LongShortOffset,
-    LedgerLinesAbove,
-    LedgerLinesBelow,
-    LedgerLines(..),
-    ledgerLines,
-    ledgerLines',
-    engraveLedgerLines,
+    LongLedgers,
+    ShortLedgers,
+    LedgersAbove,
+    LedgersBelow,
+    Ledgers(..),
+    ledgers,
+    ledgers',
+    engraveLedgers,
 
 
 -- * Chords
@@ -153,16 +157,16 @@ stemInset :: Double
 stemInset = convert $ Spaces 0.032
 
 -- | Shorten stem at outer note by this amount.
-stemShortenAtOuterNote :: Double
-stemShortenAtOuterNote = convert $ Spaces 0.1
+-- stemShortenAtOuterNote :: Double
+-- stemShortenAtOuterNote = convert $ Spaces 0.1
 
 -- | Space between rightmost accidental column and leftmost note column.
 accidentalOffset :: Double
 accidentalOffset = convert $ Spaces 0.4
 
 -- | Space between accidental columns.
-accidentalColumnOffset :: Double
-accidentalColumnOffset = convert $ Spaces 0.3
+-- accidentalColumnOffset :: Double
+-- accidentalColumnOffset = convert $ Spaces 0.3
 
 -- | Thickness of ledger lines.
 ledgerLineWeight :: Double
@@ -260,7 +264,7 @@ partitionNoteHeads :: Direction -> [NoteHeadPosition] -> ([(NoteHeadPosition, No
 partitionNoteHeads stemDir positions =
     partitioner collides positions
     where
-        collides x y     =  absDif x y < 2
+        collides x y     =  x `absoluteDifference` y < 2
         partitioner
             | isUp   stemDir  =  partition2
             | isDown stemDir  =  reversePartition2
@@ -310,16 +314,8 @@ engraveNoteHeadColumn isLeft notes =
         where
             align = if isLeft then alignR else alignL
 
--- | Engraves the given set of note heads.
---
---   This function will partition the note heads into a main column and a side column, to avoid colliding
---   seconds and primes whenever possible. The side column is to the right if the stem direction is up, and to
---   the left if the stem direction is down. The local origin will be in the main column at position zero.
-engraveNoteHeads :: Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
-engraveNoteHeads stemDir = snd . engraveNoteHeads' stemDir
-
 -- Returns the x offset of the main column along with the engraving
--- This is required by stemXOffset
+-- This is required by stemHorizOffset
 engraveNoteHeads' :: Direction -> [(NoteHeadPosition, NoteHead)] -> (Double, Engraving)
 engraveNoteHeads' stemDir notes = (mainColumnXOffset, position $ leftColumn `leftTo` rightColumn)
     where
@@ -329,8 +325,16 @@ engraveNoteHeads' stemDir notes = (mainColumnXOffset, position $ leftColumn `lef
         rightColumn  =  engraveRightNoteHeadColumn rightNotes
         mainColumn   =  if (isUp stemDir) then leftColumn else rightColumn
 
-        mainColumnXOffset  =  negateIfDown stemDir (width mainColumn / 2 - stemInset)
+        mainColumnXOffset  =  negateIfDown stemDir (width mainColumn / 2)
         position           =  translate (r2 (mainColumnXOffset, 0))
+
+-- | Engraves the given set of note heads.
+--
+--   This function will partition the note heads into a main column and a side column, to avoid colliding
+--   seconds and primes whenever possible. The side column is to the right if the stem direction is up, and to
+--   the left if the stem direction is down. The local origin will be in the main column at position zero.
+engraveNoteHeads :: Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
+engraveNoteHeads stemDir = snd . engraveNoteHeads' stemDir
 
 -- | Like 'engraveRest' if the given set of notes is empty, or 'engraveNoteHeads' otherwise.
 engraveRestOrNoteHeads :: Rest -> Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
@@ -346,10 +350,31 @@ engraveRestOrNoteHeads rest stemDir noteHeads
 -- | Number of dots.
 type Dots = Int
 
--- | Engraves the dots required for the given note heads.
+
+-- | Engraves a single dot.
 --   The local origin will be in the middle, at position zero.
+engraveDot :: NoteHeadPosition -> Engraving
+engraveDot pos = p . s $ dotE <> spaceE
+    where                              
+        dotE    =  circle (convert $ halfSpace * 0.33)
+        spaceE  =  spaceRect (convert space * 0.6) (convert space)
+        p  =  moveHalfSpacesUp pos
+        s  =  lineWidth 0 . fillColor black
+
+-- | Where to draw the dot for a notehead at this position.
+dotPosition :: NoteHeadPosition -> NoteHeadPosition
+dotPosition x = r (x / 2) * 2 + 1
+    where
+        r = fromIntegral . floor
+
+-- | Engraves the dots required for the given note heads.
+--   The local origin will be at the leftmost dot, at position zero.
 engraveDots :: Dots -> [NoteHeadPosition] -> Engraving
-engraveDots = undefined -- TODO
+engraveDots dots ps =
+    catRight $ replicate dots col
+    where
+        col  =  mconcat $ fmap engraveDot $ ps'
+        ps'  =  removeDuplicates . map dotPosition $ ps 
 
 
 
@@ -379,21 +404,21 @@ flipStem = StemDirection $ Direction . not . getDirection
 
 stemLength :: [(NoteHeadPosition, NoteHead)] -> HalfSpaces
 stemLength notes
-    | length notes == 0  =  error "stemLength: Note list is empty"
-    | otherwise          =  octave + (highest - lowest)
+    | length notes == 0  =  error "stemLength: Note list is empty"
+    | otherwise          =  octave + (highest - lowest)
     where
         highest  =  maximum $ map (fst) notes
         lowest   =  minimum $ map (fst) notes
 
-stemXOffset :: Direction -> [(NoteHeadPosition, NoteHead)] -> HalfSpaces
-stemXOffset stemDir = convert . (subtract inset) . fst . engraveNoteHeads' stemDir
+stemHorizOffset :: Direction -> [(NoteHeadPosition, NoteHead)] -> HalfSpaces
+stemHorizOffset stemDir = convert . (subtract inset) . fst . engraveNoteHeads' stemDir
     where
         inset = negateIfDown stemDir stemInset
 
-stemYOffset :: Direction -> [(NoteHeadPosition, NoteHead)] -> HalfSpaces
-stemYOffset stemDir notes
-    | length notes == 0  =  error "stemYOffset: Note list is empty"
-    | otherwise          =  0 + (negateIfDown stemDir $ stemLength notes) / 2 + outerNote
+stemVertOffset :: Direction -> [(NoteHeadPosition, NoteHead)] -> HalfSpaces
+stemVertOffset stemDir notes
+    | length notes == 0  =  error "stemVertOffset: Note list is empty"
+    | otherwise          =  0 + (negateIfDown stemDir $ stemLength notes) / 2 + outerNote
     where
         outerNote = if (isUp stemDir) then lowest else highest
         highest  =  maximum $ map (fst) notes
@@ -403,11 +428,12 @@ stemYOffset stemDir notes
 --   The local origin will be in the middle column, at position zero.
 engraveStem :: Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
 engraveStem stemDir notes =
-    pos $ style $ rect stemWeight (convert $ stemLength notes)
+    pos $ style $ rect stemWeight (convert len)
     where
-        pos    =  translate (r2 (convert $ posX, convert $ posY))
-        posX   =  stemXOffset stemDir notes
-        posY   =  stemYOffset stemDir notes
+        pos    =  translate (r2 (convert posX, convert posY))
+        len    =  stemLength notes
+        posX   =  stemHorizOffset stemDir notes
+        posY   =  stemVertOffset stemDir notes
         style  =  fillColor black . lineWidth 0
 
 -- | Engraves a stem.
@@ -506,7 +532,7 @@ instance Symbolic Accidental where
     symbol Sharp        =  (baseMusicFont, "#")
     symbol DoubleSharp  =  (baseMusicFont, "\x2039")
 
--- | Minimum space required above the given accidental (Tyboni p 24).
+-- | Minimum space required above the given accidental.
 minSpaceAbove :: Accidental -> HalfSpaces
 minSpaceAbove DoubleFlat   =  3
 minSpaceAbove Flat         =  3
@@ -514,7 +540,7 @@ minSpaceAbove Natural      =  3
 minSpaceAbove Sharp        =  3
 minSpaceAbove DoubleSharp  =  1
 
--- | Minimum space required below the given accidental (Tyboni p 24).
+-- | Minimum space required below the given accidental.
 minSpaceBelow :: Accidental -> HalfSpaces
 minSpaceBelow DoubleFlat   =  2
 minSpaceBelow Flat         =  2
@@ -528,12 +554,48 @@ minSpaceBelow DoubleSharp  =  1
 engraveAccidental :: Accidental -> Engraving
 engraveAccidental = engraveSymbol . symbol
 
+-- | Engraves a column of accidentals.
+--   The local origin will be to the right at position zero.
+engraveAccidentalColumn :: [(AccidentalPosition, Accidental)] -> Engraving
+engraveAccidentalColumn = mconcat . fmap (\(p, a) -> moveHalfSpacesUp p $ alignR $ engraveAccidental a)
+
 -- | Column of accidentals, numbered from right to left. 
 --   The column closest to the note heads has number zero. 
 type AccidentalColumn = Int
 
--- | Separate accidentals into columns to engrave.
---   The first list is the rightmost column.
+getAccCol = fst3
+getAccPos = snd3
+getAccAcc = trd3
+
+distributeAccidentals :: [(AccidentalPosition, Accidental)] -> [(AccidentalColumn, AccidentalPosition, Accidental)]
+distributeAccidentals = distributeAccidentals' . sortBy (comparing fst)
+    where
+        distributeAccidentals' = foldr addColumn []
+
+        addColumn (position, accidental) as = (column, position, accidental) : as
+            where
+                column = findColumn 0 (position, accidental) as 
+
+        -- | The expression `findColumn col a as` returns a column greater than or equal to `col` in
+        --   which there is space available for accidental `a`, given a set of previous accidentals `as`.
+        findColumn col a as 
+            | spaceAvailable col a as  =  col
+            | otherwise                =  findColumn (succ col) a as
+
+        -- | The expression `spaceAvailable column a as` determines whether the accidental `a` can 
+        --   fit into the column `col`, given a set of previous accidentals `as`. 
+        spaceAvailable column (position, accidental) as 
+            | null notesInColumn  =  True
+            | otherwise           =  upperNoteBound >= lowerNoteBound 
+            where
+                notesInColumn   =  filter (\a -> getAccCol a == column) as
+                upperNote       =  head notesInColumn
+                upperNoteBound  =  position' -  minSpaceBelow accidental'
+                lowerNoteBound  =  position  +  minSpaceAbove accidental
+                position'       =  getAccPos upperNote                  
+                accidental'     =  getAccAcc upperNote
+    
+-- | Separate accidentals into columns, from left to right.
 separateAccidentals :: [(AccidentalPosition, Accidental)] -> [[(AccidentalPosition, Accidental)]]
 separateAccidentals as =
     [ discardColumn . filterColumn x $ as' | x <- [0 .. columns] ]
@@ -543,44 +605,8 @@ separateAccidentals as =
         filterColumn x = filter ((==) x . getAccCol)
         discardColumn = fmap (\(c, p, a) -> (p, a))
 
-distributeAccidentals :: [(AccidentalPosition, Accidental)] -> [(AccidentalColumn, AccidentalPosition, Accidental)]
-distributeAccidentals = distributeAccidentals' . sortBy (comparing fst)
-
-distributeAccidentals' = foldr addColumn []
-
--- | Fold over a list of accidentals, 
-addColumn (position, accidental) as = (column, position, accidental) : as
-    where
-        column = findColumn 0 (position, accidental) as 
-
--- | The expression `findColumn col a as` returns a column greater than or equal to `col` in
---   which there is space available for accidental `a`, given a set of previous accidentals `as`.
-findColumn col a as 
-    | spaceAvailable col a as  =  col
-    | otherwise                =  findColumn (succ col) a as
-
--- | The expression `spaceAvailable column a as` determines whether the accidental `a` can 
---   fit into the column `col`, given a set of previous accidentals `as`. 
-spaceAvailable column (position, accidental) as 
-    | null notesInColumn  =  True
-    | otherwise           =  upperNoteBound >= lowerNoteBound 
-    where
-        notesInColumn   =  filter (\a -> getAccCol a == column) as
-        upperNote       =  head notesInColumn
-        upperNoteBound  =  getAccPos upperNote - minSpaceBelow (getAccAcc upperNote)
-        lowerNoteBound  =  position + minSpaceAbove accidental
-    
-getAccCol = fst3
-getAccPos = snd3
-getAccAcc = trd3                                
-
-
-ac = Prelude.reverse . map (\a -> (getAccCol a, getHalfSpaces $ getAccPos a, getAccAcc a))
-
-
-engraveAccidentalColumn :: [(AccidentalPosition, Accidental)] -> Engraving
-engraveAccidentalColumn = mconcat . fmap (\(p, a) -> moveHalfSpacesUp p $ engraveAccidental a)
-
+-- | Engraves a column of accidentals.
+--   The local origin will be to the right of the rightmost column at position zero.
 engraveAccidentals :: [(AccidentalPosition, Accidental)] -> Engraving
 engraveAccidentals = 
     catLeft . fmap engraveAccidentalColumn . separateAccidentals
@@ -667,44 +693,45 @@ engraveVerticalLines = undefined -- TODO
 -- Ledger lines
 --
 
--- | Number of long and short ledger lines, and their offset from the middle line.
---
---   Short ledger lines is used for single notes, while longer lines are used for primes and seconds.
-type LongShortOffset = (Int, Int, HalfSpaces)
+-- | Long ledger lines, used for primes and seconds.
+type LongLedgers = Int
 
--- | Ledger lines to draw above the staff.
-type LedgerLinesAbove = LongShortOffset
+-- | Short ledger lines, used for single notes.
+type ShortLedgers = Int
 
--- | Ledger lines to draw below the staff.
-type LedgerLinesBelow = LongShortOffset
+-- | Number of ledger lines to draw above the staff, and their offset from the middle line.
+type LedgersAbove = (LongLedgers, ShortLedgers, HalfSpaces)
+
+-- | Number of ledger lines to draw above the staff, and their offset from the middle line.
+type LedgersBelow = (LongLedgers, ShortLedgers, HalfSpaces)
 
 -- | A description of ledger lines to engrave for a particular chord.
-newtype LedgerLines = LedgerLines { getLedgerLines :: (LedgerLinesAbove, LedgerLinesBelow) }
+newtype Ledgers = Ledgers { getLedgers :: (LedgersAbove, LedgersBelow) }
     deriving (Eq, Show)
 
 -- | Monoid over ledger lines. This can be used to join ledger lines required by different chords.
 --
 --   Note that `mappend` raises an error if called on ledger lines with different offsets, as joining
 --   ledger lines from different types of staves makes no sense.
-instance Monoid LedgerLines where
-    mempty  =  LedgerLines (none, none) where none = (0, 0, 0)
-    LedgerLines x `mappend` LedgerLines y  =  LedgerLines $ prod2 apLines apLines x y
+instance Monoid Ledgers where
+    mempty  =  Ledgers (none, none) where none = (0, 0, 0)
+    Ledgers x `mappend` Ledgers y  =  Ledgers $ prod2 apLines apLines x y
         where
             apLines         =  prod3 max max apOffset
-            x `apOffset` y  =  if (x == y) then x else error "LedgerLines.mappend: unequal offset"
+            x `apOffset` y  =  if (x == y) then x else error "Ledgers.mappend: unequal offset"
 
 
 -- | Returns the ledger lines required by a given set of note heads. The stem direction is necessary to
 --   determine the placement of second and prime intervals, which in turn influences the length of lines.
-ledgerLines :: Direction -> [NoteHeadPosition] -> LedgerLines
-ledgerLines = ledgerLines' 5
+ledgers :: Direction -> [NoteHeadPosition] -> Ledgers
+ledgers = ledgers' 5
 
 -- | Returns the ledger lines required by a given set of note heads. This version works for any
 --   number of staff lines (but see note about `mappend` above).
-ledgerLines' :: StaffLines -> Direction -> [NoteHeadPosition] -> LedgerLines
-ledgerLines' s d p = LedgerLines $ (ledgerLinesAbove s d p, ledgerLinesBelow s d p)
+ledgers' :: StaffLines -> Direction -> [NoteHeadPosition] -> Ledgers
+ledgers' s d p = Ledgers $ (ledgersAbove s d p, ledgersBelow s d p)
 
-ledgerLinesAbove staffLines stemDir positions =
+ledgersAbove staffLines stemDir positions =
     (0, shortAbove, firstAbove)
     where
         shortAbove  =
@@ -714,7 +741,7 @@ ledgerLinesAbove staffLines stemDir positions =
                 . filter (> firstAbove) $ positions
         firstAbove   =  fromIntegral staffLines + 1
 
-ledgerLinesBelow staffLines stemDir positions =
+ledgersBelow staffLines stemDir positions =
     (0, shortBelow, firstBelow)
     where
         shortBelow  =
@@ -724,21 +751,32 @@ ledgerLinesBelow staffLines stemDir positions =
                 . filter (< firstBelow) $ positions
         firstBelow  =  (negate . fromIntegral $ staffLines) - 1
 
+ledger :: Spaces -> Engraving
+ledger width = lineE <> spaceE
+    where
+        lineE  =  style $ hrule w where { style = lineWidth ledgerLineWeight }
+        spaceE =  spaceRect w h
+        w  =  convert width
+        h  =  convert space
+
+shortLedger :: Engraving
+shortLedger = ledger 2
+
+longLedger :: Engraving
+longLedger = ledger 3
+
+
 -- | Engraves ledger lines.
 --   The origin will be in the middle, at position zero.
-engraveLedgerLines :: LedgerLines -> Engraving
-engraveLedgerLines ( LedgerLines ( (longAbove, shortAbove, offsetAbove),
-                                   (longBelow, shortBelow, offsetBelow)) ) =
+engraveLedgers :: Ledgers -> Engraving
+engraveLedgers ( Ledgers ( (longAbove, shortAbove, offsetAbove),
+                           (longBelow, shortBelow, offsetBelow)) ) =
     aboveE <> belowE
     where
-        aboveE   = moveHalfSpacesUp offsetAbove . catUp   . replicate shortAbove $ ledgerE
-        belowE   = moveHalfSpacesUp offsetBelow . catDown . replicate shortBelow $ ledgerE
+        aboveE   = moveHalfSpacesUp offsetAbove . catUp   . replicate shortAbove $ shortLedger
+        belowE   = moveHalfSpacesUp offsetBelow . catDown . replicate shortBelow $ shortLedger
 
-        ledgerE  =  lineE <> spaceE
-        lineE    =  style $ hrule width where { style = lineWidth ledgerLineWeight }
-        spaceE   =  spaceRect width (convert space)
 
-        width    =  convert (2 * space) :: Double
 
 
 --
@@ -786,7 +824,7 @@ data Chord =
 
 instance Trivial Stem where
     trivial =
-        Stem { stemDirection = defaultStem,
+        Stem { stemDirection = defaultStem,
                stemAdjustment = 0,
                flags = 0,
                crossBeams = 0 }
@@ -905,7 +943,7 @@ engraveNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
     --     noteHeadSpace   =  symbolSpacer (symbol noteHead)
     --     noteStemOffset  =  r2 . negateIfDown dir $ (noteStemOffsetX, noteStemOffsetY)
     --     noteStemOffsetX =  (getX $ noteHeadSpace / 2) + stemInset
-    --     noteStemOffsetY =  negate $ convert space * 3.5 / 2 + (stemShortenAtOuterNote / 2)
+    --     noteStemOffsetY =  negate $ convert space * 3.5 / 2 + (stemShortenAtOuterNote / 2)
 engraveNote = engraveNote'
 
 engraveNote' :: HalfSpaces -> Direction -> NoteHead -> Engraving
@@ -931,10 +969,10 @@ engraveChord chord = mempty
     -- <> engraveCrossBeams (crossBeams (stem chord))
 
     -- <> engraveDots dotsN positionsN
-    -- <> engraveAccidentals accidentalsN
+    <> engraveAccidentals accidentalsN
     -- <> engraveArticulations directionN outerNoteN (tied chord) (slurred chord) (articulations chord)
     -- <> engraveVerticalLines (topNoteN, bottomNoteN) (verticalLines chord)
-    <> engraveLedgerLines ledgerLinesN
+    <> engraveLedgers ledgersN
     where                               
         directionN    =  (getStemDirection . stemDirection . stem $ chord) . defaultStemDirection . getNotePositions . notes $ chord
         restN         =  rest chord
@@ -942,7 +980,7 @@ engraveChord chord = mempty
         accidentalsN  =  getNoteAccidentals (notes chord)                 
         positionsN    =  getNotePositions (notes chord)
         dotsN         =  dots chord
-        ledgerLinesN  =  ledgerLines directionN positionsN
+        ledgersN      =  ledgers directionN positionsN
         topNoteN      =  maximum positionsN
         bottomNoteN   =  minimum positionsN
         outerNoteN    =  if isUp directionN then topNoteN else bottomNoteN

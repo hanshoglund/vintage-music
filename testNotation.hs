@@ -22,34 +22,22 @@ import qualified Data.Foldable as Foldable
 
 
 
-
--- remove seconds and unisons
--- draw dot at each adjacent space or above
-engraveDots' :: Dots -> [NoteHeadPosition] -> Engraving
-engraveDots' = undefined -- TODO
-    where  
---        column  = 
-        dot     =  circle (convert $ HalfSpaces 0.33)
-
-
-select2 :: Ord a => (a -> a -> Bool) -> [a] -> [a]
-select2 f xs =
-    (fmap fst pairs) `merge` singles 
-    where
-        (pairs, singles) = partition2 f xs
-
-
-
-
-
 renderN :: Notation -> Engraving
-renderN _ = accidentalsE
-    -- <> allE
-    -- `below` (scale 1.2 . center 6 $ minorE)
-    -- `below` chord2E
+renderN _ = mempty
+    <> dotsE
+    <> accidentalsE
+    -- `above` allE
+    -- `above` (scale 1.2 . center 6 $ minorE)
+    <> chord2E
+
+dotsE = mempty
+    <> bigCross
+    <> noteLines # scaleX 4
+    <> engraveDots 6 [-4,0,0,1,5,7]  
 
 accidentalsE = mempty
-    <> noteLines # scaleX 4
+    <> bigCross
+--    <> noteLines # scaleX 4
     <> engraveAccidentals 
         [
             (3, Sharp),
@@ -63,11 +51,11 @@ minorE = mempty
     <> (alignL $ noteLines # scaleX 12) 
     <> (catRight $ map (engraveNoteHead 0) $ (++ [DiamondNoteHead, CrossNoteHead, CircledCrossNoteHead, UnfilledSquareNoteHead, FilledSquareNoteHead]) $ map (noteHeadFromNoteValue) [1,1/2,1/4,1/8,1/16])
     `leftTo` strutX 1
-    `leftTo` (catRight $ map (engraveRest . restFromNoteValue) [1,1/2,1/4,1/8,1/16])
+    `leftTo` (catRight $ map (withBigCross . engraveRest . restFromNoteValue) [1,1/2,1/4,1/8,1/16])
     `leftTo` strutX 1
-    `leftTo` (catRight $ map engraveAccidental $ enumFromTo minBound maxBound)
+    `leftTo` (catRight $ map (withBigCross . engraveAccidental) $ enumFromTo minBound maxBound)
     `leftTo` strutX 1
-    `leftTo` (catRight $ map engraveArticulation $ enumFromTo minBound maxBound)
+    `leftTo` (catRight $ map (withBigCross . engraveArticulation) $ enumFromTo minBound maxBound)
 
 chord2E = mempty
     <> noteLines # scaleX 10
@@ -77,7 +65,8 @@ chord2E = mempty
         drawNotes stemDir = mempty
             <> engraveStem stemDir notes
             <> engraveNoteHeads stemDir notes
-            <> engraveLedgerLines (ledgerLines stemDir (map fst notes))
+            <> engraveLedgers (ledgers stemDir (map fst notes))
+            <> bigCross
         notes = 
             [
                 (2, UnfilledSquareNoteHead),
@@ -110,7 +99,7 @@ ledgersE = mempty
     <> engraveClef trebleClef # translate (r2 (-2,0))
     <> engraveNote 10 down UnfilledNoteHead
     <> engraveNote (-9) up UnfilledNoteHead
-    <> engraveLedgerLines (ledgerLines up [-9,2,3,10])
+    <> engraveLedgers (ledgers up [-9,2,3,10])
 
 
 
@@ -161,8 +150,11 @@ clefE = mempty
         `leftTo` engraveClef subBassClef
        ) # translate (r2 (-5, 0))
 
-
-
+withBigCross = (<> bigCross)
+bigCross = (e . st) (hrule 2 <> vrule 2) 
+    where 
+        e  = withEnvelope emptyEnvelope
+        st = lineColor darkblue
 
 -- Instance so we can use 'draw'
 instance Render Notation Graphic where

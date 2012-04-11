@@ -27,13 +27,13 @@ module Music.Util
 -- * Numbers
     negateIf,
     negateIfNot,
-    absDif,
+    absoluteDifference,
+    closerThan,
     mean,
 
--- * Tuples
-    mapFirst,
-    mapSecond,
-    mapPair,
+-- * Tuples  
+    curry3,
+    uncurry3,
     duplicate,
     triplicate,
     fst3,
@@ -41,6 +41,9 @@ module Music.Util
     trd3,
     prod2,
     prod3, 
+    mapFirst,
+    mapSecond,
+    mapPair,
     
 -- * Foldable 
     removeNothingLeft,
@@ -98,8 +101,11 @@ negateIfNot :: Num a => (a -> Bool) -> a -> a
 negateIfNot = (negate `onlyIfNot`)
 
 -- | Absolute difference.
-absDif :: Num a => a -> a -> a
-absDif x y = abs (x - y)
+absoluteDifference :: Num a => a -> a -> a
+absoluteDifference x y = abs (x - y)
+
+closerThan :: (Ord a, Num a) => a -> a -> a -> Bool
+closerThan r x y = x `absoluteDifference` y < r
 
 -- | Mean of the given values.
 mean :: Fractional a => [a] -> a 
@@ -109,6 +115,12 @@ mean xs = sum xs / fromIntegral (length xs)
 --
 -- Tuples
 --
+
+curry3 :: ((a, b, c) -> d) -> a -> b -> c -> d
+curry3 f a b c = f (a,b,c)
+
+uncurry3 :: (a -> b -> c -> d) -> ((a, b, c) -> d)
+uncurry3 f ~(a,b,c) = f a b c
 
 -- | Map over first element. Compare "Control.Arrow.first".
 mapFirst :: (a -> b) -> (a, c) -> (b, c)
