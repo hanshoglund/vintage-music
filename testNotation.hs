@@ -4,6 +4,7 @@
     NoMonomorphismRestriction #-}
 
 import Data.Convert
+import Data.Ord (comparing)
 import Data.Indexed
 import Data.Trivial
 
@@ -17,59 +18,46 @@ import Music.Notable.Core
 import Music.Notable.Core.Diagrams
 import Music.Notable.Engraving
 
+import qualified Data.Foldable as Foldable
 
 
 
 
+-- remove seconds and unisons
+-- draw dot at each adjacent space or above
+engraveDots' :: Dots -> [NoteHeadPosition] -> Engraving
+engraveDots' = undefined -- TODO
+    where  
+--        column  = 
+        dot     =  circle (convert $ HalfSpaces 0.33)
 
--- | Column of accidentals, numbered from right to left. 
---   The column closest to the note heads has number zero. 
-type AccidentalColumn = Int
 
--- TODO assumes the list is sorted by index in increasing order 
-
-separateAccidentals :: [(AccidentalPosition, Accidental)] -> [(AccidentalColumn, AccidentalPosition, Accidental)]
-separateAccidentals = foldr addColumn []
-
--- | Fold over a list of accidentals, 
-addColumn (position, accidental) as = (column, position, accidental) : as
+select2 :: Ord a => (a -> a -> Bool) -> [a] -> [a]
+select2 f xs =
+    (fmap fst pairs) `merge` singles 
     where
-        column = findColumn 0 (position, accidental) as 
-
--- | The expression `findColumn col a as` returns a column greater than or equal to `col` in
---   which there is space available for accidental `a`, given a set of previous accidentals `as`.
-findColumn col a as 
-    | spaceAvailable col a as  =  col
-    | otherwise                =  findColumn (succ col) a as
-
--- | The expression `spaceAvailable column a as` determines whether the accidental `a` can 
---   fit into the column `col`, given a set of previous accidentals `as`. 
-spaceAvailable column (position, accidental) as 
-    | null notesInColumn  =  True
-    | otherwise           =  upperNoteBound >= lowerNoteBound 
-    where
-        notesInColumn   =  filter (\a -> getAccCol a == column) as
-        upperNote       =  head notesInColumn
-        upperNoteBound  =  getAccPos upperNote - minSpaceBelow (getAccAcc upperNote)
-        lowerNoteBound  =  position + minSpaceAbove accidental
-    
-getAccCol = fst3
-getAccPos = snd3
-getAccAcc = trd3                                
-
-
-ac = Prelude.reverse . map (\a -> (getAccCol a, getHalfSpaces $ getAccPos a, getAccAcc a))
-        
+        (pairs, singles) = partition2 f xs
 
 
 
 
 
 renderN :: Notation -> Engraving
-renderN _ = mempty
-    <> allE
-    `below` (scale 1.2 . center 6 $ minorE)
-    `below` chord2E
+renderN _ = accidentalsE
+    -- <> allE
+    -- `below` (scale 1.2 . center 6 $ minorE)
+    -- `below` chord2E
+
+accidentalsE = mempty
+    <> noteLines # scaleX 4
+    <> engraveAccidentals 
+        [
+            (3, Sharp),
+            (0, Sharp),
+            (-2, Natural),
+            (-4, Natural)
+        ]
+
 
 minorE = mempty
     <> (alignL $ noteLines # scaleX 12) 
@@ -99,9 +87,6 @@ chord2E = mempty
                 (-6, FilledNoteHead),
                 (-12, UnfilledNoteHead)
             ]
-             
----------
-
 
 
 

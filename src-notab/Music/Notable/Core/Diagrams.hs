@@ -44,7 +44,7 @@ getY :: R2 -> Double
 getY = snd . unr2
 
 catLeft :: (V a ~ R2, HasOrigin a, Monoid a, Semigroup a, Juxtaposable a) => [a] -> a
-catLeft = cat (negateV unitY)
+catLeft = cat (negateV unitX)
 
 catRight :: (V a ~ R2, HasOrigin a, Monoid a, Semigroup a, Juxtaposable a) => [a] -> a
 catRight = cat unitX

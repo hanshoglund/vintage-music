@@ -27,6 +27,7 @@ module Music.Util
 -- * Numbers
     negateIf,
     negateIfNot,
+    absDif,
     mean,
 
 -- * Tuples
@@ -39,9 +40,19 @@ module Music.Util
     snd3,
     trd3,
     prod2,
-    prod3
-)
+    prod3, 
+    
+-- * Foldable 
+    removeNothingLeft,
+    removeNothingRight,
+)     
+
 where
+
+import Data.Tuple ( swap )
+
+import Data.Foldable ( Foldable(..) )
+import qualified Data.Foldable
 
 --
 -- Booleans
@@ -86,11 +97,13 @@ negateIf = (negate `onlyIf`)
 negateIfNot :: Num a => (a -> Bool) -> a -> a
 negateIfNot = (negate `onlyIfNot`)
 
--- | Standard mean.
+-- | Absolute difference.
+absDif :: Num a => a -> a -> a
+absDif x y = abs (x - y)
+
+-- | Mean of the given values.
 mean :: Fractional a => [a] -> a 
 mean xs = sum xs / fromIntegral (length xs)
--- TODO generalize for any foldable with size ?
-
 
 
 --
@@ -138,3 +151,18 @@ prod3 :: (a -> b -> c) -> (m -> n -> o) -> (x -> y -> z) -> (a, m, x) -> (b, n, 
 prod3 f g h (x, y, z) (x', y', z') = (f x x', g y y', h z z')
 
 
+--
+-- Foldable
+-- 
+
+removeNothingLeft :: Foldable t => t (Maybe a, b) -> [(a, b)]
+removeNothingLeft = Data.Foldable.foldr rm []
+    where
+        rm (Nothing, b) xs  =  xs
+        rm (Just x, b)  xs  =  (x, b) : xs
+
+removeNothingRight :: Foldable t => t (a, Maybe b) -> [(a, b)]
+removeNothingRight = Data.Foldable.foldr rm []
+    where
+        rm (a, Nothing) xs  =  xs
+        rm (a, Just x)  xs  =  (a, x) : xs

@@ -349,12 +349,12 @@ engraveInstruction = undefined
 --
 
 data NonSpacedObject 
-    = Beams Beams
-    | TremoloBeams TremoloBeams 
-    | Tie Direction
-    | Slur Direction 
-    | TupletBracket Direction
-    | Instruction String
+    = StaffBeams Beams
+    | StaffTremoloBeams TremoloBeams 
+    | StaffTie Direction
+    | StaffSlur Direction 
+    | StaffTupletBracket Direction
+    | StaffInstruction String
     
 data SpacedObject 
     = StaffClef Clef

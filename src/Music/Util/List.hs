@@ -17,6 +17,8 @@ module Music.Util.List
 -- * Safe versions
     maximum',
     minimum',
+    maximumWith,
+    minimumWith,
 
 -- * Special searches
     filter2,
@@ -46,6 +48,9 @@ module Music.Util.List
     update,
     adjust,
     nonEmpty,
+    invertOrdering,
+    reverseSort,
+    reverseSortBy,
     merge,
     mergeBy,
     mergeZip,
@@ -68,6 +73,12 @@ maximum' = fmap maximum . nonEmpty
 -- | Safe version of 'minimum'.
 minimum' :: Ord a => [a] -> Maybe a
 minimum' = fmap minimum . nonEmpty
+
+maximumWith :: Ord a => a -> [a] -> a
+maximumWith z = maybe z id . maximum'
+
+minimumWith :: Ord a => a -> [a] -> a
+minimumWith z = maybe z id . minimum'
 
 
 --
@@ -206,13 +217,19 @@ update n z (x:xs) = x:(update (pred n) z xs)
 nonEmpty :: [a] -> Maybe [a] 
 nonEmpty [] = Nothing
 nonEmpty xs = Just xs   
-             
-invOrdering LT = GT
-invOrdering EQ = EQ
-invOrdering GT = LT
 
-sortInv :: Ord a => [a] -> [a]
-sortInv = sortBy (\x y -> invOrdering $ compare x y)
+invertOrdering :: Ordering -> Ordering             
+invertOrdering LT = GT
+invertOrdering EQ = EQ
+invertOrdering GT = LT
+
+-- | Equivalent to @reverse . sort@, but more efficient.
+reverseSort :: Ord a => [a] -> [a]
+reverseSort = reverseSortBy compare
+
+-- | Equivalent to @reverse . sortBy comp@, but more efficient.
+reverseSortBy :: (a -> a -> Ordering) -> [a] -> [a]
+reverseSortBy comp = sortBy (\x y -> invertOrdering $ x `comp` y)
 
 
 
