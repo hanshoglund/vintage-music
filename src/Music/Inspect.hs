@@ -5,6 +5,8 @@
     Maintainer  :  hans@hanshoglund.se
     Stability   :  experimental
     Portability :  portable
+
+    This module contains utility functions for playing and displaying music.
 -}
 
 {-# LANGUAGE

@@ -27,6 +27,7 @@ module Music.Util
 -- * Numbers
     negateIf,
     negateIfNot,
+    mean,
 
 -- * Tuples
     mapFirst,
@@ -34,6 +35,9 @@ module Music.Util
     mapPair,
     duplicate,
     triplicate,
+    fst3,
+    snd3,
+    trd3,
     prod2,
     prod3
 )
@@ -82,6 +86,12 @@ negateIf = (negate `onlyIf`)
 negateIfNot :: Num a => (a -> Bool) -> a -> a
 negateIfNot = (negate `onlyIfNot`)
 
+-- | Standard mean.
+mean :: Fractional a => [a] -> a 
+mean xs = sum xs / fromIntegral (length xs)
+-- TODO generalize for any foldable with size ?
+
+
 
 --
 -- Tuples
@@ -106,6 +116,18 @@ duplicate x = (x, x)
 -- | Triplicate element.
 triplicate :: a -> (a, a, a)
 triplicate x = (x, x, x)
+
+-- | Projection of triples.
+fst3 :: (a, b, c) -> a
+fst3 (x, y, z) = x
+
+-- | Projection of triples.
+snd3 :: (a, b, c) -> b
+snd3 (x, y, z) = y
+
+-- | Projection of triples.
+trd3 :: (a, b, c) -> c
+trd3 (x, y, z) = z
 
 -- | Lift binary functions to square.
 prod2 :: (a -> b -> c) -> (x -> y -> z) -> (a, x) -> (b, y) -> (c, z)

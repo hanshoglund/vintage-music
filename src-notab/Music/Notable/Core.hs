@@ -123,11 +123,11 @@ instance Convert HalfSpaces Spaces where
 
 -- | Exactly one space.
 space :: Spaces
-space = Spaces 1
+space = 1 :: Spaces
 
 -- | Exactly one half-space.
 halfSpace :: HalfSpaces
-halfSpace = HalfSpaces 1
+halfSpace = 1 :: HalfSpaces
 
 -- | A prime, or 0 halfspaces.
 prime :: HalfSpaces

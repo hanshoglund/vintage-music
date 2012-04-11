@@ -52,7 +52,7 @@ module Music.Util.List
 )
 where
 
-import Data.List ( reverse )
+import Data.List
 import Data.Maybe ( fromMaybe )
 import Data.Tuple ( swap )
 import Music.Util ( mapFirst, mapSecond )
@@ -206,6 +206,14 @@ update n z (x:xs) = x:(update (pred n) z xs)
 nonEmpty :: [a] -> Maybe [a] 
 nonEmpty [] = Nothing
 nonEmpty xs = Just xs   
+             
+invOrdering LT = GT
+invOrdering EQ = EQ
+invOrdering GT = LT
+
+sortInv :: Ord a => [a] -> [a]
+sortInv = sortBy (\x y -> invOrdering $ compare x y)
+
 
 
 -- | Merge two sorted lists, preserving order of elements.

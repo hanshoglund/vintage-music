@@ -33,26 +33,29 @@ module Music.Notable.Engraving.Chord
 
 -- ** Dots
     Dots,
+    engraveDots,
 
 -- ** Stems
-    AdjustStem,
-    engraveStem,
-    stemLength,
-    stemXOffset,
-    stemYOffset,
+    StemAdjustment,
     StemDirection(..),
     stemUp,
     stemDown,
     flipStem,
     defaultStemDirection,
+    stemLength,
+    stemXOffset,
+    stemYOffset,
+    engraveStem,
 
 -- *** Flags
     Flags,
+    engraveFlags,
+
 -- *** Cross beams
     CrossBeams,
+    engraveCrossBeams,
 
-
--- ** From note values
+-- ** Conversion from note values
     noteHeadFromNoteValue,
     flagsFromNoteValue,
     restFromNoteValue,
@@ -63,17 +66,21 @@ module Music.Notable.Engraving.Chord
 -- * Additional components
 -- ** Accidentals
     Accidental(..),
+    AccidentalPosition(..),
     minSpaceAbove,
     minSpaceBelow,
     engraveAccidental,
+    engraveAccidentals,
 
 -- ** Articulation
     Articulation(..),
     alwaysAbove,
     engraveArticulation,
+    engraveArticulations,
 
 -- ** Vertical lines
     VerticalLine(..),
+    engraveVerticalLines,
 
 -- * Ledger lines
     LongShortOffset,
@@ -93,11 +100,9 @@ module Music.Notable.Engraving.Chord
     splitNotes,
     getNotePositions,
     getNoteHeads,
-    getNoteAccidentals,    
-    engraveNote,
-    engraveChord,
+    getNoteAccidentals,
 
--- ** Positions
+-- ** Positioning
     notePositions,
     highestNotePosition,
     lowestNotePosition,
@@ -111,7 +116,11 @@ module Music.Notable.Engraving.Chord
     tupletAboveAnchor,
     tupletBelowAnchor,
     glissandoBeforeAnchor,
-    glissandoAfterAnchor
+    glissandoAfterAnchor,
+    
+-- ** Engraving
+    engraveNote,
+    engraveChord,
 )
 where
 
@@ -181,7 +190,7 @@ restFromIndex x = toEnum (x + 1)
 
 instance Symbolic Rest where
     symbol WholeNoteRest          =  (baseMusicFont, "\xd3")
-    symbol HalfNoteRest           =  (baseMusicFont, "\x2211") 
+    symbol HalfNoteRest           =  (baseMusicFont, "\x2211")
     symbol QuarterNoteRest        =  (baseMusicFont, "\x152")
     symbol EightNoteRest          =  (baseMusicFont, "\x2030")
     symbol SixteenthNoteRest      =  (baseMusicFont, "\x2248")
@@ -238,7 +247,7 @@ hasStem :: NoteHead -> Bool
 hasStem BrevisNoteHead    =  False
 hasStem WholeNoteHead     =  False
 hasStem UnfilledNoteHead  =  True
-hasStem FilledNoteHead    =  True 
+hasStem FilledNoteHead    =  True
 
 
 
@@ -296,7 +305,7 @@ engraveRightNoteHeadColumn = engraveNoteHeadColumn False
 engraveNoteHeadColumn isLeft notes =
     mconcat . fmap (\(p, n) -> align $ engraveNoteHead p n) $ notes
         where
-            align = if isLeft then alignR else alignL    
+            align = if isLeft then alignR else alignL
 
 -- | Engraves the given set of note heads.
 --
@@ -315,22 +324,30 @@ engraveNoteHeads' stemDir notes =
     where
         (leftNotes, rightNotes)  =  separateNoteHeadsWith stemDir notes
         leftColumn   =  engraveLeftNoteHeadColumn leftNotes
-        rightColumn  =  engraveRightNoteHeadColumn rightNotes        
-        mainColumn = if (isUp stemDir) then leftColumn else rightColumn 
+        rightColumn  =  engraveRightNoteHeadColumn rightNotes
+        mainColumn   =  if (isUp stemDir) then leftColumn else rightColumn
 
         mainColumnXOffset  =  negateIfDown stemDir (width mainColumn / 2)
         position           =  translate (r2 (mainColumnXOffset, 0))
-
--- | This function invokes 'engraveRest' if the given set of notes is empty 'engraveNoteHeads'
---   otherwise.
+                                    
+-- | Like to 'engraveRest' if the given set of notes is empty, or 'engraveNoteHeads' otherwise.
 engraveRestOrNoteHeads :: Rest -> Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
 engraveRestOrNoteHeads rest stemDir noteHeads
     | null noteHeads  =  engraveRest rest
     | otherwise       =  engraveNoteHeads stemDir noteHeads
 
 
+--
+-- Dots
+--
+
 -- | Number of dots.
 type Dots = Int
+
+engraveDots :: Dots -> [NoteHeadPosition] -> Engraving
+engraveDots = undefined -- TODO
+
+
 
 --
 -- Stems
@@ -338,6 +355,7 @@ type Dots = Int
 
 -- TODO change to (Chord -> D -> D) and compose with defaultStemDirection ??
 newtype StemDirection = StemDirection (Direction -> Direction)
+    deriving (Eq, Show)
 
 -- | Always use an upward stem.
 stemUp :: StemDirection
@@ -347,24 +365,24 @@ stemUp = StemDirection $ const up
 stemDown :: StemDirection
 stemDown = StemDirection $ const down
 
+defaultStem :: StemDirection
+defaultStem = StemDirection id
+
 -- | Flip the default stem direction.
 flipStem :: StemDirection
 flipStem = StemDirection $ Direction . not . getDirection
 
-
-
--- FIXME set line color to transparent and increase stemWeight
 engraveStem :: Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
 engraveStem stemDir notes =
     pos $ style $ rect stemWeight (convert $ stemLength notes)
-    where                                                       
+    where
         pos    =  translate (r2 (convert $ posX, convert $ posY))
         posX   =  stemXOffset stemDir notes
         posY   =  stemYOffset stemDir notes
-        style  =  fillColor black
+        style  =  fillColor black . lineWidth 0
 
 stemLength :: [(NoteHeadPosition, NoteHead)] -> HalfSpaces
-stemLength notes 
+stemLength notes
     | length notes == 0  =  error "stemLength: Note list is empty"
     | otherwise       =  octave + (highest - lowest)
     where
@@ -375,7 +393,7 @@ stemXOffset :: Direction -> [(NoteHeadPosition, NoteHead)] -> HalfSpaces
 stemXOffset stemDir = convert . fst . engraveNoteHeads' stemDir
 
 stemYOffset :: Direction -> [(NoteHeadPosition, NoteHead)] -> HalfSpaces
-stemYOffset stemDir notes 
+stemYOffset stemDir notes
     | length notes == 0  =  error "stemYOffset: Note list is empty"
     | otherwise          =  0 + (negateIfDown stemDir $ stemLength notes) / 2 + outerNote
     where
@@ -385,31 +403,35 @@ stemYOffset stemDir notes
 
 
 -- | Amount to add to stem length. May be negative.
-type AdjustStem = Double
-
+type StemAdjustment = Double
 
 -- | Returns the default direction for the given note heads.
 defaultStemDirection :: [NoteHeadPosition] -> Direction
 defaultStemDirection [] = down
-defaultStemDirection xs | (m > 0)    =  up
-                        | otherwise  =  down 
-                        where
-                            m = mean . map signum $ xs
-                            mean xs = sum xs / fromIntegral (length xs)
+defaultStemDirection xs 
+    | (m > 0)    =  up
+    | otherwise  =  down
+    where
+        m = mean . map signum $ xs
 
 
 -- | Number of flags on a stem.
 --   This is the number of flags to actually engrave, irrespective of beams and crossbeams.
 type Flags = Int
 
--- | (internal)
 flagsFromIndex :: Int -> Flags
 flagsFromIndex x = max 0 (x - 2)
+
+engraveFlags :: Flags -> Engraving
+engraveFlags = undefined -- TODO
+
 
 -- | Number of crossbeams.
 --   This is the number of crossbeams to actually engrave, irrespective of flags and beams.
 type CrossBeams = Int
 
+engraveCrossBeams :: CrossBeams -> Engraving
+engraveCrossBeams = undefined -- TODO
 
 
 
@@ -430,6 +452,8 @@ flagsFromNoteValue x = f where (r, h, f, d) = fromNoteValue x
 dotsFromNoteValue :: NoteValue -> Dots
 dotsFromNoteValue x = d where (r, h, f, d) = fromNoteValue x
 
+-- TODO support any number of dots (see notes in Music.Notable.Core)
+
 -- | Returns the rest, note head, number of flags and number of dots typically used to indicate
 --   the given note value.
 fromNoteValue :: NoteValue -> (Rest, NoteHead, Flags, Dots)
@@ -439,8 +463,6 @@ fromNoteValue x = (restFromIndex val, noteHeadFromIndex val, flagsFromIndex val,
         dots' = case dots of
             0.0 -> 0
             _   -> 1
--- TODO something more sophisticated for multiple dots etc.
-
 
 
 
@@ -456,6 +478,9 @@ data Accidental
     | DoubleSharp
     deriving (Eq, Show, Ord, Bounded, Enum)
 
+-- | Position that the accidental will indicate, offset from middle line.
+type AccidentalPosition = HalfSpaces
+
 instance Symbolic Accidental where
     symbol DoubleFlat   =  (baseMusicFont, "\x222b")
     symbol Flat         =  (baseMusicFont, "b")
@@ -465,23 +490,37 @@ instance Symbolic Accidental where
 
 -- | Minimum space required above the given accidental (Tyboni p 24).
 minSpaceAbove :: Accidental -> HalfSpaces
-minSpaceAbove DoubleFlat   =  2
-minSpaceAbove Flat         =  2
+minSpaceAbove DoubleFlat   =  3
+minSpaceAbove Flat         =  3
 minSpaceAbove Natural      =  3
 minSpaceAbove Sharp        =  3
-minSpaceAbove DoubleSharp  =  2
+minSpaceAbove DoubleSharp  =  1
 
 -- | Minimum space required below the given accidental (Tyboni p 24).
 minSpaceBelow :: Accidental -> HalfSpaces
-minSpaceBelow DoubleFlat   =  3
-minSpaceBelow Flat         =  3
+minSpaceBelow DoubleFlat   =  2
+minSpaceBelow Flat         =  2
 minSpaceBelow Natural      =  3
 minSpaceBelow Sharp        =  3
-minSpaceBelow DoubleSharp  =  2
+minSpaceBelow DoubleSharp  =  1
 
 -- | Engraves a rest.
 engraveAccidental :: Accidental -> Engraving
 engraveAccidental = engraveSymbol . symbol
+
+separateAccidentals :: [(AccidentalPosition, Accidental)] -> [[(AccidentalPosition, Accidental)]]
+separateAccidentals = undefined
+
+-- precond: ordered by pos
+separateAccidentals' :: [(AccidentalPosition, Accidental)] -> [(Int, AccidentalPosition, Accidental)]
+separateAccidentals' = foldr (\(p,a) xs -> (0, p, a) : xs) []
+
+engraveAccidentals :: [(AccidentalPosition, Accidental)] -> Engraving
+engraveAccidentals = undefined -- TODO
+
+
+-- start at top
+-- if collision, move to next column
 
 
 --
@@ -532,6 +571,10 @@ alwaysAbove Staccato  =   False
 engraveArticulation :: Articulation -> Engraving
 engraveArticulation = engraveSymbol . symbol
 
+-- | `engraveArticulations dir tied slurred`
+engraveArticulations :: Direction -> Bool -> Bool -> [Articulation] -> Engraving
+engraveArticulations = undefined -- TODO
+
 
 --
 -- Vertical lines
@@ -541,6 +584,8 @@ data VerticalLine
     = Arpeggio
     deriving (Eq, Show)
 
+engraveVerticalLines :: [NoteHeadPosition] -> [VerticalLine] -> Engraving
+engraveVerticalLines = undefined -- TODO
 
 --
 -- Ledger lines
@@ -603,7 +648,7 @@ ledgerLinesBelow staffLines direction positions =
 -- | Engraves ledger lines, with the origin in at the default note column in the middle line
 engraveLedgerLines :: LedgerLines -> Engraving
 engraveLedgerLines ( LedgerLines ( (longAbove, shortAbove, offsetAbove),
-                                   (longBelow, shortBelow, offsetBelow)) ) =
+                                   (longBelow, shortBelow, offsetBelow)) ) = 
     aboveE <> belowE
     where
         aboveE   = moveHalfSpacesUp offsetAbove . catUp   . replicate shortAbove $ ledgerE
@@ -621,54 +666,66 @@ engraveLedgerLines ( LedgerLines ( (longAbove, shortAbove, offsetAbove),
 --
 
 data Stem =
-    Stem { stemType   :: Direction,
-           adjustStem :: AdjustStem,
+    Stem { -- | Direction of stem.
+           stemDirection   :: StemDirection,
+           -- | Adjustment for stem.
+           stemAdjustment :: StemAdjustment,
+           -- | Flags to draw on stem.
            flags      :: Flags,
+           -- | Cross beams to draw on stem.
            crossBeams :: CrossBeams }
     deriving (Eq, Show)
 
 data Note =
-    Note { noteHeadPosition :: NoteHeadPosition,
+    Note { -- | Position of note head.
+           noteHeadPosition :: NoteHeadPosition,
+           -- | Type of note head.
            noteHead         :: NoteHead,
+           -- | Accidental to draw for this note head (irrespective of previous accidentals in the same bar).
            accidental       :: Maybe Accidental }
     deriving (Eq, Show)
 
 data Chord =
-    Chord { notes         :: [Note],
+    Chord { -- | List of notes.
+            notes         :: [Note],
             -- | Rest to display if the note list is empty.
             rest          :: Rest,
+            -- | Number of dots.
             dots          :: Dots,
+            -- | Properties of stem (if visible).
             stem          :: Stem,
             -- | Whether the note is to be tied (affects placement of slurs and articulations).
             tied          :: Bool,
             -- | Whether the note is to be slurred (affects placement of articulations).
             slurred       :: Bool,
+            -- | List of articulations.
             articulations :: [Articulation],
-            verticalLines :: [VerticalLine] }
+            -- | List of vertical lines.
+            verticalLines :: [VerticalLine] } 
     deriving (Eq, Show)
 
 instance Trivial Stem where
     trivial =
-        Stem { stemType = down,
-               adjustStem = 0,
+        Stem { stemDirection = defaultStem,
+               stemAdjustment = 0,
                flags = 0,
                crossBeams = 0 }
 
 instance Trivial Note where
-    trivial = 
+    trivial =
         Note { noteHeadPosition = 0,
                noteHead = WholeNoteHead,
                accidental = Nothing }
 
 instance Trivial Chord where
-    trivial = 
-        Chord { notes = [], 
-                rest = WholeNoteRest, 
-                dots = 0, 
-                stem = trivial,  
+    trivial =
+        Chord { notes = [],
+                rest = WholeNoteRest,
+                dots = 0,
+                stem = trivial,
                 tied = False,
                 slurred = False,
-                articulations = [], 
+                articulations = [],
                 verticalLines = [] }
 
 splitNote :: Note -> ((NoteHeadPosition, NoteHead), Maybe Accidental)
@@ -685,11 +742,6 @@ getNoteHeads = map snd . fst . splitNotes
 
 getNoteAccidentals :: [Note] -> [Maybe Accidental]
 getNoteAccidentals = snd . splitNotes
-
-
--- | Engraves a chord. The origin will be at the middle line, at the standard note column.
-engraveChord :: Chord -> Engraving
-engraveChord = undefined
 
 
 notePositions :: Chord -> [R2]
@@ -742,6 +794,21 @@ glissandoAfterAnchor :: Chord -> R2
 glissandoAfterAnchor = undefined
 
 
+-- | Engraves a chord. The origin will be in the main column at the middle line.
+--   (see 'engraveNoteHeads' for an explanation of columns).
+engraveChord :: Chord -> Engraving
+engraveChord = 
+    undefined
+    -- engraveRestOrNoteHeads
+    -- engraveStem
+    -- engraveDots
+    -- engraveFlags
+    -- engraveCrossBeams
+    -- engraveAccidentals
+    -- engraveArticulations
+    -- engraveVerticalLines    
+
+
 
 -- TODO reimplement in terms of engraveChord
 
@@ -751,7 +818,7 @@ engraveNote pos dir noteHead =
     moveHalfSpacesUp pos $ headE <> stemE <> spaceE
     where
         spaceE  =  spaceRect (fst . unr2 $ noteHeadSpace) (convert space)
-        
+
         headE   =  position $ engraveSymbolFloating (symbol noteHead)
             where { position = translate (r2 (0.5 * getX noteHeadSpace,0)) }
 
@@ -765,5 +832,5 @@ engraveNote pos dir noteHead =
         noteStemOffset  =  r2 . negateIfDown dir $ (noteStemOffsetX, noteStemOffsetY)
         noteStemOffsetX =  (getX $ noteHeadSpace / 2) + stemInset
         noteStemOffsetY =  negate $ convert space * 3.5 / 2 + (stemShortenAtOuterNote / 2)
-        
-        
+
+

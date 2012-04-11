@@ -19,39 +19,17 @@ module Music.Notable.Engraving.System
     engraveBracket,
     engraveBrace,
     engraveAccolade,
+    engraveStaffList,
 
 
--- -- * Staves
---     engraveStaff,
+-- * Staves
+    engraveStaves,
 
 -- * Cross-staff objects
--- 
--- -- ** Barlines
--- 
--- -- ** Beams
---     Beams,
---     engraveBeams,
--- 
--- -- *** Tremolo beams
---     TremoloBeams,
---     engraveTremoloBeams,
--- 
--- -- ** Ties
---     engraveTie,
--- 
--- -- ** Slurs
---     engraveSlur,
--- 
--- -- ** Tuplets
---     engraveTuplet,
--- 
--- -- ** Text
---     Instruction(..),
---     engraveInstruction,
-
+    CrossStaffObject(..),
+    engraveCrossStaffObjects,
 
 -- * Systems
-    CrossStaffObject(..),
     System(..),
     engraveSystem,
 )
@@ -93,6 +71,12 @@ engraveBrace = undefined
 engraveAccolade  :: Accolade a -> Engraving
 engraveAccolade = undefined
 
+type StaffList = Accolade String
+
+engraveStaffList :: StaffList -> Engraving
+engraveStaffList = undefined
+
+
 
 --
 -- Systems
@@ -105,13 +89,28 @@ data CrossStaffObject
     | CrossStaffTie
     | CrossStaffSlur
     | CrossStaffTupletBracket
-
+    
 data System = 
     System { barNumber :: Maybe BarNumber,
              staffList :: Maybe (Accolade String),
              staves    :: [(HalfSpaces, Staff)],
              crossStaffObjects :: [([(Index [Staff], Index [SpacedObject])], CrossStaffObject)] }
 
-engraveSystem :: System -> Engraving
-engraveSystem = undefined
 
+engraveStaves :: [(HalfSpaces, Staff)] -> Engraving
+engraveStaves = undefined -- TODO
+
+engraveCrossStaffObjects :: [(HalfSpaces, Staff)] 
+                         -> [([(Index [Staff], Index [SpacedObject])], CrossStaffObject)] 
+                         -> Engraving
+engraveCrossStaffObjects = undefined -- TODO
+
+
+engraveSystem :: System -> Engraving
+engraveSystem = undefined -- TODO
+
+-- leftLine
+-- engraveBarNumber
+-- engraveStaffList
+-- engraveStaves
+-- engraveCrossStaffObjects

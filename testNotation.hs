@@ -10,6 +10,7 @@ import Data.Trivial
 import Music
 import Music.Inspect
 import Music.Render.Graphics
+import Music.Util
 import Music.Util.List
 
 import Music.Notable.Core
@@ -17,10 +18,57 @@ import Music.Notable.Core.Diagrams
 import Music.Notable.Engraving
 
 
+
+
+
+
+-- | Column of accidentals, numbered from right to left. 
+--   The column closest to the note heads has number zero. 
+type AccidentalColumn = Int
+
+-- TODO assumes the list is sorted by index in increasing order 
+
+separateAccidentals :: [(AccidentalPosition, Accidental)] -> [(AccidentalColumn, AccidentalPosition, Accidental)]
+separateAccidentals = foldr addColumn []
+
+-- | Fold over a list of accidentals, 
+addColumn (position, accidental) as = (column, position, accidental) : as
+    where
+        column = findColumn 0 (position, accidental) as 
+
+-- | The expression `findColumn col a as` returns a column greater than or equal to `col` in
+--   which there is space available for accidental `a`, given a set of previous accidentals `as`.
+findColumn col a as 
+    | spaceAvailable col a as  =  col
+    | otherwise                =  findColumn (succ col) a as
+
+-- | The expression `spaceAvailable column a as` determines whether the accidental `a` can 
+--   fit into the column `col`, given a set of previous accidentals `as`. 
+spaceAvailable column (position, accidental) as 
+    | null notesInColumn  =  True
+    | otherwise           =  upperNoteBound >= lowerNoteBound 
+    where
+        notesInColumn   =  filter (\a -> getAccCol a == column) as
+        upperNote       =  head notesInColumn
+        upperNoteBound  =  getAccPos upperNote - minSpaceBelow (getAccAcc upperNote)
+        lowerNoteBound  =  position + minSpaceAbove accidental
+    
+getAccCol = fst3
+getAccPos = snd3
+getAccAcc = trd3                                
+
+
+ac = Prelude.reverse . map (\a -> (getAccCol a, getHalfSpaces $ getAccPos a, getAccAcc a))
+        
+
+
+
+
+
 renderN :: Notation -> Engraving
 renderN _ = mempty
     <> allE
-    `below` (scale 1.3 . center 6 $ minorE)
+    `below` (scale 1.2 . center 6 $ minorE)
     `below` chord2E
 
 minorE = mempty
@@ -74,7 +122,7 @@ caligraphy x = id
 
 ledgersE = mempty
     <> noteLines # scaleX 4
-    <> trebleClef # translate (r2 (-2,0))
+    <> engraveClef trebleClef # translate (r2 (-2,0))
     <> engraveNote 10 down UnfilledNoteHead
     <> engraveNote (-9) up UnfilledNoteHead
     <> engraveLedgerLines (ledgerLines up [-9,2,3,10])
@@ -85,8 +133,7 @@ allE = rotate (10 :: Deg) clefE `above` (scale (1/4) . freeze) chordE `above` ch
 
 chordE = mempty
     <> noteLines # scaleX 15
-    <> (
-        altoClef
+    <> (         engraveClef altoClef
         `leftTo` strutX 0.5
         `leftTo` engraveNote 1 down UnfilledNoteHead
         `leftTo` strutX 1
@@ -110,23 +157,23 @@ clefE = mempty
     <> noteLines # scaleX 15
     <> (
         mempty
-        `leftTo` frenchClef
+        `leftTo` engraveClef frenchClef
         `leftTo` strutX 0.5
-        `leftTo` trebleClef
+        `leftTo` engraveClef trebleClef
         `leftTo` strutX 0.5
-        `leftTo` sopranoClef
+        `leftTo` engraveClef sopranoClef
         `leftTo` strutX 0.5
-        `leftTo` mezzoSopranoClef
+        `leftTo` engraveClef mezzoSopranoClef
         `leftTo` strutX 0.5
-        `leftTo` altoClef
+        `leftTo` engraveClef altoClef
         `leftTo` strutX 0.5
-        `leftTo` tenorClef
+        `leftTo` engraveClef tenorClef
         `leftTo` strutX 0.5
-        `leftTo` baritoneClef
+        `leftTo` engraveClef baritoneClef
         `leftTo` strutX 0.5
-        `leftTo` bassClef
+        `leftTo` engraveClef bassClef
         `leftTo` strutX 0.5
-        `leftTo` subBassClef
+        `leftTo` engraveClef subBassClef
        ) # translate (r2 (-5, 0))
 
 

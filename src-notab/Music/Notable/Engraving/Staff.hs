@@ -211,24 +211,24 @@ engraveClef (clefType, pos) =
     moveHalfSpacesUp pos $ engraveSymbol (symbol clefType)
 
 
-frenchClef        :: Engraving
-trebleClef        :: Engraving
-sopranoClef       :: Engraving
-mezzoSopranoClef  :: Engraving
-altoClef          :: Engraving
-tenorClef         :: Engraving
-baritoneClef      :: Engraving
-bassClef          :: Engraving
-subBassClef       :: Engraving
-frenchClef        = engraveClef (GClef, -4)
-trebleClef        = engraveClef (GClef, -2)
-sopranoClef       = engraveClef (CClef, -4)
-mezzoSopranoClef  = engraveClef (CClef, -2)
-altoClef          = engraveClef (CClef, 0)
-tenorClef         = engraveClef (CClef, 2)
-baritoneClef      = engraveClef (CClef, 4)
-bassClef          = engraveClef (FClef, 2)
-subBassClef       = engraveClef (FClef, 4)
+frenchClef        :: Clef
+trebleClef        :: Clef
+sopranoClef       :: Clef
+mezzoSopranoClef  :: Clef
+altoClef          :: Clef
+tenorClef         :: Clef
+baritoneClef      :: Clef
+bassClef          :: Clef
+subBassClef       :: Clef
+frenchClef        = (GClef, -4)
+trebleClef        = (GClef, -2)
+sopranoClef       = (CClef, -4)
+mezzoSopranoClef  = (CClef, -2)
+altoClef          = (CClef, 0)
+tenorClef         = (CClef, 2)
+baritoneClef      = (CClef, 4)
+bassClef          = (FClef, 2)
+subBassClef       = (FClef, 4)
 
 
 
@@ -242,32 +242,32 @@ type KeySignature = Int
 engraveKeySignature :: KeySignature -> Engraving
 engraveKeySignature = undefined
 
-gFlatMajor  :: Engraving
-dFlatMajor  :: Engraving
-aFlatMajor  :: Engraving
-eFlatMajor  :: Engraving
-bFlatMajor  :: Engraving
-fMajor      :: Engraving
-cMajor      :: Engraving
-gMajor      :: Engraving
-dMajor      :: Engraving
-aMajor      :: Engraving
-eMajor      :: Engraving
-bMajor      :: Engraving
-fSharpMajor :: Engraving
-gFlatMajor  = engraveKeySignature (-6)
-dFlatMajor  = engraveKeySignature (-5)
-aFlatMajor  = engraveKeySignature (-4)
-eFlatMajor  = engraveKeySignature (-3)
-bFlatMajor  = engraveKeySignature (-2)
-fMajor      = engraveKeySignature (-1)
-cMajor      = engraveKeySignature 0
-gMajor      = engraveKeySignature 1
-dMajor      = engraveKeySignature 2
-aMajor      = engraveKeySignature 3
-eMajor      = engraveKeySignature 4
-bMajor      = engraveKeySignature 5
-fSharpMajor = engraveKeySignature 6
+gFlatMajor  :: KeySignature
+dFlatMajor  :: KeySignature
+aFlatMajor  :: KeySignature
+eFlatMajor  :: KeySignature
+bFlatMajor  :: KeySignature
+fMajor      :: KeySignature
+cMajor      :: KeySignature
+gMajor      :: KeySignature
+dMajor      :: KeySignature
+aMajor      :: KeySignature
+eMajor      :: KeySignature
+bMajor      :: KeySignature
+fSharpMajor :: KeySignature
+gFlatMajor  = (-6)
+dFlatMajor  = (-5)
+aFlatMajor  = (-4)
+eFlatMajor  = (-3)
+bFlatMajor  = (-2)
+fMajor      = (-1)
+cMajor      = 0
+gMajor      = 1
+dMajor      = 2
+aMajor      = 3
+eMajor      = 4
+bMajor      = 5
+fSharpMajor = 6
 
 
 --
@@ -370,3 +370,9 @@ data Staff =
 
 engraveStaff :: Staff -> Engraving
 engraveStaff = undefined
+
+-- noteLines
+-- engraveSpacedObjects
+-- engraveNonSpacedObjects
+
+
