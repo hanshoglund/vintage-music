@@ -17,7 +17,6 @@
 module Music.Notable.Engraving.Staff
 (
 -- * Note lines
-    noteLineWeight,
     noteLines,
     noteLines',
 
@@ -25,7 +24,6 @@ module Music.Notable.Engraving.Staff
 -- * Spaced objects
 
 -- ** Barlines
-    barLineWeight,
     singleBarLine,
     doubleBarLine,
 -- *** Rehearsal marks
@@ -117,12 +115,12 @@ import Music.Notable.Engraving.Chord
 --
 
 -- | Thickness of note lines.
-noteLineWeight :: Double
-noteLineWeight = 0.025
+kNoteLineWeight :: Double
+kNoteLineWeight = 0.025
 
 -- | Thickness of barlines.
-barLineWeight :: Double
-barLineWeight  = 0.04
+kBarLineWeight :: Double
+kBarLineWeight  = 0.04
 
 
 --
@@ -145,7 +143,7 @@ noteLines' num =
         where
             placement = moveSpacesUp $ (fromIntegral num - 1) / 2
             noteLine  =  style $ hrule 1 <> {-spaceRect rect 1 space-} strutY (convert space)
-                where { style = lineWidth noteLineWeight }
+                where { style = lineWidth kNoteLineWeight }
 
 --
 -- Bar lines
@@ -160,7 +158,7 @@ singleBarLine = lineE <> spaceE
     where
         spaceE  =  spaceRect (convert space * 4/9) (convert space * 4)
         lineE   =  style $ vrule (4 * convert space) 
-            where { style = lineWidth barLineWeight }
+            where { style = lineWidth kBarLineWeight }
         
 
 -- | A double bar line.

@@ -233,10 +233,11 @@ type Engraving = Diagram Cairo R2
 --type Engraving = (Renderable Text b, Renderable (Path R2) b, Backend b R2) => Diagram b R2
 
 
-
 -- | Creates a transparent rectangle.
 --   This is useful as an alternative to 'withEnvelope' for debugging purposes.
 spaceRect :: Double -> Double -> Engraving
+spaceRect 0 y = strut . r2 $ (0, y)
+spaceRect x 0 = strut . r2 $ (x, 0)
 spaceRect x y = style $ rect x y
     where
         style = fillColor blue . opacity 0.0

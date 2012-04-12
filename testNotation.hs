@@ -1,6 +1,7 @@
 
 {-# LANGUAGE
     MultiParamTypeClasses,
+    TypeSynonymInstances,
     NoMonomorphismRestriction #-}
 
 import Data.Convert
@@ -21,41 +22,67 @@ import Music.Notable.Engraving
 import qualified Data.Foldable as Foldable
 
 
+-- `above` allE
+-- `above` (scale 1.2 . center 6 $ minorE)
 
-renderN :: Notation -> Engraving
-renderN _ = mempty
-    <> dotsE
-    <> accidentalsE
-    -- `above` allE
-    -- `above` (scale 1.2 . center 6 $ minorE)
-    <> chord2E
+-- | Amount of space of space to add to the right of vertical lines.
+kVerticalLineSpace :: Double
+kVerticalLineSpace = convert $ Spaces 0.3
+
+-- | Amount of space to add to the right of accidentals.
+kAccidentalSpace :: Double
+kAccidentalSpace = convert $ Spaces 0.01
+
+-- | Amount of space to add to the left of dots.
+kDotSpace :: Double
+kDotSpace = convert $ Spaces 0.3
+
+
+spaceX x = spaceRect x (convert space)
+spaceY x = spaceRect (convert space) x
+
+mainE :: Engraving
+mainE = mempty    
+    <> bigCross'
+    <> (vrule 2 `leftTo` accidentalsE `leftTo` aS `leftTo` chord3E `leftTo` dS `leftTo` dotsE `leftTo` vrule 2)
+    <> noteLines # scaleX 4
+    where
+        vlS = spaceX kVerticalLineSpace
+        aS = spaceX kAccidentalSpace
+        dS = spaceX kDotSpace
 
 dotsE = mempty
     <> bigCross
-    <> noteLines # scaleX 4
-    <> engraveDots 6 [-4,0,0,1,5,7]  
+    <> engraveDots 3 [-4,0,0,1,5,7]  
 
 accidentalsE = mempty
     <> bigCross
---    <> noteLines # scaleX 4
     <> engraveAccidentals 
         [
-            (3, Sharp),
-            (0, Sharp),
-            (-2, Natural),
+            -- (3, Sharp),
+            -- (0, Sharp),
+            -- (-2, Natural),
             (-4, Natural)
         ]
-
-
-minorE = mempty
-    <> (alignL $ noteLines # scaleX 12) 
-    <> (catRight $ map (engraveNoteHead 0) $ (++ [DiamondNoteHead, CrossNoteHead, CircledCrossNoteHead, UnfilledSquareNoteHead, FilledSquareNoteHead]) $ map (noteHeadFromNoteValue) [1,1/2,1/4,1/8,1/16])
-    `leftTo` strutX 1
-    `leftTo` (catRight $ map (withBigCross . engraveRest . restFromNoteValue) [1,1/2,1/4,1/8,1/16])
-    `leftTo` strutX 1
-    `leftTo` (catRight $ map (withBigCross . engraveAccidental) $ enumFromTo minBound maxBound)
-    `leftTo` strutX 1
-    `leftTo` (catRight $ map (withBigCross . engraveArticulation) $ enumFromTo minBound maxBound)
+chord3E = mempty
+    -- <> engraveRest (restFromNoteValue (1/4))
+    <> drawNotes up
+    where
+        drawNotes stemDir = mempty
+            <> engraveStem stemDir notes
+            <> engraveNoteHeads stemDir notes
+            <> engraveLedgers (ledgers stemDir (map fst notes))
+            <> bigCross
+        notes = 
+            [
+                -- (2, UnfilledSquareNoteHead),
+                (1, FilledSquareNoteHead),
+                -- (0, DiamondNoteHead),
+                (-7, FilledNoteHead),
+                (-6, FilledNoteHead),
+                (-12, UnfilledNoteHead)
+            ]
+                     
 
 chord2E = mempty
     <> noteLines # scaleX 10
@@ -76,6 +103,17 @@ chord2E = mempty
                 (-6, FilledNoteHead),
                 (-12, UnfilledNoteHead)
             ]
+
+
+minorE = mempty
+    <> (alignL $ noteLines # scaleX 12) 
+    <> (catRight $ map (engraveNoteHead 0) $ (++ [DiamondNoteHead, CrossNoteHead, CircledCrossNoteHead, UnfilledSquareNoteHead, FilledSquareNoteHead]) $ map (noteHeadFromNoteValue) [1,1/2,1/4,1/8,1/16])
+    `leftTo` strutX 1
+    `leftTo` (catRight $ map (withBigCross . engraveRest . restFromNoteValue) [1,1/2,1/4,1/8,1/16])
+    `leftTo` strutX 1
+    `leftTo` (catRight $ map (withBigCross . engraveAccidental) $ enumFromTo minBound maxBound)
+    `leftTo` strutX 1
+    `leftTo` (catRight $ map (withBigCross . engraveArticulation) $ enumFromTo minBound maxBound)
 
 
 
@@ -151,13 +189,17 @@ clefE = mempty
        ) # translate (r2 (-5, 0))
 
 withBigCross = (<> bigCross)
-bigCross = (e . st) (hrule 2 <> vrule 2) 
+
+bigCross = mempty
+    -- <> bigCross'
+
+bigCross' = (e . st) (hrule 2 <> circle 0.1 <> circle 0.2 <> vrule 2) 
     where 
         e  = withEnvelope emptyEnvelope
         st = lineColor darkblue
 
 -- Instance so we can use 'draw'
-instance Render Notation Graphic where
-    render = Graphic . renderN
+instance Render Engraving Graphic where
+    render = Graphic
 
 

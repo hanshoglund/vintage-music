@@ -149,29 +149,32 @@ import Music.Notable.Core.Diagrams
 --
 
 -- | Thickness of stems.
-stemWeight :: Double
-stemWeight = convert $ Spaces 0.12
+kStemWeight :: Double
+kStemWeight = convert $ Spaces 0.12
 
--- | Move stem inwards by this amount.
-stemInset :: Double
-stemInset = convert $ Spaces 0.032
+-- | Amount of space to move stems inward by.
+kStemInset :: Double
+kStemInset = convert $ Spaces 0.032
 
--- | Shorten stem at outer note by this amount.
--- stemShortenAtOuterNote :: Double
--- stemShortenAtOuterNote = convert $ Spaces 0.1
+-- | Amount of space to shorten stem by at the outer note.
+kStemCap :: Double
+kStemCap = convert $ Spaces 0.1
 
--- | Space between rightmost accidental column and leftmost note column.
-accidentalOffset :: Double
-accidentalOffset = convert $ Spaces 0.4
+-- | Amount of space of space to add to the right of vertical lines.
+kVerticalLineSpace :: Double
+kVerticalLineSpace = convert $ Spaces 0.3
 
--- | Space between accidental columns.
--- accidentalColumnOffset :: Double
--- accidentalColumnOffset = convert $ Spaces 0.3
+-- | Amount of space to add to the right of accidentals.
+kAccidentalSpace :: Double
+kAccidentalSpace = convert $ Spaces 0.01
+
+-- | Amount of space to add to the left of dots.
+kDotSpace :: Double
+kDotSpace = convert $ Spaces 0.3
 
 -- | Thickness of ledger lines.
-ledgerLineWeight :: Double
-ledgerLineWeight = convert $ Spaces 0.14
-
+kLedgerLineWeight :: Double
+kLedgerLineWeight = convert $ Spaces 0.14
 
 
 --
@@ -413,7 +416,7 @@ stemLength notes
 stemHorizOffset :: Direction -> [(NoteHeadPosition, NoteHead)] -> HalfSpaces
 stemHorizOffset stemDir = convert . (subtract inset) . fst . engraveNoteHeads' stemDir
     where
-        inset = negateIfDown stemDir stemInset
+        inset = negateIfDown stemDir kStemInset
 
 stemVertOffset :: Direction -> [(NoteHeadPosition, NoteHead)] -> HalfSpaces
 stemVertOffset stemDir notes
@@ -428,7 +431,7 @@ stemVertOffset stemDir notes
 --   The local origin will be in the middle column, at position zero.
 engraveStem :: Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
 engraveStem stemDir notes =
-    pos $ style $ rect stemWeight (convert len)
+    pos $ style $ rect kStemWeight (convert len)
     where
         pos    =  translate (r2 (convert posX, convert posY))
         len    =  stemLength notes
@@ -649,16 +652,10 @@ instance Symbolic Articulation where
     symbol Staccato  =   (baseMusicFont, ".")
 
 
-
--- | Whether the accidental should always be drawn above the chord.
+-- | Whether the accidental should always be drawn above the staff lines.
 alwaysAbove :: Articulation -> Bool
-alwaysAbove Fermata   =   True
-alwaysAbove Plus      =   True
-alwaysAbove Circle    =   True
-alwaysAbove Marcato   =   True
-alwaysAbove Accent    =   False
-alwaysAbove Tenuto    =   False
-alwaysAbove Staccato  =   False
+alwaysAbove = flip elem $ [Fermata, Plus, Circle]
+
 
 -- | Engraves an articulation mark.
 engraveArticulation :: Articulation -> Engraving
@@ -672,7 +669,7 @@ engraveArticulation = engraveSymbol . symbol
 -- 
 --   The local origin will be in the middle, at position zero.
 engraveArticulations :: Direction -> NoteHeadPosition -> Bool -> Bool -> [Articulation] -> Engraving
-engraveArticulations = undefined -- TODO
+engraveArticulations stemDir outerNote tied slurred articulations = undefined -- TODO
 
 
 --
@@ -754,7 +751,7 @@ ledgersBelow staffLines stemDir positions =
 ledger :: Spaces -> Engraving
 ledger width = lineE <> spaceE
     where
-        lineE  =  style $ hrule w where { style = lineWidth ledgerLineWeight }
+        lineE  =  style $ hrule w where { style = lineWidth kLedgerLineWeight }
         spaceE =  spaceRect w h
         w  =  convert width
         h  =  convert space
@@ -935,15 +932,15 @@ engraveNote :: HalfSpaces -> Direction -> NoteHead -> Engraving
     --         where { position = translate (r2 (0.5 * getX noteHeadSpace,0)) }
     -- 
     --     stemE   =  if (hasStem noteHead) then stemE' else mempty
-    --     stemE'  =  moveOriginBy noteStemOffset . style $ rect stemWeight noteStemHeight
+    --     stemE'  =  moveOriginBy noteStemOffset . style $ rect kStemWeight noteStemHeight
     --         where { style = lineColor black . fillColor black }
     -- 
-    --     noteStemHeight  =  convert (space * 3.5) - stemShortenAtOuterNote
+    --     noteStemHeight  =  convert (space * 3.5) - kStemCap
     -- 
     --     noteHeadSpace   =  symbolSpacer (symbol noteHead)
     --     noteStemOffset  =  r2 . negateIfDown dir $ (noteStemOffsetX, noteStemOffsetY)
-    --     noteStemOffsetX =  (getX $ noteHeadSpace / 2) + stemInset
-    --     noteStemOffsetY =  negate $ convert space * 3.5 / 2 + (stemShortenAtOuterNote / 2)
+    --     noteStemOffsetX =  (getX $ noteHeadSpace / 2) + kStemInset
+    --     noteStemOffsetY =  negate $ convert space * 3.5 / 2 + (kStemCap / 2)
 engraveNote = engraveNote'
 
 engraveNote' :: HalfSpaces -> Direction -> NoteHead -> Engraving
@@ -957,18 +954,16 @@ engraveNote' pos stemDir noteHead =
 
 -- | Engraves a chord. The origin will be in the main column at the middle line.
 --   (see 'engraveNoteHeads' for an explanation of columns).
-
--- PRECOND none
 engraveChord :: Chord -> Engraving
 engraveChord chord = mempty
     <> engraveRestOrNoteHeads restN directionN notesN
 
     -- TODO use richer version of engraveStem instead of these three, and only if there is actually a stem
-    <> engraveStem directionN notesN
+    <> (if hasStemN then engraveStem directionN notesN else mempty)
     -- <> engraveFlags (flags (stem chord))
     -- <> engraveCrossBeams (crossBeams (stem chord))
 
-    -- <> engraveDots dotsN positionsN
+    <> engraveDots dotsN positionsN
     <> engraveAccidentals accidentalsN
     -- <> engraveArticulations directionN outerNoteN (tied chord) (slurred chord) (articulations chord)
     -- <> engraveVerticalLines (topNoteN, bottomNoteN) (verticalLines chord)
@@ -979,6 +974,7 @@ engraveChord chord = mempty
         notesN        =  getNotes (notes chord)
         accidentalsN  =  getNoteAccidentals (notes chord)                 
         positionsN    =  getNotePositions (notes chord)
+        hasStemN      =  any hasStem (getNoteHeads . notes $ chord)
         dotsN         =  dots chord
         ledgersN      =  ledgers directionN positionsN
         topNoteN      =  maximum positionsN
