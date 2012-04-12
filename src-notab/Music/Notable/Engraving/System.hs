@@ -2,7 +2,7 @@
 {-# LANGUAGE
     FlexibleContexts #-}
 
--- | Low-level engraving of system-level objects, including the joining left line, instrument names,
+-- | This module handles engraving of system-level objects, including the joining left line, instrument names,
 --   brackets and so on. 
 --
 module Music.Notable.Engraving.System

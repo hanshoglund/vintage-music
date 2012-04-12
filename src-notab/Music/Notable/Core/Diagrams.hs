@@ -27,9 +27,9 @@ where
 import Data.Colour ( withOpacity )
 import Data.Colour.SRGB ( sRGB24read )
 
-import Diagrams.Prelude hiding ( Render, render, (|||), (===) )
+import Diagrams.Prelude hiding ( Render, render, (|||), (===), Dynamic, fromDynamic )
 import Diagrams.TwoD.Text ( Text )
-import Graphics.Rendering.Diagrams.Envelope(Envelope(..))
+import Graphics.Rendering.Diagrams.Envelope( Envelope(..) )
 
 -- | Horizontal projection of the given vector.
 getX :: R2 -> Double

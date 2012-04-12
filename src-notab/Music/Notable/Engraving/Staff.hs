@@ -3,12 +3,12 @@
     TypeSynonymInstances,
     FlexibleContexts #-}
 
--- | Low-level engraving of staff-level objects, such as note lines, bar lines, clefs, key and
---   time signatures and so on. 
+-- | This module handles engraving of staff-level objects, such as note lines, bar lines, clefs, key and time
+--   signatures and so on. 
 --
 --   Staff-level objects are grouped into spaced an non-spaced. On the staff level, spaced objects are 
 --   take those objects that take up horizontal space, including notes, rests, clefs, time signatures etc.
---   In simple case such as tables or legends, such objects may simply be stacked using 'besideX'. For more
+--   In simple case such as tables or legends, such objects may simply be stacked using 'beside'. For more
 --   involved cases, see the "Notable.Spacing" module.
 --
 --   Non-spaced objects are placed in relation to spaced objects, using a position returned form the lower
@@ -47,19 +47,6 @@ module Music.Notable.Engraving.Staff
 -- ** Key signatures
     KeySignature,
     engraveKeySignature,
-    gFlatMajor,
-    dFlatMajor,
-    aFlatMajor,
-    eFlatMajor,
-    bFlatMajor,
-    fMajor,
-    cMajor,
-    gMajor,
-    dMajor,
-    aMajor,
-    eMajor,
-    bMajor,
-    fSharpMajor,
 
 -- ** Time signatures
     TimeSignature,
@@ -70,9 +57,7 @@ module Music.Notable.Engraving.Staff
     cesura,
 
 -- ** Chords
-    -- engraveRest,    
-    -- engraveNote,    
-    -- engraveChord,    
+    --engraveChords,
 
 -- * Non-spaced objects
 
@@ -88,10 +73,23 @@ module Music.Notable.Engraving.Staff
     engraveSlur,
 -- ** Tuplets
     engraveTuplet,
--- ** Text
-    Instruction(..),
+
+-- ** Text     
+    BeatsPerMinute,
+    toMetronomeScale,
+    engraveMetronomeMark,
+
+    DynamicLetter(..),
+    Dynamic(..),
+    dynamic,
+    fromDynamic,
+    fff, ff, f, mf, mp, p, pp, ppp,
+    engraveDynamic,
+
+    Instruction,
+    Expression,
     engraveInstruction,
-    
+    engraveExpression,
 
 -- * Staves
     NonSpacedObject(..),
@@ -115,12 +113,30 @@ import Music.Notable.Engraving.Chord
 --
 
 -- | Thickness of note lines.
-kNoteLineWeight :: Double
-kNoteLineWeight = 0.025
+kNoteLineWeight      :: Double
+kNoteLineWeight      = 0.025
 
 -- | Thickness of barlines.
-kBarLineWeight :: Double
-kBarLineWeight  = 0.04
+kBarLineWeight       :: Double
+kBarLineWeight       = 0.04
+
+kMetronomeMarkOffset :: Spaces
+kInstructionOffset   :: Spaces
+kExpressionOffset    :: Spaces
+kDynamicOffset       :: Spaces
+kMetronomeMarkOffset = 8
+kInstructionOffset   = 6
+kExpressionOffset    = 8
+kDynamicOffset       = 8
+
+kMetronomeMarkScale  :: Double
+kInstructionScale    :: Double
+kExpressionScale     :: Double
+kDynamicScale        :: Double
+kMetronomeMarkScale  = 0.6
+kInstructionScale    = 0.6
+kExpressionScale     = 0.5
+kDynamicScale        = 0.6
 
 
 --
@@ -129,13 +145,13 @@ kBarLineWeight  = 0.04
 
 -- | A standard set of five note lines. The origin will be at the left edge on the middle line.
 --
---   Note lines engraved at length one. To obtain other lengths, use 'stretchX' or 'stretchToX'.
+--   Note lines engraved at length one. To obtain other lengths, use 'stretchX' or 'stretchTo'.
 noteLines :: Engraving
 noteLines = noteLines' 5
 
 -- | A set of note lines. The origin will be at the left edge on the middle line or space.
 --
---   Note lines engraved at length one. To obtain other lengths, use 'stretchX' or 'stretchToX'.
+--   Note lines engraved at length one. To obtain other lengths, use 'stretchX' or 'stretchTo'.
 noteLines' :: StaffLines -> Engraving
 noteLines' num =     
     -- TODO use cat' instead of foldr?
@@ -152,7 +168,7 @@ noteLines' num =
 -- | A single bar line.
 --
 --   Bar lines engraved at length four, to fit into a standard five-line system. To obtain other
---   lengths, use 'stretchY' or 'stretchToY'.
+--   lengths, use 'stretchY' or 'stretchTo'.
 singleBarLine :: Engraving
 singleBarLine = lineE <> spaceE
     where
@@ -164,7 +180,7 @@ singleBarLine = lineE <> spaceE
 -- | A double bar line.
 --
 --   Bar lines engraved at length four, to fit into a standard five-line system. To obtain other
---   lengths, use 'stretchY' or 'stretchToY'.
+--   lengths, use 'stretchY' or 'stretchTo'.
 doubleBarLine :: Engraving
 doubleBarLine = beside unitX (align unitX singleBarLine) singleBarLine
 -- TODO factor out this pattern
@@ -332,14 +348,109 @@ engraveSlur = undefined
 engraveTuplet :: String -> Direction -> R2 -> R2 -> Engraving
 engraveTuplet = undefined
 
+
+--
+-- Metronome marks
+--
+
+-- | BeatsPerMinute in beats per minute.
+type BeatsPerMinute = Int
+
+-- | Rounds the given tempo to one of the standard metronome settings.
+toMetronomeScale :: BeatsPerMinute -> BeatsPerMinute
+toMetronomeScale x
+    | x <= 60    =  x - rem x 2
+    | x <= 72    =  x - rem x 3
+    | x <= 120   =  x - rem x 4
+    | x <= 144   =  x - rem x 6
+    | otherwise  =  x - rem x 8    
+
+-- | Engrave a metronome mark, binding the given note value to the given tempo.
+--
+--   The mark will be positioned slightly above the staff aligned to the left. Use @centerX@ or @alignR@ if
+--   another alignment is required.
+engraveMetronomeMark :: NoteValue -> BeatsPerMinute -> Engraving
+engraveMetronomeMark nv tempo = t $ mempty
+    <> (engraveNote up 0 nh `leftTo` engraveText text)
+    <> (translate (r2 (-0.8, 0.4)) . alignL $ spaceRect 4.2 1.5)
+    where
+        nh = noteHeadFromNoteValue nv
+        text = " = " ++ show tempo
+        t = moveSpacesUp kMetronomeMarkOffset . scale kMetronomeMarkScale
+
+
+--
+-- Dynamics
+--
+
+-- | The letters used in dynamic expressions.
+data DynamicLetter = F | P | M | R | Z 
+    deriving (Eq, Ord, Show, Enum)
+
+dynCh F = 'f'
+dynCh P = 'p'
+dynCh M = 'm'
+dynCh R = 'r'
+dynCh Z = 'z'
+chDyn 'f' = F
+chDyn 'p' = P
+chDyn 'm' = M
+chDyn 'r' = R
+chDyn 'z' = Z
+
+-- | A dynamic expression.
+type Dynamic = [DynamicLetter]
+
+dynamic :: String -> Dynamic
+dynamic = fmap chDyn                
+
+fromDynamic :: Dynamic -> String 
+fromDynamic = fmap dynCh
+
+fff  =  dynamic "fff"
+ff   =  dynamic "ff"
+f    =  dynamic "f"
+mf   =  dynamic "mf"
+mp   =  dynamic "mp"
+p    =  dynamic "p"
+pp   =  dynamic "pp"
+ppp  =  dynamic "ppp"
+
+
+-- | Engraves a dynamic mark.
+--
+--   The mark will be positioned slightly below the staff aligned to the left. Use @centerX@ or @alignR@ if
+--   another alignment is required.
+engraveDynamic :: Dynamic -> Engraving
+engraveDynamic d = t $ mempty
+    <> engraveSpecialText (fromDynamic d)
+    <> (translate (r2 (-0.2, 0.2)) . alignL $ spaceRect (0.2 + 0.65 * fromIntegral $ length d) 1.5)
+    where
+        t = moveSpacesDown (0.6 + kDynamicOffset) . scale kDynamicScale
+
+
+
 --
 -- Instructions
 --
 
 type Instruction = String
+type Expression = String
 
 engraveInstruction :: Instruction -> Engraving
-engraveInstruction = undefined
+engraveInstruction txt = t $ mempty
+    <> engraveText txt
+    <> (translate (r2 (-0.2, 0.2)) . alignL $ spaceRect (0.2 + 0.65 * fromIntegral $ length txt) 1.5)
+    where
+        t = moveSpacesUp kInstructionOffset . scale kInstructionScale
+
+
+engraveExpression :: Expression -> Engraving
+engraveExpression txt = t $ mempty
+    <> (italic $ engraveText txt)
+    <> (translate (r2 (-0.2, 0.2)) . alignL $ spaceRect (0.2 + 0.65 * fromIntegral $ length txt) 1.5)
+    where
+        t = moveSpacesDown (0.6 + kExpressionOffset) . scale kExpressionScale
 
 
 --

@@ -8,6 +8,8 @@ module Music.Notable.Core.Symbols
     Symbolic(..),
     baseMusicFont,
     specialMusicFont,
+    textFont,
+    specialTextFont,
     symbolSpacer,
     symbolOffset
 )
@@ -28,6 +30,12 @@ baseMusicFont    = "Helsinki"
 specialMusicFont :: Font
 specialMusicFont = "Helsinki Special"
 
+specialTextFont :: Font
+specialTextFont = "Helsinki Text"
+
+textFont :: Font
+textFont = "Palatino"
+--textFont = "MgOpen Canonica"
 
 -- symbol WholeNoteHeadNoteRest  =  (baseMusicFont, "\xd3")
 -- symbol HalfNoteRest           =  (baseMusicFont, "\x2211") 

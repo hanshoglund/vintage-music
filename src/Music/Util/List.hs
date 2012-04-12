@@ -51,7 +51,9 @@ module Music.Util.List
     divide,
     update,
     adjust,
-    nonEmpty,
+    nonEmpty,  
+    ifNonEmpty,
+    oneOf,
 
 -- * Ordered lists
 -- ** Safe min and max
@@ -290,7 +292,14 @@ update n z (x:xs) = x:(update (pred n) z xs)
 -- | If the list is empty, return nothing, otherwise return the list.
 nonEmpty :: [a] -> Maybe [a]
 nonEmpty [] = Nothing
-nonEmpty xs = Just xs
+nonEmpty xs = Just xs      
+
+ifNonEmpty :: ([a] -> b) -> b -> [a] -> b
+ifNonEmpty f z = maybe z f . nonEmpty
+
+oneOf :: Eq a => [a] -> a -> Bool
+oneOf = flip elem
+
 
 -- | Inverts an ordering, i.e.
 --

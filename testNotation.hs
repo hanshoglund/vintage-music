@@ -8,6 +8,7 @@ import Data.Convert
 import Data.Ord (comparing)
 import Data.Indexed
 import Data.Trivial
+import Numeric (showHex)
 
 import Music
 import Music.Inspect
@@ -21,9 +22,20 @@ import Music.Notable.Engraving
 
 import qualified Data.Foldable as Foldable
 
+-- where can we draw articulations given a starting position?
+-- articulationPoses :: StaffLines -> Direction -> NoteHeadPosition -> [NoteHeadPosition]
+-- articulationPoses staffLines dir pos =
+--     dropWhile (<= pos) $ poses staffLines dir pos
 
--- `above` allE
--- `above` (scale 1.2 . center 6 $ minorE)
+-- poses :: StaffLines -> Direction -> NoteHeadPosition -> [NoteHeadPosition]
+-- poses l d x 
+--     | isUp   d = x : if x <   l  then poses l d (x + 2) else poses l d (x + 1)  
+--     | isDown d = x : if x > (-l) then poses l d (x - 2) else poses l d (x - 1)
+
+--     where
+--         r = 
+-- [1,3,5,6,7,8]
+
 
 -- | Amount of space of space to add to the right of vertical lines.
 kVerticalLineSpace :: Double
@@ -31,21 +43,38 @@ kVerticalLineSpace = convert $ Spaces 0.3
 
 -- | Amount of space to add to the right of accidentals.
 kAccidentalSpace :: Double
-kAccidentalSpace = convert $ Spaces 0.01
+kAccidentalSpace = convert $ Spaces 0.3
 
 -- | Amount of space to add to the left of dots.
 kDotSpace :: Double
 kDotSpace = convert $ Spaces 0.3
 
 
-spaceX x = spaceRect x (convert space)
-spaceY x = spaceRect (convert space) x
 
 mainE :: Engraving
-mainE = mempty    
-    <> bigCross'
-    <> (vrule 2 `leftTo` accidentalsE `leftTo` aS `leftTo` chord3E `leftTo` dS `leftTo` dotsE `leftTo` vrule 2)
-    <> noteLines # scaleX 4
+mainE = mempty         
+    <> (withBigCross $ engraveInstruction "pizz.")
+   <> (withBigCross $ engraveMetronomeMark (1/2) 120)
+    -- <> noteLines # scaleX 4          
+    <> (withBigCross $ engraveDynamic mp `leftTo` engraveExpression "dolce")
+    -- <> singleBarLine `leftTo` spaceX 0.2 `leftTo` chord3E
+    <> (
+         mempty
+       -- <> bigCross'
+       <> (             
+            mempty
+            -- `leftTo` vrule 2 
+            `leftTo` accidentalsE 
+            `leftTo` aS 
+            `leftTo` chord3E 
+            `leftTo` dS 
+            `leftTo` dotsE 
+            -- `leftTo` vrule 2
+          )
+       <> noteLines # scaleX 4
+    )
+    -- `above` allE
+    -- `above` (scale 1.2 . center 6 $ minorE)
     where
         vlS = spaceX kVerticalLineSpace
         aS = spaceX kAccidentalSpace
@@ -53,36 +82,36 @@ mainE = mempty
 
 dotsE = mempty
     <> bigCross
-    <> engraveDots 3 [-4,0,0,1,5,7]  
+    <> engraveDots 3 [1, -7, -12]
 
 accidentalsE = mempty
     <> bigCross
-    <> engraveAccidentals 
+    <> engraveAccidentals
         [
-            -- (3, Sharp),
+            (1, Sharp),
             -- (0, Sharp),
-            -- (-2, Natural),
-            (-4, Natural)
+            (-7, Natural),
+            (-12, Natural)
         ]
 chord3E = mempty
-    -- <> engraveRest (restFromNoteValue (1/4))
+    -- <> engraveRest (restFromNoteValue (1/16))
     <> drawNotes up
     where
         drawNotes stemDir = mempty
             <> engraveStem stemDir notes
             <> engraveNoteHeads stemDir notes
-            <> engraveLedgers (ledgers stemDir (map fst notes))
+            <> (emptyEnvelope `withEnvelope` engraveLedgers (ledgers stemDir (map fst notes)))
             <> bigCross
-        notes = 
+        notes =
             [
                 -- (2, UnfilledSquareNoteHead),
-                (1, FilledSquareNoteHead),
+                (1, DiamondNoteHead),
                 -- (0, DiamondNoteHead),
                 (-7, FilledNoteHead),
-                (-6, FilledNoteHead),
+                -- (-6, FilledNoteHead),
                 (-12, UnfilledNoteHead)
             ]
-                     
+
 
 chord2E = mempty
     <> noteLines # scaleX 10
@@ -94,7 +123,7 @@ chord2E = mempty
             <> engraveNoteHeads stemDir notes
             <> engraveLedgers (ledgers stemDir (map fst notes))
             <> bigCross
-        notes = 
+        notes =
             [
                 (2, UnfilledSquareNoteHead),
                 (1, FilledSquareNoteHead),
@@ -106,7 +135,7 @@ chord2E = mempty
 
 
 minorE = mempty
-    <> (alignL $ noteLines # scaleX 12) 
+    <> (alignL $ noteLines # scaleX 12)
     <> (catRight $ map (engraveNoteHead 0) $ (++ [DiamondNoteHead, CrossNoteHead, CircledCrossNoteHead, UnfilledSquareNoteHead, FilledSquareNoteHead]) $ map (noteHeadFromNoteValue) [1,1/2,1/4,1/8,1/16])
     `leftTo` strutX 1
     `leftTo` (catRight $ map (withBigCross . engraveRest . restFromNoteValue) [1,1/2,1/4,1/8,1/16])
@@ -121,8 +150,8 @@ arcE = mempty
     <> noteLines # scaleX 4
     <> hc2 # rotate ((0) :: Deg) # translate (r2 (0, 1.5 * convert space))
 --    <> (lw 0.05 $ hc)  # rotate ((-12) :: Deg) # translate (r2 (0, -1))
-    <> engraveNote 0 up UnfilledNoteHead # translate (r2 (-1, 0))
-    <> engraveNote (-0) down UnfilledNoteHead # translate (r2 (1, 0))
+    <> engraveNote up   0    UnfilledNoteHead # translate (r2 (-1, 0))
+    <> engraveNote down (-0) UnfilledNoteHead # translate (r2 (1, 0))
     where
         hc2 = caligraphy 10 $ hc
         hc = scaleY 0.34 $ lw 0.04 $ stroke $ arc (0.45 * tau :: Rad) (0.05 * tau :: Rad)
@@ -135,8 +164,8 @@ caligraphy x = id
 ledgersE = mempty
     <> noteLines # scaleX 4
     <> engraveClef trebleClef # translate (r2 (-2,0))
-    <> engraveNote 10 down UnfilledNoteHead
-    <> engraveNote (-9) up UnfilledNoteHead
+    <> engraveNote down 10 UnfilledNoteHead
+    <> engraveNote up   (-9) UnfilledNoteHead
     <> engraveLedgers (ledgers up [-9,2,3,10])
 
 
@@ -147,21 +176,21 @@ chordE = mempty
     <> noteLines # scaleX 15
     <> (         engraveClef altoClef
         `leftTo` strutX 0.5
-        `leftTo` engraveNote 1 down UnfilledNoteHead
+        `leftTo` engraveNote down 1 UnfilledNoteHead
         `leftTo` strutX 1
-        `leftTo` engraveNote 2 down UnfilledNoteHead
+        `leftTo` engraveNote down 2 UnfilledNoteHead
         `leftTo` strutX 1
-        `leftTo` engraveNote 0 down UnfilledNoteHead
+        `leftTo` engraveNote down 0 UnfilledNoteHead
         `leftTo` strutX 1
-        `leftTo` engraveNote (-1) up UnfilledNoteHead
+        `leftTo` engraveNote up (-1) UnfilledNoteHead
         `leftTo` strutX 1
-        `leftTo` engraveNote (-5) up UnfilledNoteHead
+        `leftTo` engraveNote up (-5) UnfilledNoteHead
         `leftTo` strutX 1
-        `leftTo` engraveNote (-3) up FilledNoteHead
+        `leftTo` engraveNote up (-3) FilledNoteHead
         `leftTo` strutX 1
-        `leftTo` engraveNote 0 up WholeNoteHead
+        `leftTo` engraveNote up 0 WholeNoteHead
         `leftTo` strutX 1
-        `leftTo` engraveNote 3 up BrevisNoteHead
+        `leftTo` engraveNote up 3 BrevisNoteHead
     ) # translate (r2 (-7.2, 0))
 
 
@@ -191,10 +220,10 @@ clefE = mempty
 withBigCross = (<> bigCross)
 
 bigCross = mempty
-    -- <> bigCross'
+   -- <> bigCross'
 
-bigCross' = (e . st) (hrule 2 <> circle 0.1 <> circle 0.2 <> vrule 2) 
-    where 
+bigCross' = (e . st) (hrule 2 <> circle 0.1 <> circle 0.2 <> vrule 2)
+    where
         e  = withEnvelope emptyEnvelope
         st = lineColor darkblue
 

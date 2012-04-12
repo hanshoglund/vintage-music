@@ -28,7 +28,11 @@ module Music.Notable.Core
 
 -- *** Positioning
     moveSpacesUp,
+    moveSpacesDown,
+    moveSpacesLeft,
+    moveSpacesRight,
     moveHalfSpacesUp,
+    moveHalfSpacesDown,
     moveHalfSpacesLeft,
     moveHalfSpacesRight,
     
@@ -50,11 +54,15 @@ module Music.Notable.Core
 
 -- * Engraving
     Engraving,
+    spaceX,
+    spaceY,
     spaceRect,
     spaceRectV,
     engraveSymbol,
     engraveSymbolFloating,
     engraveSpacer,
+    engraveText,
+    engraveSpecialText,
 )
 where
 
@@ -168,8 +176,21 @@ octave = 7 * halfSpace
 moveSpacesUp :: (V t ~ R2, Transformable t) => Spaces -> t -> t
 moveSpacesUp y = translate (r2 (0, convert y))
 
+moveSpacesDown :: (V t ~ R2, Transformable t) => Spaces -> t -> t
+moveSpacesDown y = translate $ negateV (r2 (0, convert y))
+
+moveSpacesLeft :: (V t ~ R2, Transformable t) => Spaces -> t -> t
+moveSpacesLeft x = translate $ negateV (r2 (convert x, 0))
+
+moveSpacesRight :: (V t ~ R2, Transformable t) => Spaces -> t -> t
+moveSpacesRight x = translate (r2 (convert x, 0))
+
+
 moveHalfSpacesUp :: (V t ~ R2, Transformable t) => HalfSpaces -> t -> t
 moveHalfSpacesUp y = translate (r2 (0, convert y))
+
+moveHalfSpacesDown :: (V t ~ R2, Transformable t) => HalfSpaces -> t -> t
+moveHalfSpacesDown y = translate $ negateV (r2 (0, convert y))
 
 moveHalfSpacesLeft :: (V t ~ R2, Transformable t) => HalfSpaces -> t -> t
 moveHalfSpacesLeft x = translate $ negateV (r2 (convert x, 0))
@@ -242,6 +263,14 @@ spaceRect x y = style $ rect x y
     where
         style = fillColor blue . opacity 0.0
 
+spaceX :: Double -> Engraving
+spaceX x = spaceRect x (convert space)
+
+spaceY :: Double -> Engraving
+spaceY x = spaceRect (convert space) x
+
+
+
 spaceRectV :: R2 -> Engraving
 spaceRectV v = spaceRect (getX v) (getY v)
 
@@ -253,3 +282,10 @@ engraveSymbolFloating (font', glyph) = font font' $ baselineText glyph
 
 engraveSpacer :: Symbol -> Engraving
 engraveSpacer s = translate (symbolOffset s) $ spaceRectV (symbolSpacer s)
+
+engraveText :: String -> Engraving
+engraveText str = font textFont $ baselineText str
+
+engraveSpecialText :: String -> Engraving
+engraveSpecialText str = font specialTextFont $ baselineText str
+
