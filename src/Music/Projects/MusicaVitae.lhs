@@ -1029,17 +1029,17 @@ openStringPos p s = HalfSpaces . int2Double $ fromEnum s
 -- FIXME correct note value
 -- FIXME different clefs
 -- FIXME spacing issues
-notateLeftHand :: Part -> LeftHand Pitch Str -> Chord
-notateLeftHand part ( OpenString           s )      =  trivial { notes = [Note 0 DiamondNoteHead Nothing] } where p = openStringPos part s
-notateLeftHand part ( NaturalHarmonic      x s )    =  trivial { notes = [Note 0 UnfilledNoteHead Nothing] }
-notateLeftHand part ( NaturalHarmonicTrem  x y s )  =  trivial { notes = [Note 0 DiamondNoteHead Nothing] }
-notateLeftHand part ( StoppedString        x s )    =  trivial { notes = [Note p UnfilledNoteHead a] } where (p,a) = notatePitch x
-notateLeftHand part ( StoppedStringTrem    x y s )  =  trivial { notes = [Note 0 DiamondNoteHead Nothing] }
+notateLeftHand :: Part -> NoteValue -> LeftHand Pitch Str -> Chord
+notateLeftHand r nv ( OpenString           s )      =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 DiamondNoteHead Nothing] } where p = openStringPos r s
+notateLeftHand r nv ( NaturalHarmonic      x s )    =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 UnfilledNoteHead Nothing] }
+notateLeftHand r nv ( NaturalHarmonicTrem  x y s )  =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 DiamondNoteHead Nothing] }
+notateLeftHand r nv ( StoppedString        x s )    =  trivial { dots = dotsFromNoteValue nv, notes = [Note p (noteHeadFromNoteValue (nv/2)) a] } where (p,a) = notatePitch x
+notateLeftHand r nv ( StoppedStringTrem    x y s )  =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 DiamondNoteHead Nothing] }
 
 notateRightHand :: Part -> Technique -> [(Spaces, Chord)]
-notateRightHand part ( Pizz   c x )   =  [(0, notateLeftHand part x)]
-notateRightHand part ( Single c x )   =  [(0, notateLeftHand part x)]
-notateRightHand part ( Phrase r xs )  =  snd $ List.mapAccumL (\t (d, x) -> (t + t2s d, (t, notateLeftHand part x))) 0 xs
+notateRightHand r ( Pizz   _ x )   =  [(0, notateLeftHand r 1 x)]
+notateRightHand r ( Single _ x )   =  [(0, notateLeftHand r 1 x)]
+notateRightHand r ( Phrase _ xs )  =  snd $ List.mapAccumL (\t (d, x) -> (t + t2s d, (t, notateLeftHand r d x))) 0 xs
     where
         t2s = timeToSpace
 
@@ -1498,10 +1498,10 @@ canon1 = compress 1.1 . reverse $ instant
     ||| (setDynamics mf . {-delay 0.6 . -}stretch 3.5 . id       . tonality . setPart (Viola 1) $ patternSequence  0 . map pattern  $ [2,1,2,1,0])
     ||| (setDynamics mf . {-delay 0.5 . -}stretch 4.1 . id       . tonality . setPart (Viola 2) $ patternSequence   0 . map pattern $ [1,2,1,1,2])
     
-canon1b = canon1 >>> (before 40 . stretch 0.6 . reverse $ canon1)
+canon1b = canon1 >>> (before 40 . stretch 0.8 . reverse $ canon1)
 
 canon2 = compress 1.1 $ instant
-    ||| (setDynamics f . {-delay 0.3 . -}stretch 2.1 . duodecUp . tonality . setPart (Violin 1) $ patternSequence 1 . map pattern $ [0,2,2,1,2])
+    ||| (setDynamics f . {-delay 0.3 . -}stretch 2 . duodecUp . tonality . setPart (Violin 1) $ patternSequence 1 . map pattern $ [0,2,2,1,2])
     ||| (setDynamics f . {-delay 0.2 . -}stretch 2.2 . duodecUp . tonality . setPart (Violin 2) $ patternSequence 1 . map pattern $ [1,2,2,0,2])
     ||| (setDynamics f . {-delay 0.1 . -}stretch 2.5 . octaveUp . tonality . setPart (Violin 3) $ patternSequence 1 . map pattern $ [1,2,0,1,2])
     ||| (setDynamics f . {-delay 0.4 . -}stretch 2.9 . octaveUp . tonality . setPart (Violin 4) $ patternSequence 1 . map pattern $ [1,2,2,1,2])
