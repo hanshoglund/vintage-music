@@ -22,6 +22,12 @@ import Music.Notable.Engraving
 
 import qualified Data.Foldable as Foldable
 
+
+
+
+
+
+
 -- where can we draw articulations given a starting position?
 -- articulationPoses :: StaffLines -> Direction -> NoteHeadPosition -> [NoteHeadPosition]
 -- articulationPoses staffLines dir pos =
@@ -37,23 +43,53 @@ import qualified Data.Foldable as Foldable
 -- [1,3,5,6,7,8]
 
 
--- | Amount of space of space to add to the right of vertical lines.
-kVerticalLineSpace :: Double
-kVerticalLineSpace = convert $ Spaces 0.3
 
--- | Amount of space to add to the right of accidentals.
-kAccidentalSpace :: Double
-kAccidentalSpace = convert $ Spaces 0.3
+engraveSlur' :: Direction -> R2 -> R2 -> Engraving
+engraveSlur' stemDir start stop = baseSlur
 
--- | Amount of space to add to the left of dots.
-kDotSpace :: Double
-kDotSpace = convert $ Spaces 0.3
+baseSlur = style $ strokeT tr       
+    where                                           
+        -- x = 1.5; y = 0.3
+        x = 5; y = 0.5
+        -- x = 10; y = 0.8
+        a = x * 0.1
+        
+        penTurn   =  0.9
+        penWidth  =  0.05
 
+        -- outer edge of line
+        seg   =  bezier3 (r2 (a, y)) (r2 (x - a, y)) (r2 (x, 0))
 
+        -- right inset (left is added automatically when the trail is closed)
+        seg2  =  straight (r2 (-penWidth / 2, -penWidth / 2))
+
+        -- inner edge of line
+        seg3  =  reflectX . scaleY penTurn . scaleX ((x - penWidth) / x) $ seg
+        
+        tr  =  fromSegments [seg, seg2, seg3]
+        
+        style = lineWidth 0 . fillColor black
+        
+
+legatoE = mempty
+    <> bigCross
+    -- <> noteLines # scaleX 4
+    <> engraveSlur' up (r2(0,0)) (r2(10,10))
+    <> t (cat' unitX co [engraveNote down 0 FilledNoteHead, engraveNote down 0 FilledNoteHead])
+    where                                                                              
+        co = with { catMethod = Distrib, sep = 5 }
+        t = translate (r2(0,-0.25))
 
 mainE :: Engraving
 mainE = mempty         
-    <> (withBigCross $ engraveInstruction "pizz.")
+    <> legatoE
+    <> miscE
+    -- `above` allE
+    -- `above` (scale 1.2 . center 6 $ minorE)
+    
+
+miscE = mempty
+   <> (withBigCross $ engraveInstruction "pizz.")
    <> (withBigCross $ engraveMetronomeMark (1/2) 120)
     -- <> noteLines # scaleX 4          
     <> (withBigCross $ engraveDynamic mp `leftTo` engraveExpression "dolce")
@@ -73,8 +109,6 @@ mainE = mempty
           )
        <> noteLines # scaleX 4
     )
-    -- `above` allE
-    -- `above` (scale 1.2 . center 6 $ minorE)
     where
         vlS = spaceX kVerticalLineSpace
         aS = spaceX kAccidentalSpace
@@ -220,7 +254,7 @@ clefE = mempty
 withBigCross = (<> bigCross)
 
 bigCross = mempty
-   -- <> bigCross'
+   <> bigCross'
 
 bigCross' = (e . st) (hrule 2 <> circle 0.1 <> circle 0.2 <> vrule 2)
     where
@@ -232,3 +266,16 @@ instance Render Engraving Graphic where
     render = Graphic
 
 
+
+-- | Amount of space of space to add to the right of vertical lines.
+kVerticalLineSpace :: Double
+kVerticalLineSpace = convert $ Spaces 0.3
+
+-- | Amount of space to add to the right of accidentals.
+kAccidentalSpace :: Double
+kAccidentalSpace = convert $ Spaces 0.3
+
+-- | Amount of space to add to the left of dots.
+kDotSpace :: Double
+kDotSpace = convert $ Spaces 0.3
+                                        

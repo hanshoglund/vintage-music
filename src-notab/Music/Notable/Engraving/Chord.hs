@@ -888,7 +888,8 @@ engraveNote stemDir pos noteHead =
     engraveChord chord
     where
         note = trivial { noteHeadPosition = pos, noteHead = noteHead }
-        chord = trivial { notes = [note] }
+        stem = trivial { stemDirection = if isUp stemDir then stemUp else stemDown }
+        chord = trivial { notes = [note], stem = stem }
 
 -- | Engraves a chord. The origin will be in the main column at the middle line.
 --   (see 'engraveNoteHeads' for an explanation of columns).
