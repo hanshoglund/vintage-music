@@ -758,14 +758,14 @@ ledgers' s d p = Ledgers $ (ledgersAbove s d p, ledgersBelow s d p)
 ledgersAbove :: StaffLines -> Direction -> [NoteHeadPosition] -> LedgersAbove
 ledgersAbove staffLines stemDir positions = (0, s, th + 1)
     where
-        s = ifNonEmpty sl 0 . filter (> th + 1) $ positions
+        s = ifNonEmpty sl 0 . filter (> th) $ positions
         sl ps = truncate $ (maximum ps - th + 1) / 2
         th = fromIntegral staffLines
 
 ledgersBelow :: StaffLines -> Direction -> [NoteHeadPosition] -> LedgersBelow
 ledgersBelow staffLines stemDir positions = (0, s, th - 1)
     where
-        s = ifNonEmpty sl 0 . filter (< th - 1) $ positions
+        s = ifNonEmpty sl 0 . filter (< th) $ positions
         sl ps = truncate . negate $ (minimum ps - th - 1) / 2
         th = negate . fromIntegral $ staffLines
        
