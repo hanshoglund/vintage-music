@@ -523,6 +523,9 @@ data Stopping = Open | QuarterStopped | Stopped
 class Stopped a where
     stopping :: a -> Stopping
 
+class HasDur a where
+    getDur :: a -> Dur
+
 instance Stopped (LeftHand p s) where
     stopping ( OpenString           s     ) = Open
     stopping ( NaturalHarmonic      x s   ) = Open
@@ -538,6 +541,12 @@ instance Stopped a => Stopped (RightHand t r p a) where
     stopping ( Single c x )       =  stopping x
     stopping ( Phrase r (x:xs) )  =  stopping (snd x)
     stopping ( Jete   r (x:xs) )  =  stopping x
+
+instance Time t => HasDur (RightHand t r p a) where
+    getDur ( Pizz   c x )   =  1
+    getDur ( Single c x )   =  1
+    getDur ( Phrase r xs )  =  timeToDouble . sum . fst . unzip $ xs
+    getDur ( Jete   r xs )  =  1
 
 instance PitchFunctor (LeftHand Pitch s) where
     mapPitch f ( StoppedString        x s   ) = StoppedString      (f x) s
@@ -967,63 +976,60 @@ toEventList :: Time t => Score t a -> EventList t a
 toEventList = render
 
 parts :: [Score Dur Cue]
-parts = fmap (addTempo . \part -> filterEvents (\cue -> cuePart cue == part) score) ensemble
+parts = map (addTempo . \part -> filterEvents (\cue -> cuePart cue == part) score) ensemble
     where   
-        -- FIXME divide by sum of events in cue
-        addTempo = dmap (\d x -> setTempo (150 + negate $ d * 10) x)
+        addTempo = dmap (\d x -> setTempo (60 * (getDur . cueTechnique) x / d) x)
 
 staffHead :: Staff
 staffHead = trivial { spacedObjects = s }
     where
         s = [(0, StaffBarLine), (0.5, StaffClef trebleClef)]
 
+-- FIXME undo tonality etc
+notatePitch :: Pitch -> (HalfSpaces, Maybe Accidental)        
+notatePitch = (\x -> (x, Nothing)) . HalfSpaces . int2Double . (subtract 71)
+
+int2Double :: Int -> Double
+int2Double = fromIntegral
+
+-- FIXME                                   
+openStringPos :: Part -> Str -> HalfSpaces
+openStringPos p s = HalfSpaces . int2Double $ fromEnum s
+
+notateLeftHand :: Part -> LeftHand Pitch Str -> Chord
+notateLeftHand part ( OpenString           s )      =  trivial { notes = [Note 0 DiamondNoteHead Nothing] } where p = openStringPos part s
+notateLeftHand part ( NaturalHarmonic      x s )    =  trivial { notes = [Note 0 UnfilledNoteHead Nothing] }
+notateLeftHand part ( NaturalHarmonicTrem  x y s )  =  trivial { notes = [Note 0 DiamondNoteHead Nothing] }
+notateLeftHand part ( StoppedString        x s )    =  trivial { notes = [Note p UnfilledNoteHead a] } where (p,a) = notatePitch x
+notateLeftHand part ( StoppedStringTrem    x y s )  =  trivial { notes = [Note 0 DiamondNoteHead Nothing] }
+
+notateRightHand :: Part -> Technique -> [(Spaces, Chord)]
+notateRightHand part ( Pizz   c x )   =  [(0, notateLeftHand part x)]
+notateRightHand part ( Single c x )   =  [(0, notateLeftHand part x)]
+notateRightHand part ( Phrase r xs )  =  snd $ List.mapAccumL (\t (d, x) -> (t + t2s d, (t, notateLeftHand part x))) 0 xs
+    where
+        t2s = timeToSpace
+
+notateDynamic :: Dynamics -> Notable.Dynamic
+notateDynamic x
+    | x `levelAt` 0 <= -0.8  =  Notable.ppp
+    | x `levelAt` 0 <= -0.6  =  Notable.pp
+    | x `levelAt` 0 <= -0.3  =  Notable.p
+    | x `levelAt` 0 <= -0.0  =  Notable.mf
+    | x `levelAt` 0 <= -0.25 =  Notable.f
+    | x `levelAt` 0 <= -0.5  =  Notable.ff
+    | otherwise              =  Notable.fff
+
 notateCue :: Cue -> Staff
 notateCue cue = trivial { spacedObjects = s, nonSpacedObjects = ns }
     where
         s = [(0, StaffBarLine)] ++ chords
         ns = [
-            ([0], StaffInstruction (toLowerCase . show . cueDoubling $ cue)),
+            -- ([0], StaffInstruction (toLowerCase . show . cueDoubling $ cue)),
             ([0], StaffMetronomeMark (1/2) (toMetronomeScale . truncate . cueTempo $ cue)),
             ([0], StaffDynamic (notateDynamic . cueDynamics $ cue))
             ]
         chords = fmap (\(p,x) -> (p + 2, StaffChord x)) $ notateRightHand (cuePart cue) (cueTechnique cue)
-
-notateLeftHand :: Part -> LeftHand Pitch Str -> Chord
-notateLeftHand p ( OpenString           s )      =  trivial { notes = [Note 0 DiamondNoteHead Nothing] }
-notateLeftHand p ( NaturalHarmonic      x s )    =  trivial { notes = [Note 0 UnfilledNoteHead Nothing] }
-notateLeftHand p ( NaturalHarmonicTrem  x y s )  =  trivial { notes = [Note 0 DiamondNoteHead Nothing] }
-notateLeftHand p ( StoppedString        x s )    =  trivial { notes = [Note 0 UnfilledNoteHead Nothing] }
-notateLeftHand p ( StoppedStringTrem    x y s )  =  trivial { notes = [Note 0 DiamondNoteHead Nothing] }
-    where
-        p2s = pitchToSpace
-
-pitchToSpace :: Pitch -> HalfSpaces        
-pitchToSpace = convert . int2Double . (\x -> x - 71)
-
-int2Double :: Int -> Double
-int2Double = fromIntegral
-
-
-notateRightHand :: Part -> Technique -> [(Spaces, Chord)]
-notateRightHand p ( Pizz   c x )   =  [(0, notateLeftHand p x)]
-notateRightHand p ( Single c x )   =  [(0, notateLeftHand p x)]
-notateRightHand p ( Phrase r xs )  =  snd $ List.mapAccumL (\t (d, x) -> (t + t2s d, (t, notateLeftHand p x))) 0 xs
-    where
-        t2s = timeToSpace
--- notateLeftHands :: Part -> [(Dur, LeftHand Pitch Str)] -> TremoloScore Dur MidiNote
-
-
-notateDynamic :: Dynamics -> Notable.Dynamic
-notateDynamic = const Notable.mf
--- ppp, pp, p, mf, f, ff, fff :: Dynamics
--- ppp = Dynamics $ const (-0.8)
--- pp  = Dynamics $ const (-0.6)
--- p   = Dynamics $ const (-0.3)
--- mf  = Dynamics $ const 0
--- f   = Dynamics $ const 0.25
--- ff  = Dynamics $ const 0.5
--- fff = Dynamics $ const 0.7
-
 
 notatePart :: Score Dur Cue -> Staff
 notatePart =
