@@ -463,8 +463,10 @@ data SpacedObject
     | StaffKeySignature KeySignature 
     | StaffTimeSignature TimeSignature 
     | StaffBarLine 
+    | StaffDoubleBarLine 
     | StaffCesura
     | StaffChord Chord
+    deriving (Eq, Show)
 
 data NonSpacedObject 
     = StaffBeams Beams
@@ -476,10 +478,19 @@ data NonSpacedObject
     | StaffDynamic Dynamic
     | StaffInstruction Instruction
     | StaffExpression Expression
+    deriving (Eq, Show)
     
 data Staff = 
     Staff { spacedObjects    :: [(Spaces, SpacedObject)],
-            nonSpacedObjects :: [([Index [SpacedObject]], NonSpacedObject)] } 
+            nonSpacedObjects :: [([Index [SpacedObject]], NonSpacedObject)] }
+    deriving (Eq, Show)
+
+instance Monoid Staff where
+    mempty = Staff [] []
+    Staff xs xns `mappend` Staff ys yns = Staff (xs ++ ys) (xns ++ inc (length xs) yns)
+        where   
+            inc n = fmap (inc' n)
+            inc' n (is, x) = (map (+ n) is, x)
 
 instance Trivial Staff where
     trivial = Staff [] []
@@ -497,6 +508,7 @@ engraveSpacedObject :: SpacedObject -> Engraving
 engraveSpacedObject (StaffClef x)   =  engraveClef x
 engraveSpacedObject (StaffChord x)  =  engraveChord x
 engraveSpacedObject StaffBarLine    =  singleBarLine
+engraveSpacedObject StaffDoubleBarLine  =  doubleBarLine
 
 engraveNonSpacedObject :: NonSpacedObject -> Engraving
 engraveNonSpacedObject (StaffMetronomeMark nv bpm) = engraveMetronomeMark nv bpm

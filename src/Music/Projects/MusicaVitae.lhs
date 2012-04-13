@@ -944,34 +944,30 @@ Graphical rendering
 
 \begin{code}
 
+
 parts :: [Score Dur Cue]
 parts = fmap (\part -> filterEvents (\cue -> cuePart cue == part) test) ensemble
 
--- renderCueToGraphics :: Cue -> Staff
--- renderCueToGraphics = undefined
 
-
-
-
-
-staffN = trivial { spacedObjects = s, nonSpacedObjects = ns }
+notateCue :: Cue -> Staff
+notateCue cue = trivial { spacedObjects = s, nonSpacedObjects = ns }
     where
-        s = [(1, StaffClef trebleClef), (5, StaffChord chordN), (20, StaffChord chordN)]
+        s = [(0, StaffBarLine)]
         ns = [
-            ([1], StaffMetronomeMark (1/2) 80),
-            ([2], StaffDynamic Notable.pp),
-            ([2], StaffInstruction "pizz.")
+            ([0], StaffInstruction "solo"),
+            ([0], StaffMetronomeMark (1/2) 80),
+            ([0], StaffDynamic Notable.pp)
             ]
 
-chordN = trivial { notes = notes, dots = 3 }
-    where
-        notes = 
-            [
-                Note  1    DiamondNoteHead (Just Sharp),
-                Note (-7)  FilledNoteHead (Just Natural),
-                Note (-6)  FilledNoteHead Nothing
-                -- Note (9) UnfilledNoteHead (Just DoubleSharp)
-            ]
+
+moveStaffObjects :: Spaces -> Staff -> Staff
+moveStaffObjects n (Staff s ns) = Staff (map (\(p, x) -> (p + n, x)) s) ns
+
+instance Render Chord Graphic where
+    render = Graphic . engraveChord
+
+instance Render Staff Graphic where
+    render = Graphic . engraveStaff
 
 instance Render Engraving Graphic where
     render = Graphic
