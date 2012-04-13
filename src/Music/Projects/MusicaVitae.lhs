@@ -88,7 +88,7 @@ module Music.Projects.MusicaVitae
     Cue(..),
 
 -- * Midi rendering
-    renderCue,
+    renderCueToMidi,
 
 -- * High-level constructors
 -- ** Open strings
@@ -122,6 +122,8 @@ where
 import Prelude hiding ( reverse )
 
 import Control.Applicative
+import Data.Trivial
+import Data.Indexed
 import Data.Convert ( convert )
 import qualified Data.List as List
 
@@ -131,9 +133,15 @@ import Music.Time.Tremolo
 import Music.Time.Functors
 import Music.Render
 import Music.Render.Midi
+import Music.Render.Graphics
 import Music.Inspect
 import qualified Music.Util.List as List
 import qualified Music.Util.Either as Either
+
+import Music.Notable.Core
+import Music.Notable.Core.Diagrams hiding (Time, stretch, stretchTo, duration)
+import Music.Notable.Engraving hiding (Articulation, fff, ff, f, mf, mp, p, pp, ppp)
+import qualified Music.Notable.Engraving as Notable
 \end{code}
 
 \pagebreak
@@ -897,8 +905,8 @@ Render each cue to a score of `MidiNote` elements. Each generated score has a du
 this function can be used with `>>=` to render a score of cues to Midi (see below.)
 
 \begin{code}
-renderCue :: Cue -> TremoloScore Dur MidiNote
-renderCue cue =
+renderCueToMidi :: Cue -> TremoloScore Dur MidiNote
+renderCueToMidi cue =
     renderRest $ renderRightHand (cuePart cue) (cueTechnique cue)
     where
         channel     =  midiChannel cue
@@ -920,18 +928,60 @@ instance Render (Score Dur Cue) Midi where
     render  =  render
             .  restAfter 5
             .  renderTremoloEvents
-            .  (>>= renderCue)
+            .  (>>= renderCueToMidi)   
+            
+instance Render (Score Dur Int) Midi where
+    render = render . fmap (\p -> MidiNote 0 Nothing p 0 60)
+
 \end{code}
 
 
 \pagebreak
 
 
+Graphical rendering
+=================
+
+\begin{code}
+
+parts :: [Score Dur Cue]
+parts = fmap (\part -> filterEvents (\cue -> cuePart cue == part) test) ensemble
+
+-- renderCueToGraphics :: Cue -> Staff
+-- renderCueToGraphics = undefined
+
+
+
+
+
+staffN = trivial { spacedObjects = s, nonSpacedObjects = ns }
+    where
+        s = [(1, StaffClef trebleClef), (5, StaffChord chordN), (20, StaffChord chordN)]
+        ns = [
+            ([1], StaffMetronomeMark (1/2) 80),
+            ([2], StaffDynamic Notable.pp),
+            ([2], StaffInstruction "pizz.")
+            ]
+
+chordN = trivial { notes = notes, dots = 3 }
+    where
+        notes = 
+            [
+                Note  1    DiamondNoteHead (Just Sharp),
+                Note (-7)  FilledNoteHead (Just Natural),
+                Note (-6)  FilledNoteHead Nothing
+                -- Note (9) UnfilledNoteHead (Just DoubleSharp)
+            ]
+
+instance Render Engraving Graphic where
+    render = Graphic
+    
+\end{code}
 
 
 
 High-level constructors
-==========
+=======================
 
 Allthough the *cues* defined in the previous chapters is a flexible representation for an
 orchestral piece, they are somewhat cubersome to construct. This is easily solved by

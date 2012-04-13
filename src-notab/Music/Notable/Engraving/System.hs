@@ -93,7 +93,7 @@ data CrossStaffObject
 data System = 
     System { barNumber :: Maybe BarNumber,
              staffList :: Maybe (Accolade String),
-             staves    :: [(HalfSpaces, Staff)],
+             staves    :: [(Spaces, Staff)],
              crossStaffObjects :: [([(Index [Staff], Index [SpacedObject])], CrossStaffObject)] }
 
 

@@ -23,7 +23,15 @@ import Music.Notable.Engraving
 import qualified Data.Foldable as Foldable
 
 
-
+staffE = engraveStaff staffN
+staffN = trivial { spacedObjects = s, nonSpacedObjects = ns }
+    where
+        s = [(1, StaffClef trebleClef), (5, StaffChord chordN), (20, StaffChord chordN)]
+        ns = [
+            ([1], StaffMetronomeMark (1/2) 80),
+            ([2], StaffInstruction "pizz."),
+            ([2], StaffDynamic pp)
+            ]
 
 
 
@@ -50,17 +58,17 @@ accidentalsE = mempty
             (-7, Natural),
             (-12, Natural)
         ]     
+
+chordE = engraveChord chordN
               
-chordE =
-    engraveChord chord
+chordN = trivial { notes = notes, dots = 3 }
     where
-        chord = trivial { notes = notes, dots = 3 }
         notes = 
             [
-                -- Note  1    DiamondNoteHead (Just Sharp),
-                -- Note (-7)  FilledNoteHead (Just Natural),
-                -- Note (-6)  FilledNoteHead Nothing,
-                Note (9) UnfilledNoteHead (Just DoubleSharp)
+                Note  1    DiamondNoteHead (Just Sharp),
+                Note (-7)  FilledNoteHead (Just Natural),
+                Note (-6)  FilledNoteHead Nothing
+                -- Note (9) UnfilledNoteHead (Just DoubleSharp)
             ]
                 
 chordE' = mempty

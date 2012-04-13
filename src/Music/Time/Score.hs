@@ -36,6 +36,9 @@ module Music.Time.Score
     normalizeDuration,  -- :: Time t => Score t a -> Score t a
 
 -- * Folding
+    filterEvents,
+    removeEvents,
+    partitionEvents,
     numberOfEvents,
     meanDuration,
     firstEvent,         -- :: Time t => Score t a -> Maybe a

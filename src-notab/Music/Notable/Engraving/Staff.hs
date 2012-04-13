@@ -102,6 +102,7 @@ where
 
 import Data.Convert
 import Data.Indexed
+import Data.Trivial
 
 import Music.Notable.Core
 import Music.Notable.Core.Symbols
@@ -125,9 +126,9 @@ kInstructionOffset   :: Spaces
 kExpressionOffset    :: Spaces
 kDynamicOffset       :: Spaces
 kMetronomeMarkOffset = 8
-kInstructionOffset   = 6
-kExpressionOffset    = 8
-kDynamicOffset       = 8
+kInstructionOffset   = 5
+kExpressionOffset    = 7
+kDynamicOffset       = 7
 
 kMetronomeMarkScale  :: Double
 kInstructionScale    :: Double
@@ -456,6 +457,14 @@ engraveExpression txt = t $ mempty
 --
 -- Staves
 --
+    
+data SpacedObject 
+    = StaffClef Clef
+    | StaffKeySignature KeySignature 
+    | StaffTimeSignature TimeSignature 
+    | StaffBarLine 
+    | StaffCesura
+    | StaffChord Chord
 
 data NonSpacedObject 
     = StaffBeams Beams
@@ -463,25 +472,35 @@ data NonSpacedObject
     | StaffTie Direction
     | StaffSlur Direction 
     | StaffTupletBracket Direction
-    | StaffInstruction String
-    
-data SpacedObject 
-    = StaffClef Clef
-    | StaffKeySignature KeySignature 
-    | StaffTimeSignature TimeSignature 
-    | StaffBarline 
-    | StaffCesura
-    | StaffChord Chord
+    | StaffMetronomeMark NoteValue BeatsPerMinute
+    | StaffDynamic Dynamic
+    | StaffInstruction Instruction
+    | StaffExpression Expression
     
 data Staff = 
-    Staff { spacedObjects    :: [(HalfSpaces, SpacedObject)],
+    Staff { spacedObjects    :: [(Spaces, SpacedObject)],
             nonSpacedObjects :: [([Index [SpacedObject]], NonSpacedObject)] } 
 
+instance Trivial Staff where
+    trivial = Staff [] []
+
 engraveStaff :: Staff -> Engraving
-engraveStaff = undefined
+engraveStaff (Staff sN nsN) = mempty
+    <> sE <> nsE
+    <> (alignL . scaleX (width $ sE <> nsE) $ noteLines)
+    where 
+        sE  = mconcat $ fmap (\(p, x) -> moveSpacesRight p $ engraveSpacedObject x) sN
+        nsE = mconcat $ fmap (\(i:is, x) -> moveSpacesRight (fst $ index i sN) $ engraveNonSpacedObject x) nsN
 
 -- noteLines
--- engraveSpacedObjects
--- engraveNonSpacedObjects
+engraveSpacedObject :: SpacedObject -> Engraving
+engraveSpacedObject (StaffClef x)   =  engraveClef x
+engraveSpacedObject (StaffChord x)  =  engraveChord x
+engraveSpacedObject StaffBarLine    =  singleBarLine
 
+engraveNonSpacedObject :: NonSpacedObject -> Engraving
+engraveNonSpacedObject (StaffMetronomeMark nv bpm) = engraveMetronomeMark nv bpm
+engraveNonSpacedObject (StaffDynamic x)            = engraveDynamic x
+engraveNonSpacedObject (StaffInstruction x)        = engraveInstruction x
+engraveNonSpacedObject (StaffExpression x)         = engraveExpression x
 

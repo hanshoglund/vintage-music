@@ -91,15 +91,15 @@ instance Time t => Delayed t (Score t) where
 
 
 instance Time t => Split t (Score t) where
-    before z = filterScore ( \t d   -> t < z )
-                           ( \t d x -> t < z )
-                           ( \t     -> t < z )
-                           ( \t     -> t < z )
+    before z = filterScore' ( \t d   -> t < z )
+                            ( \t d x -> t < z )
+                            ( \t     -> t < z )
+                            ( \t     -> t < z )
 
-    after  z = filterScore ( \t d   -> t >= z )
-                           ( \t d x -> t >= z )
-                           ( const True )
-                           ( const True )
+    after  z = filterScore' ( \t d   -> t >= z )
+                            ( \t d x -> t >= z )
+                            ( const True )
+                            ( const True )
 
 
 instance Time t => Applicative (Score t) where
@@ -253,7 +253,7 @@ foldScore' r n p s t (SeqS x y)   =  (dx + dy, s t sx sy)
 
 
 
-filterScore :: Time t =>
+filterScore' :: Time t =>
     (t -> t -> Bool) ->
     (t -> t -> a -> Bool) ->
     (t -> Bool) ->
@@ -261,10 +261,10 @@ filterScore :: Time t =>
     Score t a ->
     Score t a
 
-filterScore r n p s = foldScore ( \t d   -> if (r t d)   then RestS d   else instant )
-                                ( \t d x -> if (n t d x) then NoteS d x else instant )
-                                ( \t x y -> if (p t)     then ParS x y  else instant )
-                                ( \t x y -> if (s t)     then SeqS x y  else instant )
+filterScore' r n p s = foldScore ( \t d   -> if (r t d)   then RestS d   else instant )
+                                 ( \t d x -> if (n t d x) then NoteS d x else instant )
+                                 ( \t x y -> if (p t)     then ParS x y  else instant )
+                                 ( \t x y -> if (s t)     then SeqS x y  else instant )
 
 foldOffset :: (Time t, Monoid m) => (t -> m) -> Score t a -> m
 foldOffset f = foldScore ( \t d   -> f t )
@@ -277,6 +277,20 @@ foldDuration f = foldScore ( \t d   -> f d )
                            ( \t d x -> f d )
                            ( \t x y -> x `mappend` y )
                            ( \t x y -> x `mappend` y )
+
+
+filterEvents :: Time t => (a -> Bool) -> Score t a -> Score t a
+filterEvents f = foldScore ( \t d   -> RestS d )
+                           ( \t d x -> if (f x) then NoteS d x else RestS d )
+                           ( \t x y -> ParS x y )
+                           ( \t x y -> SeqS x y )
+
+removeEvents :: Time t => (a -> Bool) -> Score t a -> Score t a
+removeEvents f = filterEvents (not . f)
+
+partitionEvents :: Time t => (a -> Bool) -> Score t a -> (Score t a, Score t a)
+partitionEvents f x = (filterEvents f x, removeEvents f x)
+
 
 -- | First event in score.
 firstEvent :: Time t => Score t a -> Maybe a
