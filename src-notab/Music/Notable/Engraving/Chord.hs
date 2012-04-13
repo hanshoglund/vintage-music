@@ -170,7 +170,7 @@ kLedgerLineWeight = convert $ Spaces 0.14
 
 -- | Amount of space of space to add to the right of vertical lines.
 kVerticalLineSpace :: Double
-kVerticalLineSpace = convert $ Spaces 0.3
+kVerticalLineSpace = convert $ Spaces 0
 
 -- | Amount of space to add to the right of accidentals.
 kAccidentalSpace :: Double
@@ -259,10 +259,15 @@ type NoteHeadPosition = HalfSpaces
 
 -- | Whether a given notehead should be engraved with a stem or not.
 hasStem :: NoteHead -> Bool
-hasStem BrevisNoteHead   = False
-hasStem WholeNoteHead    = False
-hasStem UnfilledNoteHead = True
-hasStem FilledNoteHead   = True
+hasStem BrevisNoteHead          = False
+hasStem WholeNoteHead           = False
+hasStem UnfilledNoteHead        = True
+hasStem FilledNoteHead          = True
+hasStem DiamondNoteHead         = True
+hasStem CrossNoteHead           = True
+hasStem CircledCrossNoteHead    = True
+hasStem UnfilledSquareNoteHead  = True
+hasStem FilledSquareNoteHead    = True
 
 
 -- | Separate small intervals (i.e. primes and seconds) from others.
@@ -691,7 +696,7 @@ articulationPoses = undefined
 -- 
 --   The local origin will be in the middle, at position zero.
 engraveArticulations :: Direction -> NoteHeadPosition -> Bool -> Bool -> [Articulation] -> Engraving
-engraveArticulations stemDir outerNote tied slurred articulations = undefined -- TODO
+engraveArticulations stemDir outerNote tied slurred articulations = mempty -- TODO
 
 
 --
@@ -706,7 +711,7 @@ data VerticalLine
 -- 
 --   The local origin will be in the middle, at position zero.
 engraveVerticalLines :: (NoteHeadPosition, NoteHeadPosition) -> [VerticalLine] -> Engraving
-engraveVerticalLines = mempty -- TODO
+engraveVerticalLines notes lines = mempty -- TODO
 
 --
 -- Ledger lines
@@ -895,27 +900,33 @@ engraveNote stemDir pos noteHead =
 --   (see 'engraveNoteHeads' for an explanation of columns).
 engraveChord :: Chord -> Engraving
 engraveChord chord = mempty
-    <> engraveRestOrNoteHeads restN directionN notesN
-
-    -- TODO use richer version of engraveStem instead of these three, and only if there is actually a stem
-    <> (if hasStemN then engraveStem directionN notesN else mempty)
-    -- <> engraveFlags (flags (stem chord))
-    -- <> engraveCrossBeams (crossBeams (stem chord))
-
-    <> engraveDots dotsN positionsN
-    <> engraveAccidentals accidentalsN
-    -- <> engraveArticulations directionN outerNoteN (tied chord) (slurred chord) (articulations chord)
-    -- <> engraveVerticalLines (topNoteN, bottomNoteN) (verticalLines chord)
-    <> engraveLedgers ledgersN
+    `leftTo` engraveVerticalLines (topNoteN, bottomNoteN) (verticalLines chord)
+    `leftTo` spaceX kVerticalLineSpace    
+    
+    `leftTo` engraveAccidentals accidentalsN
+    `leftTo` spaceX kAccidentalSpace
+    
+    `leftTo` (mempty
+        <> engraveRestOrNoteHeads restN directionN notesN
+        <> (if hasStemN then engraveStem directionN notesN else mempty)
+        <> engraveArticulations directionN outerNoteN (tied chord) (slurred chord) (articulations chord)
+        <> (emptyEnvelope `withEnvelope` engraveLedgers ledgersN)
+        )
+    `leftTo` spaceX kDotSpace    
+    `leftTo` engraveDots dotsN positionsN
     where                               
         directionN    =  (getStemDirection . stemDirection . stem $ chord) . defaultStemDirection . getNotePositions . notes $ chord
+    
         restN         =  rest chord
         notesN        =  getNotes (notes chord)
         accidentalsN  =  getNoteAccidentals (notes chord)                 
         positionsN    =  getNotePositions (notes chord)
+    
         hasStemN      =  any hasStem (getNoteHeads . notes $ chord)
         dotsN         =  dots chord
+    
         ledgersN      =  ledgers directionN positionsN
+    
         topNoteN      =  maximum positionsN
         bottomNoteN   =  minimum positionsN
         outerNoteN    =  if isUp directionN then topNoteN else bottomNoteN

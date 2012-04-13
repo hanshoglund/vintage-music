@@ -33,36 +33,13 @@ import qualified Data.Foldable as Foldable
     
 
 chordWithTextE = mempty
+    <> noteLines # scaleX 4 . alignL
+    <> engraveInstruction "pizz."
+    <> engraveMetronomeMark (1/2) 120
     <> (mempty
-        -- <> bigCross
-        <> engraveInstruction "pizz."
-        )
-    <> (mempty
-        -- <> bigCross 
-        <> engraveMetronomeMark (1/2) 120
-        )
-    <> (mempty
-        -- <> bigCross 
         <> engraveDynamic mp 
         `leftTo` engraveExpression "dolce")
-    
-    <> (mempty
-        <> (mempty
-            -- <> bigCross 
-            -- `leftTo` vrule 2 
-            `leftTo` accidentalsE 
-            `leftTo` aS 
-            `leftTo` chordE 
-            `leftTo` dS 
-            `leftTo` dotsE 
-            -- `leftTo` vrule 2
-            )
-        <> noteLines # scaleX 4
-        )
-    where
-        vlS = spaceX . convert $ Spaces 0.3
-        aS = spaceX . convert $ Spaces 0.3
-        dS = spaceX . convert $ Spaces 0.3
+    <> (chordE `leftTo` chordE')
 
 accidentalsE = mempty
     <> bigCross
@@ -73,12 +50,35 @@ accidentalsE = mempty
             (-7, Natural),
             (-12, Natural)
         ]     
-        
-chordE = mempty
-    <> bigCross
-    <> engraveRest (restFromNoteValue (1/2))
-    -- <> drawNotes down
+              
+chordE =
+    engraveChord chord
     where
+        chord = trivial { notes = notes, dots = 3 }
+        notes = 
+            [
+                -- Note  1    DiamondNoteHead (Just Sharp),
+                -- Note (-7)  FilledNoteHead (Just Natural),
+                -- Note (-6)  FilledNoteHead Nothing,
+                Note (9) UnfilledNoteHead (Just DoubleSharp)
+            ]
+                
+chordE' = mempty
+    -- <> bigCross 
+    -- `leftTo` vrule 2 
+    `leftTo` accidentalsE 
+    `leftTo` aS 
+    `leftTo` drawNotes up
+    -- `leftTo` engraveRest (restFromNoteValue (1/2))
+    `leftTo` dS 
+    `leftTo` dotsE 
+    -- `leftTo` vrule 2
+
+    where
+        vlS = spaceX . convert $ Spaces 0.3
+        aS = spaceX . convert $ Spaces 0.3
+        dS = spaceX . convert $ Spaces 0.3
+        
         drawNotes stemDir = mempty
             <> engraveStem stemDir notes
             <> engraveNoteHeads stemDir notes
@@ -95,7 +95,7 @@ chordE = mempty
 
 dotsE = mempty
     <> bigCross
-    <> engraveDots 3 [1, -7, -12]
+    <> engraveDots 3 [1, -7, -6, -12]
 
 
 
@@ -249,10 +249,20 @@ clefsE = mempty
 
 --------------------------------------------------------------------------------
 
+mainE = mempty
+    `above` clefsE
+    `above` notesE
+    `above` symbolsE
+    `above` ledgersE
+    `above` legatoE
+    `above` chordWithTextE
+
+--------------------------------------------------------------------------------
+
 withBigCross = (<> bigCross)
 
 bigCross = mempty
-   <> bigCross'
+   -- <> bigCross'
 
 bigCross' = (e . st) (hrule 2 <> circle 0.1 <> circle 0.2 <> vrule 2)
     where
