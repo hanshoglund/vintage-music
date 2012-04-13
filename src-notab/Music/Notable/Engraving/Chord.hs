@@ -460,7 +460,7 @@ type StemAdjustment = Double
 defaultStemDirection :: [NoteHeadPosition] -> Direction
 defaultStemDirection xs
     | null xs    =  error "defaultStemDirection: Note list is empty"
-    | (m > 0)    =  down
+    | (m >= 0)   =  down
     | otherwise  =  up
     where
         m = mean . map signum $ xs

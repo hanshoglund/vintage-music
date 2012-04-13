@@ -128,13 +128,16 @@ import Data.Convert ( convert )
 import qualified Data.List as List
 
 import Music
+import Music.Time.Event
+import Music.Time.EventList
 import Music.Time.Overlay
 import Music.Time.Tremolo
 import Music.Time.Functors
 import Music.Render
 import Music.Render.Midi
 import Music.Render.Graphics
-import Music.Inspect
+import Music.Inspect       
+import Music.Util (toLowerCase)
 import qualified Music.Util.List as List
 import qualified Music.Util.Either as Either
 
@@ -361,6 +364,17 @@ invert :: PitchFunctor f => f -> f
 invert = mapPitch negate
 \end{code}
 
+This will be used for notation:
+
+\begin{code}
+type Tempo = Double
+
+class TempoFunctor f where
+    setTempo     :: Tempo -> f -> f
+    mapTempo     :: (Tempo -> Tempo) -> f -> f
+    setTempo x = mapTempo (const x)
+\end{code}
+
 
 
 
@@ -583,7 +597,7 @@ intonation Solo t = case stopping t of
     Stopped        -> Individual
 
 cueIntonation :: Cue -> Intonation
-cueIntonation (Cue p d n t) = intonation d t
+cueIntonation (Cue p d n e t) = intonation d t
 
 raisedIntonation :: Cent
 raisedIntonation = 23 Cent
@@ -615,31 +629,36 @@ data Cue
         cuePart      :: Part,
         cueDoubling  :: Doubling,
         cueDynamics  :: Dynamics,  -- time is 0 to 1 for the duration of the cue
+        cueTempo     :: Tempo,
         cueTechnique :: Technique
     }
     deriving ( Eq, Show )
 
 instance PartFunctor Cue where
-    mapPart     f (Cue p d n t) = Cue (f p) d n t
-    mapDoubling f (Cue p d n t) = Cue p (f d) n t
-
-instance PitchFunctor Cue where
-    mapPitch f (Cue p d n t) = Cue p d n (mapPitch f t)
+    mapPart     f (Cue p d n e t) = Cue (f p) d n e t
+    mapDoubling f (Cue p d n e t) = Cue p (f d) n e t
 
 instance LevelFunctor Cue where
-    mapLevel f    (Cue p d n t) = Cue p d (mapLevel f n) t
-    mapDynamics f (Cue p d n t) = Cue p d (mapDynamics f n) t
+    mapLevel f    (Cue p d n e t) = Cue p d (mapLevel f n) e t
+    mapDynamics f (Cue p d n e t) = Cue p d (mapDynamics f n) e t
+
+instance TempoFunctor Cue where
+    mapTempo     f (Cue p d n e t) = Cue p d n (f e) t
+
+instance PitchFunctor Cue where
+    mapPitch f (Cue p d n e t) = Cue p d n e (mapPitch f t)
 
 instance (Time t, PartFunctor a) => PartFunctor (Score t a) where
     mapPart f = fmap (mapPart f)
     mapDoubling f = fmap (mapDoubling f)
 
-instance (Time t, PitchFunctor a) => PitchFunctor (Score t a) where
-    mapPitch f = fmap (mapPitch f)
-
 instance (Time t, LevelFunctor a) => LevelFunctor (Score t a) where
     mapLevel    f = fmap (mapLevel f)
     mapDynamics f = fmap (mapDynamics f)
+
+instance (Time t, PitchFunctor a) => PitchFunctor (Score t a) where
+    mapPitch f = fmap (mapPitch f)
+
 \end{code}
 
 
@@ -680,7 +699,7 @@ and intontation.
 
 \begin{code}
 midiChannel :: Cue -> MidiChannel
-midiChannel (Cue part doubling dynamics technique) =
+midiChannel (Cue part doubling dynamics tempo technique) =
     midiChannel' part section intonation'
     where
           section     = partSection part
@@ -721,7 +740,7 @@ program based on the doubling  attribute. I am not sure this is a good idea thou
 
 \begin{code}
 midiInstrument :: Cue -> MidiInstrument
-midiInstrument (Cue part doubling dynamics technique) =
+midiInstrument (Cue part doubling dynamics tempo technique) =
     case technique of
         (Pizz _ _) -> Just 45
         _          -> midiInstrument' part
@@ -779,7 +798,7 @@ twelve-tone equal temperament. Unfortunately this does not work for harmonic tre
 
 \begin{code}
 midiBend :: Cue -> MidiBend
-midiBend (Cue part doubling dynamics technique) =
+midiBend (Cue part doubling dynamics tempo technique) =
     midiBend' (intonation', cents') + just
     where
         intonation'  =  intonation doubling technique
@@ -944,30 +963,87 @@ Graphical rendering
 
 \begin{code}
 
+toEventList :: Time t => Score t a -> EventList t a
+toEventList = render
 
 parts :: [Score Dur Cue]
-parts = fmap (\part -> filterEvents (\cue -> cuePart cue == part) test) ensemble
+parts = fmap (addTempo . \part -> filterEvents (\cue -> cuePart cue == part) score) ensemble
+    where   
+        -- FIXME divide by sum of events in cue
+        addTempo = dmap (\d x -> setTempo (150 + negate $ d * 10) x)
 
+staffHead :: Staff
+staffHead = trivial { spacedObjects = s }
+    where
+        s = [(0, StaffBarLine), (0.5, StaffClef trebleClef)]
 
 notateCue :: Cue -> Staff
 notateCue cue = trivial { spacedObjects = s, nonSpacedObjects = ns }
     where
-        s = [(0, StaffBarLine)]
+        s = [(0, StaffBarLine)] ++ chords
         ns = [
-            ([0], StaffInstruction "solo"),
-            ([0], StaffMetronomeMark (1/2) 80),
-            ([0], StaffDynamic Notable.pp)
+            ([0], StaffInstruction (toLowerCase . show . cueDoubling $ cue)),
+            ([0], StaffMetronomeMark (1/2) (toMetronomeScale . truncate . cueTempo $ cue)),
+            ([0], StaffDynamic (notateDynamic . cueDynamics $ cue))
             ]
+        chords = fmap (\(p,x) -> (p + 2, StaffChord x)) $ notateRightHand (cuePart cue) (cueTechnique cue)
+
+notateLeftHand :: Part -> LeftHand Pitch Str -> Chord
+notateLeftHand p ( OpenString           s )      =  trivial { notes = [Note 0 DiamondNoteHead Nothing] }
+notateLeftHand p ( NaturalHarmonic      x s )    =  trivial { notes = [Note 0 UnfilledNoteHead Nothing] }
+notateLeftHand p ( NaturalHarmonicTrem  x y s )  =  trivial { notes = [Note 0 DiamondNoteHead Nothing] }
+notateLeftHand p ( StoppedString        x s )    =  trivial { notes = [Note 0 UnfilledNoteHead Nothing] }
+notateLeftHand p ( StoppedStringTrem    x y s )  =  trivial { notes = [Note 0 DiamondNoteHead Nothing] }
+    where
+        p2s = pitchToSpace
+
+pitchToSpace :: Pitch -> HalfSpaces        
+pitchToSpace = convert . int2Double . (\x -> x - 71)
+
+int2Double :: Int -> Double
+int2Double = fromIntegral
 
 
-moveStaffObjects :: Spaces -> Staff -> Staff
-moveStaffObjects n (Staff s ns) = Staff (map (\(p, x) -> (p + n, x)) s) ns
+notateRightHand :: Part -> Technique -> [(Spaces, Chord)]
+notateRightHand p ( Pizz   c x )   =  [(0, notateLeftHand p x)]
+notateRightHand p ( Single c x )   =  [(0, notateLeftHand p x)]
+notateRightHand p ( Phrase r xs )  =  snd $ List.mapAccumL (\t (d, x) -> (t + t2s d, (t, notateLeftHand p x))) 0 xs
+    where
+        t2s = timeToSpace
+-- notateLeftHands :: Part -> [(Dur, LeftHand Pitch Str)] -> TremoloScore Dur MidiNote
+
+
+notateDynamic :: Dynamics -> Notable.Dynamic
+notateDynamic = const Notable.mf
+-- ppp, pp, p, mf, f, ff, fff :: Dynamics
+-- ppp = Dynamics $ const (-0.8)
+-- pp  = Dynamics $ const (-0.6)
+-- p   = Dynamics $ const (-0.3)
+-- mf  = Dynamics $ const 0
+-- f   = Dynamics $ const 0.25
+-- ff  = Dynamics $ const 0.5
+-- fff = Dynamics $ const 0.7
+
+
+notatePart :: Score Dur Cue -> Staff
+notatePart =
+    mconcat . (\xs -> staffHead : fmap (moveStaffOb 5) xs) . fmap (\(Event t d x) -> moveStaffOb (t2s t) $ notateCue x) . eventListEvents . toEventList
+    where
+        t2s = timeToSpace
+timeToSpace = convert . (* 2)
+
+scoreNotation = foldr above mempty $ fmap (engraveStaff . notatePart) parts 
+
+moveStaffOb :: Spaces -> Staff -> Staff
+moveStaffOb n (Staff s ns) = Staff (map (\(p, x) -> (p + n, x)) s) ns
+
+
 
 instance Render Chord Graphic where
     render = Graphic . engraveChord
 
 instance Render Staff Graphic where
-    render = Graphic . engraveStaff
+    render = Graphic . (engraveInstruction "Name" `leftTo`) . (<> spaceY 10) . engraveStaff
 
 instance Render Engraving Graphic where
     render = Graphic
@@ -986,7 +1062,7 @@ adding some higher-level constructors.
 The constructors all create *standard cues* with the following definitions:
 
 \begin{code}
-standardCue           =  note . Cue (Violin 1) Tutti mf
+standardCue           =  note . Cue (Violin 1) Tutti mf 0
 standardArticulation  =  Straight
 standardPhrasing      =  Phrasing
 \end{code}
@@ -1392,7 +1468,8 @@ canon2 = compress 1.1 $ instant
     ||| (setDynamics mf . concatSeq $ map (\x -> stretch 30 . setPart (Cello 2)  $ stoppedString x) [54,52..52])
     ||| (setDynamics mf . stretch 80 . setPart DoubleBass $ openString IV)
 
-test = intro2 >>> {-middle1 >>> -}canon1b >>> canon2
+-- score = canon2
+score = intro2 >>> {-middle1 >>> -}canon1b >>> canon2
 
 -- TODO coda?
 
@@ -1408,8 +1485,8 @@ Test
 ----------
 
 \begin{code}
-test :: Score Dur Cue
---test = instant
+score :: Score Dur Cue
+--score = instant
 
 allHarmonics :: Score Dur Cue
 allHarmonics = stretch (1/3) $ instant
@@ -1423,7 +1500,7 @@ allOpenStrings = stretch (1/3) $ instant
                                                           , part  <- [2,1]
                                                           , str   <- enumFrom I ]
 
-main = writeMidi "Passager.mid" (render test)
+main = writeMidi "Passager.mid" (render score)
 
 \end{code}
 

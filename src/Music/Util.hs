@@ -48,10 +48,13 @@ module Music.Util
 -- * Foldable 
     removeNothingLeft,
     removeNothingRight,
+
+    toLowerCase,
 )     
 
 where
 
+import Data.Char( toLower )
 import Data.Tuple ( swap )
 
 import Data.Foldable ( Foldable(..) )
@@ -178,3 +181,7 @@ removeNothingRight = Data.Foldable.foldr rm []
     where
         rm (a, Nothing) xs  =  xs
         rm (a, Just x)  xs  =  (a, x) : xs
+
+
+toLowerCase :: String -> String
+toLowerCase = map toLower
