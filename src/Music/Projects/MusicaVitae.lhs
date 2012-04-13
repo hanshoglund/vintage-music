@@ -122,6 +122,7 @@ where
 import Prelude hiding ( reverse )
 
 import Control.Applicative
+import Data.Maybe
 import Data.Trivial
 import Data.Indexed
 import Data.Convert ( convert )
@@ -334,11 +335,17 @@ newtype Scale a = Scale { getScale :: [a] }
 step :: Scale Pitch -> Pitch -> Pitch
 step (Scale xs) p = xs !! (p `mod` length xs)
 
+fromStep :: Scale Pitch -> Pitch -> Pitch
+fromStep (Scale xs) p = fromMaybe (length xs - 1) $ List.findIndex (>= p) xs
+    
 scaleFromSteps :: [Pitch] -> Scale Pitch
 scaleFromSteps = Scale . accum
     where
         accum = snd . List.mapAccumL add 0
         add a x = (a + x, a + x)
+
+major :: Scale Pitch
+major = scaleFromSteps [0,2,2,1,2,2,2,1]
 
 retrograde :: Scale Pitch -> Scale Pitch
 retrograde = Scale . List.reverse . getScale
@@ -985,17 +992,43 @@ staffHead = trivial { spacedObjects = s }
     where
         s = [(0, StaffBarLine), (0.5, StaffClef trebleClef)]
 
+toDiatonic :: Pitch -> (Pitch, Maybe Accidental)
+toDiatonic x = (l + h, a)
+    where
+        l      =  7 * (x `div` 12)
+        (h, a) =  sharpsOnly (x `mod` 12)
+
+sharpsOnly 0  =  (0, Nothing)
+sharpsOnly 1  =  (0, Just Sharp)
+sharpsOnly 2  =  (1, Nothing)
+sharpsOnly 3  =  (1, Just Sharp)
+sharpsOnly 4  =  (2, Nothing)
+sharpsOnly 5  =  (3, Nothing)
+sharpsOnly 6  =  (3, Just Sharp)
+sharpsOnly 7  =  (4, Nothing)
+sharpsOnly 8  =  (4, Just Sharp)
+sharpsOnly 9  =  (5, Nothing)
+sharpsOnly 10 =  (5, Just Sharp)
+sharpsOnly 11 =  (6, Nothing)
+
+
 -- FIXME undo tonality etc
+-- FIXME other clefs than treble
 notatePitch :: Pitch -> (HalfSpaces, Maybe Accidental)        
-notatePitch = (\x -> (x, Nothing)) . HalfSpaces . int2Double . (subtract 71)
+notatePitch x = (HalfSpaces . int2Double $ p + 1, a)
+    where
+        (p, a) = toDiatonic (x - 72)
 
 int2Double :: Int -> Double
 int2Double = fromIntegral
 
--- FIXME                                   
+-- FIXME harmonics
 openStringPos :: Part -> Str -> HalfSpaces
 openStringPos p s = HalfSpaces . int2Double $ fromEnum s
 
+-- FIXME correct note value
+-- FIXME different clefs
+-- FIXME spacing issues
 notateLeftHand :: Part -> LeftHand Pitch Str -> Chord
 notateLeftHand part ( OpenString           s )      =  trivial { notes = [Note 0 DiamondNoteHead Nothing] } where p = openStringPos part s
 notateLeftHand part ( NaturalHarmonic      x s )    =  trivial { notes = [Note 0 UnfilledNoteHead Nothing] }
@@ -1015,35 +1048,39 @@ notateDynamic x
     | x `levelAt` 0 <= -0.8  =  Notable.ppp
     | x `levelAt` 0 <= -0.6  =  Notable.pp
     | x `levelAt` 0 <= -0.3  =  Notable.p
-    | x `levelAt` 0 <= -0.0  =  Notable.mf
-    | x `levelAt` 0 <= -0.25 =  Notable.f
-    | x `levelAt` 0 <= -0.5  =  Notable.ff
-    | otherwise              =  Notable.fff
+    | x `levelAt` 0 <= -0.0  =  Notable.mp
+    | x `levelAt` 0 <= -0.25 =  Notable.mf
+    | x `levelAt` 0 <= -0.5  =  Notable.f
+    | otherwise              =  Notable.ff
 
+-- FIXME normalize pos against tempo
 notateCue :: Cue -> Staff
 notateCue cue = trivial { spacedObjects = s, nonSpacedObjects = ns }
     where
         s = [(0, StaffBarLine)] ++ chords
         ns = [
-            -- ([0], StaffInstruction (toLowerCase . show . cueDoubling $ cue)),
-            ([0], StaffMetronomeMark (1/2) (toMetronomeScale . truncate . cueTempo $ cue)),
-            ([0], StaffDynamic (notateDynamic . cueDynamics $ cue))
+            ([1], StaffMetronomeMark (1/2) (toMetronomeScale . truncate . cueTempo $ cue)),
+            ([1], StaffDynamic (notateDynamic . cueDynamics $ cue))
             ]
-        chords = fmap (\(p,x) -> (p + 2, StaffChord x)) $ notateRightHand (cuePart cue) (cueTechnique cue)
+        chords = fmap (\(p,x) -> (p * scale + headOffset, StaffChord x)) $ notateRightHand (cuePart cue) (cueTechnique cue)
+        scale = Spaces (60/(cueTempo cue))
+        headOffset = 1.8
 
 notatePart :: Score Dur Cue -> Staff
 notatePart =
     mconcat . (\xs -> staffHead : fmap (moveStaffOb 5) xs) . fmap (\(Event t d x) -> moveStaffOb (t2s t) $ notateCue x) . eventListEvents . toEventList
     where
         t2s = timeToSpace
-timeToSpace = convert . (* 2)
-
-scoreNotation = foldr above mempty $ fmap (engraveStaff . notatePart) parts 
+timeToSpace = convert . (* 1.4)
 
 moveStaffOb :: Spaces -> Staff -> Staff
 moveStaffOb n (Staff s ns) = Staff (map (\(p, x) -> (p + n, x)) s) ns
 
 
+scoreNotation :: Engraving
+scoreNotation = mempty
+    <> (foldr above mempty $ fmap (engraveStaff . notatePart) parts) 
+    <> spaceY 10
 
 instance Render Chord Graphic where
     render = Graphic . engraveChord
@@ -1213,7 +1250,7 @@ the reference pitch, so pitch operations applied *before* this function is diato
 operations applied *after* it is chromatic.
 
 \begin{code}
-minScale    = scaleFromSteps [0, 2, 1, 2, 2, 1, 2, 2]
+minScale    = scaleFromSteps [0,2,1,2,2,1,2,2]
 majMinScale = Scale $ getScale lower ++ getScale upper
     where
         lower = retrograde . invert $ minScale

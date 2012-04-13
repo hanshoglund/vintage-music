@@ -412,8 +412,8 @@ defaultStem = StemDirection id
 flipStem :: StemDirection
 flipStem = StemDirection $ Direction . not . getDirection
 
-stemLength :: [(NoteHeadPosition, NoteHead)] -> HalfSpaces
-stemLength notes
+stemLength :: Direction -> [(NoteHeadPosition, NoteHead)] -> HalfSpaces
+stemLength stemDir notes
     | length notes == 0  =  error "stemLength: Note list is empty"
     | otherwise          =  octave + (hi - lo)
     where
@@ -428,7 +428,7 @@ stemHorizOffset stemDir = convert . (subtract inset) . fst . engraveNoteHeads' s
 stemVertOffset :: Direction -> [(NoteHeadPosition, NoteHead)] -> HalfSpaces
 stemVertOffset stemDir notes
     | null notes  =  error "stemVertOffset: Note list is empty"
-    | otherwise   =  0 + (negateIfDown stemDir $ stemLength notes) / 2 + outerNote
+    | otherwise   =  0 + (negateIfDown stemDir $ stemLength stemDir notes) / 2 + outerNote
     where
         outerNote  =  if (isUp stemDir) then lo else hi
         hi  =  maximum $ map (fst) notes
@@ -440,7 +440,7 @@ engraveStem :: Direction -> [(NoteHeadPosition, NoteHead)] -> Engraving
 engraveStem stemDir notes =
     pos $ style $ rect kStemWeight (convert len)
     where
-        len    =  stemLength notes
+        len    =  stemLength stemDir notes
         pos    =  translate . r2 . mapPair convert convert 
                       $ 
                   (stemHorizOffset stemDir notes, stemVertOffset stemDir notes)

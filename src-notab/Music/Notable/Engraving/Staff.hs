@@ -125,7 +125,7 @@ kMetronomeMarkOffset :: Spaces
 kInstructionOffset   :: Spaces
 kExpressionOffset    :: Spaces
 kDynamicOffset       :: Spaces
-kMetronomeMarkOffset = 8
+kMetronomeMarkOffset = 5
 kInstructionOffset   = 5
 kExpressionOffset    = 7
 kDynamicOffset       = 7
