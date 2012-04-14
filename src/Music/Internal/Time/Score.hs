@@ -345,6 +345,12 @@ stretchTo t x
 normalizeDuration :: Time t => Score t a -> Score t a
 normalizeDuration score = stretch (1 / meanDuration score) score
 
+toEventList :: Time t => Score t a -> EventList t a
+toEventList = render
+
+toList :: Time t => Score t a -> [a]
+toList = fmap eventValue . eventListEvents . toEventList
+
 --
 -- Internals
 --
@@ -377,3 +383,10 @@ negativeError name = error $ name ++ ": negative value"
 printScoreEvents :: (Time t, Show t, Show a) => Score t a -> String
 printScoreEvents = printEvents . renderScore
 
+
+-- mapLines :: [(t, a)] -> [(t, a)] -> Score t a -> Score t b
+-- mapChords :: [(t, a)] -> [(t, a)] -> Score t a -> Score t b
+-- mapHomophonic :: ([[(t, a)]] -> [[(t, a)]]) -> Score t a -> Score t b
+-- mapPolyphonic :: ([[(t, a)]] -> [[(t, a)]]) -> Score t a -> Score t b
+-- normalizeHomophinic :: Score t a -> [[(t, a)]]
+-- normalizePolyphonic :: Score t a -> [[(t, a)]]

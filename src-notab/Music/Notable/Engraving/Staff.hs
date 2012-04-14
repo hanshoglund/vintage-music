@@ -94,7 +94,8 @@ module Music.Notable.Engraving.Staff
 -- * Staves
     NonSpacedObject(..),
     SpacedObject(..),
-    Staff(..),
+    Staff(..), 
+    moveStaffObjects,
     engraveStaff,
 )
 
@@ -494,6 +495,9 @@ instance Monoid Staff where
 
 instance Trivial Staff where
     trivial = Staff [] []
+
+moveStaffObjects :: Spaces -> Staff -> Staff
+moveStaffObjects n (Staff s ns) = Staff (map (\(p, x) -> (p + n, x)) s) ns
 
 engraveStaff :: Staff -> Engraving
 engraveStaff (Staff sN nsN) = mempty

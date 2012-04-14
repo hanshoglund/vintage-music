@@ -1,7 +1,6 @@
 {-|
     Module      :  Data.Trivial
     Copyright   :  Hans Höglund 2005
-
     Maintainer  :  hans@hanshoglund.se
     Stability   :  experimental
     Portability :  portable

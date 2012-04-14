@@ -7,33 +7,29 @@
     Portability :  portable
 -}
 
-{-# LANGUAGE
-    DeriveFunctor, 
-    DeriveFoldable #-}
-
 module Music.Time.Score
 (
 -- * Score type
     Score,
     
 -- * Creating
-    note,               -- :: Time t => a -> Score t a  
-    line,               -- :: Time t => [a] -> Score t a
-    chord,              -- :: Time t => [a] -> Score t a
-    lines,              -- :: Time t => [[a]] -> Score t a
-    chords,             -- :: Time t => [[a]] -> Score t a
-
-    lineStretch,        -- :: Time t => [(a, t)] -> Score t a
-    chordDelay,         -- :: Time t => [(a, t)] -> Score t a
-    chordDelayStretch,  -- :: Time t => [(t, t, a)] -> Score t a
-    arpeggio,           -- :: Time t => t -> [a] -> Score t a
-    
--- * Transforming
-    restBefore,         -- :: Time t => t -> Score t a -> Score t a
-    restBoth,           -- :: Time t => t -> Score t a -> Score t a
-    restAfter,          -- :: Time t => t -> Score t a -> Score t a
-    stretchTo,          -- :: Time t => t -> Score t a -> Score t a
-    normalizeDuration,  -- :: Time t => Score t a -> Score t a
+    note,                 
+    line,               
+    chord,              
+    lines,              
+    chords,             
+                        
+    lineStretch,        
+    chordDelay,         
+    chordDelayStretch,  
+    arpeggio,           
+                        
+-- * Transforming       
+    restBefore,         
+    restBoth,           
+    restAfter,          
+    stretchTo,          
+    normalizeDuration,  
 
 -- * Folding
     filterEvents,
@@ -41,21 +37,16 @@ module Music.Time.Score
     partitionEvents,
     numberOfEvents,
     meanDuration,
-    firstEvent,         -- :: Time t => Score t a -> Maybe a
-    lastEvent,          -- :: Time t => Score t a -> Maybe a
-    printScoreEvents,   -- :: (Time t, Show t, Show a) => Score t a -> String
+    firstEvent,         
+    lastEvent,          
+    printScoreEvents,   
+    toEventList,
+    toList,
 
 -- TODO normal forms and related maps
-    -- mapLines :: [a] -> [b] -> Score t a -> Score t b
-    -- mapChords :: [a] -> [b] -> Score t a -> Score t b
-    -- mapHomophonic :: ([[a]] -> [[b]]) -> Score t a -> Score t b
-    -- mapPolyphonic :: ([[a]] -> [[b]]) -> Score t a -> Score t b
-    -- normalizeHomophinic :: Score t a -> [[a]]
-    -- normalizePolyphonic :: Score t a -> [[a]]
 )
 where
 
 import Prelude hiding ( lines )
 import Music.Internal.Time.Score
-
 

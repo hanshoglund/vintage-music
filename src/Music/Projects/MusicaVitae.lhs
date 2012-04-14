@@ -53,6 +53,8 @@ module Music.Projects.MusicaVitae
     step,
     scaleFromSteps,
     PitchFunctor(..),
+    Tempo,
+    TempoFunctor(..),
 
 -- ** Dynamics
     Level(..),
@@ -87,8 +89,17 @@ module Music.Projects.MusicaVitae
 -- ** Cues
     Cue(..),
 
--- * Midi rendering
+-- * Rendering
+-- ** Midi
     renderCueToMidi,
+-- ** Notation
+    staffHead,
+    notatePitch,
+    notateDynamic,
+    notateLeftHand,
+    notateRightHand,
+    notateCue,
+    notatePart,
 
 -- * High-level constructors
 -- ** Open strings
@@ -116,6 +127,28 @@ module Music.Projects.MusicaVitae
 -- ** Tremolo
     stoppedStringTrem,
     naturalHarmonicTrem,
+
+-- * Final composition
+    majMinScale,
+    tonality,
+    tonalSeq,
+    tonalConcat,
+    duodecDown, octaveDown, fifthDown,
+    fifthUp, octaveUp, duodecUp,
+    Pattern,
+    pattern,
+    patterns,
+    patternMelody,
+    patternSequence,
+    patternMelodyFrom,
+    patternSequenceFrom,    
+    
+-- ** Export
+    score,
+    parts,
+    partNotations,
+    allHarmonics,
+    allOpenStrings,
 )
 where
 
@@ -979,13 +1012,11 @@ Graphical rendering
 
 \begin{code}
 
-toEventList :: Time t => Score t a -> EventList t a
-toEventList = render
+timeToSpace :: NoteValue -> Spaces
+timeToSpace = convert . (* 1.4)
 
-parts :: [Score Dur Cue]
-parts = map (addTempo . \part -> filterEvents (\cue -> cuePart cue == part) score) ensemble
-    where   
-        addTempo = dmap (\d x -> setTempo (60 * (getDur . cueTechnique) x / d) x)
+int2Double :: Int -> Double
+int2Double = fromIntegral
 
 staffHead :: Staff
 staffHead = trivial { spacedObjects = s }
@@ -1012,23 +1043,16 @@ sharpsOnly 10 =  (5, Just Sharp)
 sharpsOnly 11 =  (6, Nothing)
 
 
--- FIXME undo tonality etc
 -- FIXME other clefs than treble
 notatePitch :: Pitch -> (HalfSpaces, Maybe Accidental)        
 notatePitch x = (HalfSpaces . int2Double $ p + 1, a)
     where
         (p, a) = toDiatonic (x - 72)
 
-int2Double :: Int -> Double
-int2Double = fromIntegral
-
 -- FIXME harmonics
 openStringPos :: Part -> Str -> HalfSpaces
 openStringPos p s = HalfSpaces . int2Double $ fromEnum s
 
--- FIXME correct note value
--- FIXME different clefs
--- FIXME spacing issues
 notateLeftHand :: Part -> NoteValue -> LeftHand Pitch Str -> Chord
 notateLeftHand r nv ( OpenString           s )      =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 DiamondNoteHead Nothing] } where p = openStringPos r s
 notateLeftHand r nv ( NaturalHarmonic      x s )    =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 UnfilledNoteHead Nothing] }
@@ -1048,10 +1072,10 @@ notateDynamic x
     | x `levelAt` 0 <= -0.8  =  Notable.ppp
     | x `levelAt` 0 <= -0.6  =  Notable.pp
     | x `levelAt` 0 <= -0.3  =  Notable.p
-    | x `levelAt` 0 <= -0.0  =  Notable.mp
-    | x `levelAt` 0 <= -0.25 =  Notable.mf
-    | x `levelAt` 0 <= -0.5  =  Notable.f
-    | otherwise              =  Notable.ff
+    | x `levelAt` 0 <= 0.0  =  Notable.mf
+    | x `levelAt` 0 <= 0.25 =  Notable.f
+    | x `levelAt` 0 <= 0.5  =  Notable.ff
+    | otherwise              =  Notable.fff
 
 -- FIXME normalize pos against tempo
 notateCue :: Cue -> Staff
@@ -1068,25 +1092,46 @@ notateCue cue = trivial { spacedObjects = s, nonSpacedObjects = ns }
 
 notatePart :: Score Dur Cue -> Staff
 notatePart =
-    mconcat . (\xs -> staffHead : fmap (moveStaffOb 5) xs) . fmap (\(Event t d x) -> moveStaffOb (t2s t) $ notateCue x) . eventListEvents . toEventList
+    mconcat . (\xs -> staffHead : fmap (moveStaffObjects 5) xs) . fmap (\(Event t d x) -> moveStaffObjects (t2s t) $ notateCue x) . eventListEvents . toEventList
     where
         t2s = timeToSpace
-timeToSpace = convert . (* 1.4)
-
-moveStaffOb :: Spaces -> Staff -> Staff
-moveStaffOb n (Staff s ns) = Staff (map (\(p, x) -> (p + n, x)) s) ns
 
 
+-- | All parts, generated from 'score'.
+parts :: [Score Dur Cue]
+parts = map (\part -> filterEvents (\cue -> cuePart cue == part) score') ensemble
+    where
+        score' = addTempo score
+
+
+
+-- extractParts :: Score Dur Cue -> [Score Dur Cue]
+-- extractParts score = extractParts' parts score
+--     where
+--         parts = fmap 
+
+extractParts' :: [Part] -> Score Dur Cue -> [Score Dur Cue]
+extractParts' parts score = 
+    map (\part -> filterEvents (\cue -> cuePart cue == part) score) parts
+
+
+addTempo :: Score Dur Cue -> Score Dur Cue
+addTempo = dmap (\d x -> setTempo (60 * (getDur . cueTechnique) x / d) x)
+
+partNotations :: [Engraving]
+partNotations = fmap (engraveStaff . notatePart) parts
+
+-- | A notation of the entire score in panorama form.
 scoreNotation :: Engraving
 scoreNotation = mempty
-    <> (foldr above mempty $ fmap (engraveStaff . notatePart) parts) 
+    <> (foldr above mempty $ partNotations) 
     <> spaceY 10
 
 instance Render Chord Graphic where
     render = Graphic . engraveChord
 
 instance Render Staff Graphic where
-    render = Graphic . (engraveInstruction "Name" `leftTo`) . (<> spaceY 10) . engraveStaff
+    render = Graphic . engraveStaff
 
 instance Render Engraving Graphic where
     render = Graphic
@@ -1476,8 +1521,8 @@ intro2 = instant
     ||| (delay 95 . before 30 $ introHarmVln 1)
 
     where
-        db  = setPart DoubleBass . setDynamics pp . stretch 4  $ naturalHarmonic III 4
-        db2 = setPart DoubleBass . setDynamics pp . stretch 4  $ naturalHarmonic IV 4
+        db  = setPart DoubleBass . setDynamics p . stretch 4  $ naturalHarmonic III 4
+        db2 = setPart DoubleBass . setDynamics p . stretch 4  $ naturalHarmonic IV 4
 
 
 
