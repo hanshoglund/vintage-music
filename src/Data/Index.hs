@@ -5,7 +5,7 @@
     TypeSynonymInstances,
     UndecidableInstances #-}
 
-module Data.Indexed
+module Data.Index
 (
 -- * Indexed class
 Indexed(..),

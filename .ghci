@@ -1,7 +1,7 @@
 
 --  :load testNotation.hs
 --  :load test.hs
- :load src/Music/Projects/MusicaVitae.lhs 
+ :load src-proj/Music/Projects/MusicaVitae.lhs 
 
 
 :set prompt "Music> "

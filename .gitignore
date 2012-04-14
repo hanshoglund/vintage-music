@@ -1,6 +1,8 @@
 .DS_Store
 dist/
 export/
+ideas/
+text/
 modules.pdf
 test.mid
 test.pdf

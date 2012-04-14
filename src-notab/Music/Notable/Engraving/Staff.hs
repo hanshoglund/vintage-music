@@ -102,7 +102,7 @@ module Music.Notable.Engraving.Staff
 where
 
 import Data.Convert
-import Data.Indexed
+import Data.Index
 import Data.Trivial
 
 import Music.Notable.Core

@@ -13,17 +13,17 @@ Stability:              experimental
 Build-Type:             Simple
 
 Library
-    Build-Depends:      base, 
+    Build-Depends:      base,
 
-                        unix, 
-                        hxt, 
-                        containers,         
-                        split,     
+                        unix,
+--                        hxt,
+                        containers,
+--                        split,
                         random,
 
                         vector-space,
-                        colour >= 2.3.1,   
-                        
+                        colour >= 2.3.1,
+
                         diagrams        == 0.5,
                         diagrams-core   == 0.5,
                         diagrams-lib    == 0.5,
@@ -31,28 +31,22 @@ Library
                         diagrams-svg    == 0.3.2,
 
                         HCodecs >= 0.2.2,
-                        binary >= 0.5.0.2,
-                        
-                        temporal-media, 
-                        temporal-music-notation, 
-                        temporal-music-notation-demo, 
-                        temporal-music-notation-western
+                        binary >= 0.5.0.2
 
     Default-Language:   Haskell2010
 
-    Hs-Source-Dirs:     src, src-notab
+    Hs-Source-Dirs:     src, src-proj, src-notab
 
-    Default-Extensions: 
+    Default-Extensions:
 
     Exposed-Modules:
-        
-        Data.Trivial
-        Data.Undefined
-        Data.Convert
-        Data.Indexed
-        
-        Music
 
+        Data.Convert
+        Data.Index
+        Data.Trivial
+
+        -- Music library
+        Music
         Music.Time
         Music.Time.Functors
         Music.Time.Event
@@ -65,21 +59,16 @@ Library
         Music.Dynamics
         Music.Phrasing
         Music.Space
-        
         Music.Render
         Music.Render.Graphics
         Music.Render.Midi
+        Music.Inspect
+        Music.Util
+        Music.Util.List
+        Music.Util.Either
+        Music.Util.System
 
-        Music.Inspect 
-        
         -- Music.Model.Abc
-        -- Music.Model.General
-        -- Music.Model.Standard
-        -- Music.Model.Standard.Time
-        -- Music.Model.Standard.Pitch
-        -- Music.Model.Standard.Phrasing
-        -- Music.Model.Standard.Instrumentation
-
         -- Music.Model.Temporal.Media
         -- Music.Model.GUIDO
         -- Music.Model.MIDI
@@ -97,16 +86,10 @@ Library
         -- Music.Model.MusicXML.Sound
         -- Music.Model.MusicXML.Text
         -- Music.Model.MusicXML.Tuplet
-        -- Music.Model.MusicXML.Write           
-        -- 
-        Music.Projects.MusicaVitae
-        -- Music.Projects.StringQuartet 
+        -- Music.Model.MusicXML.Write
 
-        Music.Util
-        Music.Util.List
-        Music.Util.Either
-        Music.Util.System
-                              
+        Music.Projects.MusicaVitae
+
         -- Notable music engraving engine
         -- To be moved to separate library soon (!)
         Music.Notable.Core
@@ -114,14 +97,14 @@ Library
         Music.Notable.Core.Diagrams
         Music.Notable.Core.Diagrams.Cairo
         Music.Notable.Beaming
-        Music.Notable.Spacing   
+        Music.Notable.Spacing
         Music.Notable.Voicing
         Music.Notable.Paging
         Music.Notable.Engraving
         Music.Notable.Engraving.System
         Music.Notable.Engraving.Chord
         Music.Notable.Engraving.Staff
-        
+
 
    Other-Modules:
         Music.Internal.Time.Score

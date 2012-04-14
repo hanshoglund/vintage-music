@@ -155,10 +155,11 @@ where
 import Prelude hiding ( reverse )
 
 import Control.Applicative
+
 import Data.Maybe
-import Data.Trivial
-import Data.Indexed
 import Data.Convert ( convert )
+import Data.Index
+import Data.Trivial
 import qualified Data.List as List
 
 import Music

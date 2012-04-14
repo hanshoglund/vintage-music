@@ -35,7 +35,7 @@ module Music.Notable.Engraving.System
 )
 where
 
-import Data.Indexed
+import Data.Index
 
 import Music.Notable.Core
 import Music.Notable.Core.Symbols
