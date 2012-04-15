@@ -333,7 +333,7 @@ type Dur = Double
 \end{code}
 
 
-For simplicity, we will use Midi numbers for written pitch. Sounding pitch will of course
+For simplicity, we will use MIDI numbers for written pitch. Sounding pitch will of course
 be rendered depending on tuning and playing technique of the given part.
 
 String number will be represented separately using a different type (named `Str` so as not
@@ -738,12 +738,12 @@ instance (Time t, PitchFunctor a) => PitchFunctor (Score t a) where
 
 
 
-Midi rendering and playback
+MIDI rendering and playback
 ==========
 
 We are going to compose the piece as a score of cues. In order to hear the piece
 and make musical decisions, we need to define a rendering function that renders a
-cue to a score of Midi notes, which is the object of this chapter.
+cue to a score of MIDI notes, which is the object of this chapter.
 
 The `MidiNote` type is imported from `Music.Render.Midi`, but we define some
 extra type synonyms to make the rendering functions somewhat more readable:
@@ -762,8 +762,8 @@ type MidiDynamic    = Int
 Channel
 ----------
 
-A caveat is that the Midi representation does not handle simultaneous tunings well.
-We must therefore separete the music into different Midi channels based on part, section
+A caveat is that the MIDI representation does not handle simultaneous tunings well.
+We must therefore separete the music into different MIDI channels based on part, section
 and intontation.
 
 \begin{code}
@@ -1025,7 +1025,7 @@ instance Render (Score Dur Cue) Midi where
 Notation
 =================
 
-The previous chapter we defined a rendering from the internal score representation to Midi. 
+The previous chapter we defined a rendering from the internal score representation to MIDI. 
 In this chapter we will define a similar functionality for music notation. We will use the 
 `Music.Notable` (which in turn depends on `Diagrams`) for the purposes of notation. 
 As this is an orchestral piece, our task is twofold: first we need to render all cues and
@@ -1063,10 +1063,6 @@ notatePitch :: Pitch -> (HalfSpaces, Maybe Accidental)
 notatePitch x = (HalfSpaces . fromIntegral $ p + 1, a)
     where
         (p, a) = toDiatonic (x - 72)
-
--- TODO harmonics
-openStringPos :: Part -> Str -> HalfSpaces
-openStringPos p s = HalfSpaces . fromIntegral $ fromEnum s    
 \end{code}
 
 Rhytmical spelling and spacing
@@ -1115,37 +1111,76 @@ Notating staves
 staffHead :: Staff
 staffHead = trivial { spacedObjects = s }
     where
-        s = [{-(0, StaffBarLine), -}(0.5, StaffClef trebleClef)]
+        s = [{-(0, StaffBarLine), -} (0.5, StaffClef trebleClef)]
 
+
+notateOpenString :: Part -> NoteValue -> Str -> Chord
+notateOpenString r nv s = 
+    trivial { dots = dotsFromNoteValue nv, 
+              notes = [Note p nh a] } 
+    where 
+        (p, a) = notatePitch $ openStringPitch r s
+        nh = noteHeadFromNoteValue nv
+
+notateNaturalHarmonic :: Part -> NoteValue -> Pitch -> Str -> Chord
+notateNaturalHarmonic r nv x s = 
+    trivial { dots = dotsFromNoteValue nv, 
+              notes = [Note p DiamondNoteHead a] }
+    where
+        (p, a) = notatePitch $ naturalHarmonicPitch r s x
+        nh = noteHeadFromNoteValue nv
+
+notateStoppedString :: Part -> NoteValue -> Pitch -> Str -> Chord
+notateStoppedString r nv x s = 
+    trivial { dots = dotsFromNoteValue nv, 
+              notes = [Note p nh a] }
+    where 
+        (p,a) = notatePitch x
+        nh = noteHeadFromNoteValue nv
+
+-- TODO trem, gliss
 notateLeftHand :: Part -> NoteValue -> LeftHand Pitch Str -> Chord
-notateLeftHand r nv ( OpenString           s )      =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 (noteHeadFromNoteValue nv) Nothing] } where p = openStringPos r s
-notateLeftHand r nv ( NaturalHarmonic      x s )    =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 CircledCrossNoteHead Nothing] }
-notateLeftHand r nv ( NaturalHarmonicTrem  x y s )  =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 CircledCrossNoteHead Nothing] }
-notateLeftHand r nv ( StoppedString        x s )    =  trivial { dots = dotsFromNoteValue nv, notes = [Note p (noteHeadFromNoteValue (nv/2)) a] } where (p,a) = notatePitch x
-notateLeftHand r nv ( StoppedStringTrem    x y s )  =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 CircledCrossNoteHead Nothing] }
+notateLeftHand r nv ( OpenString           s )   =  notateOpenString r nv s
+notateLeftHand r nv ( NaturalHarmonic      x s ) =  notateNaturalHarmonic r nv x s
+notateLeftHand r nv ( StoppedString        x s ) =  notateStoppedString r nv x s
 
+-- notateLeftHand r nv ( NaturalHarmonicTrem  x y s )  =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 CircledCrossNoteHead Nothing] }
+-- notateLeftHand r nv ( StoppedStringTrem    x y s )  =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 CircledCrossNoteHead Nothing] }
+
+
+-- TODO pizz, jete
 notateRightHand :: Part -> Technique -> [(Spaces, Chord)]
-notateRightHand r ( Pizz   _ x )   =  [(0, notateLeftHand r 1 x)]
 notateRightHand r ( Single _ x )   =  [(0, notateLeftHand r 1 x)]
-notateRightHand r ( Phrase _ xs )  =  snd $ List.mapAccumL (\t (d, x) -> (t + t2s d, (t, notateLeftHand r d x))) 0 xs
+notateRightHand r ( Phrase _ xs )  =  snd $ List.mapAccumL (\t (d, x) -> (t + t2s d, (t, notateLeftHand r (d/2) x))) 0 xs
     where
         t2s = timeToSpace 
+
+isPhrase :: Technique -> Bool
+isPhrase (Phrase _ _) = True
+isPhrase _            = False
 
 notateCue :: Cue -> Staff
 notateCue cue = trivial { spacedObjects = s, nonSpacedObjects = ns }
     where
-        s = [(0, StaffBarLine)] ++ chords
-        ns = [ ([1], notateTempo   . cueTempo $ cue),
-               ([1], notateDynamic . cueDynamics $ cue) ]
-        chords = fmap (\(p,x) -> (p * scale + headOffset, StaffChord x)) $ notateRightHand (cuePart cue) (cueTechnique cue)
+        s = [(0, StaffTickBarLine)] ++ chords
+
+        ns = t ++ n
+        t = if isPhrase (cueTechnique cue) then [([1], notateTempo   . cueTempo $ cue)] else []
+        n = [([1], notateDynamic . cueDynamics $ cue)]
+        
+        chords = fmap (\(p,x) -> (p * scale + headOffset, StaffChord x)) chords'
+        chords' = notateRightHand (cuePart cue) (cueTechnique cue)
+        
         scale = Spaces (60/(cueTempo cue))
         headOffset = 1.8
+        -- headOffset = 0
 
 notatePart :: Score Dur Cue -> Staff
 notatePart =
-    mconcat . (\xs -> staffHead : fmap (moveStaffObjects 5) xs) . fmap (\(Event t d x) -> moveStaffObjects (t2s t) $ notateCue x) . eventListEvents . toEventList
-    where
-        t2s = timeToSpace
+    mconcat 
+            . (\xs -> staffHead : fmap (moveStaffObjects 5) xs) 
+            . fmap (\(Event t d x) -> moveStaffObjects (timeToSpace t) $ notateCue x) 
+            . eventListEvents . toEventList
 
 \end{code}
 
@@ -1208,7 +1243,7 @@ partNotations = fmap (engraveStaff . addSpace 0 5) . sameWidth . fmap (removeRed
 scoreNotation :: Engraving
 scoreNotation = mempty
     <> (foldr above mempty $ partNotations) 
-    <> spaceY 10
+    <> (moveOriginBy (r2(0,-7)) . alignTL $ spaceY 45)
 
 \end{code}
 
@@ -1588,6 +1623,10 @@ introHarmVln sect = stretch 1 $ instant
           d2 = setPart (Violin sect) . setDynamics pp $ naturalHarmonic II 1
           a  = setPart (Violin sect) . setDynamics pp $ naturalHarmonic III 1
 
+db  = setPart DoubleBass . setDynamics pp . stretch 4  $ naturalHarmonic III 4
+db2 = setPart DoubleBass . setDynamics pp . stretch 4  $ naturalHarmonic IV 4
+
+
 intro2 = instant
     ||| (before 30 $ introHarm 1)
     ||| (delay 15  . before 30 $ introHarm 2)
@@ -1595,18 +1634,14 @@ intro2 = instant
     ||| (delay 35  . before 35 $ introHarm 1)
     ||| (delay 50  . before 35 $ introHarm 2)
     ||| (delay 60  . stretch 5 $ db2)
-    ||| (delay 80  . before 15 $ introHarmTrem 1)
+    -- ||| (delay 80  . before 15 $ introHarmTrem 1)
     ||| (delay 90  . before 30 $ introHarm 2)
     ||| (delay 100 . stretch 5 $ db)
     ||| (delay 110 . before 30 $ introHarm 1)
-    ||| (delay 125 . before 15 $ introHarmTrem 2)
-
+    -- ||| (delay 125 . before 15 $ introHarmTrem 2)
     ||| (delay 75 . before 25 $ introHarmVln 1)
     ||| (delay 95 . before 30 $ introHarmVln 1)
 
-    where
-        db  = setPart DoubleBass . setDynamics p . stretch 4  $ naturalHarmonic III 4
-        db2 = setPart DoubleBass . setDynamics p . stretch 4  $ naturalHarmonic IV 4
 
 
 
@@ -1627,7 +1662,7 @@ canon1 = compress 1.1 . reverse $ instant
     ||| (setDynamics mf . stretch 3.5 . id       . tonality . setPart (Viola 1) $ patternSequence  0 . map pattern  $ [2,1,2,1,0])
     ||| (setDynamics mf . stretch 4.1 . id       . tonality . setPart (Viola 2) $ patternSequence   0 . map pattern $ [1,2,1,1,2])
     
-canon1b = canon1 >>> (before 40 . stretch 0.8 . reverse $ canon1)
+canon1b = canon1 >>> ({-before 40 . -}stretch 0.8 . reverse $ canon1)
 
 canon2 = compress 1.1 $ instant
     ||| (setDynamics f . {-delay 0.3 . -}stretch 2 . duodecUp . tonality . setPart (Violin 1) $ patternSequence 1 . map pattern $ [0,2,2,1,2])
@@ -1641,7 +1676,7 @@ canon2 = compress 1.1 $ instant
     ||| (setDynamics f . stretch 80 . setPart DoubleBass $ openString IV)
 
 score :: Score Dur Cue
--- score = canon2
+-- score = intro2
 score = stretch 0.8 $ intro2 >>> {-middle1 >>> -}canon1b >>> canon2
 
 \end{code}
