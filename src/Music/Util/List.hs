@@ -45,7 +45,7 @@ module Music.Util.List
     spin,
     palindrome,
     palindromeInclusive,
-    removeDuplicates,
+    concatMapAccumL,
 
 -- * Indexing
     divide,
@@ -113,27 +113,27 @@ minimumWith z = maybe z id . minimum'
 remove :: (a -> Bool) -> [a] -> [a]
 remove f = snd . partition f
 
--- | `filter` lifted to consequent pairs.
+-- | `filter` lifted to consecutive pairs.
 filter2 :: (a -> a -> Bool) -> [a] -> [(a, a)]
 filter2 pred = map unsafeTuple2 . fst . psl2 pred
 
--- | `remove` lifted to consequent pairs.
+-- | `remove` lifted to consecutive pairs.
 remove2 :: (a -> a -> Bool) -> [a] -> [a]
 remove2 pred = snd . psl2 pred
 
--- | `partition` lifted to consequent pairs.
+-- | `partition` lifted to consecutive pairs.
 partition2 :: (a -> a -> Bool) -> [a] -> ([(a, a)], [a])
 partition2 pred = mapFirst (map unsafeTuple2) . psl2 pred
 
--- | `filter` lifted to consequent triples.
+-- | `filter` lifted to consecutive triples.
 filter3 :: (a -> a -> a -> Bool) -> [a] -> [(a, a, a)]
 filter3 pred = map unsafeTuple3 . fst . psl3 pred
 
--- | `remove` lifted to consequent triples.
+-- | `remove` lifted to consecutive triples.
 remove3 :: (a -> a -> a -> Bool) -> [a] -> [a]
 remove3 pred = snd . psl3 pred
 
--- | `partition` lifted to consequent triples.
+-- | `partition` lifted to consecutive triples.
 partition3 :: (a -> a -> a -> Bool) -> [a] -> ([(a, a, a)], [a])
 partition3 pred = mapFirst (map unsafeTuple3) . psl3 pred
 
@@ -143,13 +143,13 @@ unsafeTuple2 = fromMaybe undefined . tuple2
 unsafeTuple3 = fromMaybe undefined . tuple3
 
 
--- | `partition` lifted to consequent pairs, searching in reverse order.
+-- | `partition` lifted to consecutive pairs, searching in reverse order.
 reversePartition2 :: (a -> a -> Bool) -> [a] -> ([(a, a)], [a])
 reversePartition2 p xs = (reverse . map swap $ x, reverse y)
     where
         (x, y) = partition2 (flip p) (reverse xs)
 
--- | `partition` lifted to consequent triples, searching in reverse order.
+-- | `partition` lifted to consecutive triples, searching in reverse order.
 reversePartition3 :: (a -> a -> a -> Bool) -> [a] -> ([(a, a, a)], [a])
 reversePartition3 p xs = (reverse . map swap3 $ x, reverse y)
     where
@@ -271,6 +271,15 @@ removeDuplicates = Set.toList . Set.fromList
 --
 -- Misc
 --
+
+-- | Combination of 'concatMap' and 'mapAccumL'.
+concatMapAccumL :: (acc -> x -> (acc, [y])) -> acc -> [x] -> (acc, [y])
+concatMapAccumL _ s []     = (s,  [])
+concatMapAccumL f s (x:xs) = (s'', y ++ ys)
+    where 
+        (s',  y ) = f s x
+        (s'', ys) = concatMapAccumL f s' xs
+
 
 -- | Divide into smaller parts.
 divide :: Int -> [a] -> [[a]]

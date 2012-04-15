@@ -43,6 +43,7 @@ Library
 
         Data.Convert
         Data.Index
+        Data.List.Index
         Data.Trivial
 
         -- Music library

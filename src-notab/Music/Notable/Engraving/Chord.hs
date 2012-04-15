@@ -384,7 +384,7 @@ engraveDots dots ps =
     catRight $ replicate dots col
     where
         col  =  mconcat $ fmap engraveDot $ ps'
-        ps'  =  removeDuplicates . map dotPosition $ ps 
+        ps'  =  Data.List.nub . map dotPosition $ ps 
 
 
 

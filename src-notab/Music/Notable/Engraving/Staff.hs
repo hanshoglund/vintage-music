@@ -94,8 +94,18 @@ module Music.Notable.Engraving.Staff
 -- * Staves
     NonSpacedObject(..),
     SpacedObject(..),
+    StaffOptions(..), 
     Staff(..), 
     moveStaffObjects,
+    splitStaff,
+    splitStaffAt,
+    staffWidth,
+    addSpaceAtStart,
+    addSpaceAtEnd,
+    addSpace,
+    scaleStaff,
+    scaleStaffTo,
+    sameWidth,
     engraveStaff,
 )
 
@@ -104,6 +114,8 @@ where
 import Data.Convert
 import Data.Index
 import Data.Trivial
+
+import Music.Util
 
 import Music.Notable.Core
 import Music.Notable.Core.Symbols
@@ -480,30 +492,88 @@ data NonSpacedObject
     | StaffInstruction Instruction
     | StaffExpression Expression
     deriving (Eq, Show)
+
+data StaffOptions = 
+    StaffOptions { spaceBefore :: Spaces,
+                   spaceAfter  :: Spaces,
+                   staffLines  :: StaffLines }
+    deriving (Eq, Show)
+
+instance Trivial StaffOptions where
+    trivial = StaffOptions 0 0 5
+
+instance Monoid StaffOptions where
+    mempty = trivial
+    x `mappend` y = StaffOptions (spaceBefore x) (spaceAfter y) (staffLines x `max` staffLines y)
     
 data Staff = 
-    Staff { spacedObjects    :: [(Spaces, SpacedObject)],
+    Staff { staffOptions     :: StaffOptions,
+            spacedObjects    :: [(Spaces, SpacedObject)],
             nonSpacedObjects :: [([Index [SpacedObject]], NonSpacedObject)] }
     deriving (Eq, Show)
 
 instance Monoid Staff where
-    mempty = Staff [] []
-    Staff xs xns `mappend` Staff ys yns = Staff (xs ++ ys) (xns ++ inc (length xs) yns)
+    mempty = trivial
+    Staff ox xs xns `mappend` Staff oy ys yns = 
+        Staff (ox `mappend` oy) (xs ++ ys) (xns ++ inc (length xs) yns)
         where   
             inc n = fmap (inc' n)
             inc' n (is, x) = (map (+ n) is, x)
 
 instance Trivial Staff where
-    trivial = Staff [] []
+    trivial = Staff trivial [] []
 
 moveStaffObjects :: Spaces -> Staff -> Staff
-moveStaffObjects n (Staff s ns) = Staff (map (\(p, x) -> (p + n, x)) s) ns
+moveStaffObjects n (Staff o s ns) = Staff o (map (\(p, x) -> (p + n, x)) s) ns
+
+splitStaff :: Spaces -> Staff -> (Staff, Staff)
+splitStaff x (Staff o s ns) = (sx, sy)
+    where
+        sx = undefined
+        sy = undefined
+
+splitStaffAt :: Spaces -> (SpacedObject -> Bool) -> (Staff, Staff)
+splitStaffAt = undefined
+
+staffWidth :: Staff -> Spaces
+staffWidth (Staff o s _) = spaceBefore o + w + spaceAfter o
+    where
+        w = maximum . fmap fst $ s
+
+addSpaceAtStart :: Spaces -> Staff -> Staff
+addSpaceAtStart x = addSpace x 0
+
+addSpaceAtEnd :: Spaces -> Staff -> Staff
+addSpaceAtEnd x = addSpace 0 x
+
+addSpace :: Spaces -> Spaces -> Staff -> Staff
+addSpace x y (Staff o s ns) = Staff (f o) s ns
+    where
+        f (StaffOptions b a l) = StaffOptions (b + x) (a + y) l
+
+scaleStaff :: Spaces -> Staff -> Staff
+scaleStaff x (Staff o s ns) = Staff o (fmap (mapFirst (* x)) s) ns
+
+scaleStaffTo :: Spaces -> Staff -> Staff
+scaleStaffTo x staff@(Staff o s ns) = scaleStaff x' staff
+    where
+       x' =  ((x - a) / (staffWidth staff - a))
+       a  =  spaceBefore o + spaceAfter o
+
+
+sameWidth :: [Staff] -> [Staff]
+sameWidth ss = map (\s -> addSpaceAtEnd (((m - staffWidth s) / 2) `max` 0) s) $ ss
+    where
+        m = maximum . map staffWidth $ ss
+            
 
 engraveStaff :: Staff -> Engraving
-engraveStaff (Staff sN nsN) = mempty
-    <> sE <> nsE
-    <> (alignL . scaleX (width $ sE <> nsE) $ noteLines)
+engraveStaff staff@(Staff opt sN nsN) = mempty
+    <> (translateX spb $ sE <> nsE)
+    <> (alignL . scaleX ({-width (sE <> nsE)-}(convert . staffWidth) staff + spb + spa) $ noteLines)
     where 
+        spb = convert $ spaceBefore opt
+        spa = convert $ spaceAfter opt
         sE  = mconcat $ fmap (\(p, x) -> moveSpacesRight p $ engraveSpacedObject x) sN
         nsE = mconcat $ fmap (\(i:is, x) -> moveSpacesRight (fst $ index i sN) $ engraveNonSpacedObject x) nsN
 
