@@ -1013,8 +1013,10 @@ Graphical rendering
 
 \begin{code}
 
+kHorizontalSpace = 1.8
+
 timeToSpace :: NoteValue -> Spaces
-timeToSpace = convert . (* 1.4)
+timeToSpace = convert . (* kHorizontalSpace)
 
 int2Double :: Int -> Double
 int2Double = fromIntegral
@@ -1100,10 +1102,16 @@ notatePart =
 removeRedundantMarks :: Staff -> Staff
 removeRedundantMarks (Staff o s ns) = Staff o s (snd $ List.concatMapAccumL f z ns)
     where
-        z :: (Maybe Notable.Dynamic, Maybe ())
+        z :: (Maybe Notable.Dynamic, Maybe (NoteValue, BeatsPerMinute))
         z = (Nothing, Nothing)
-        f (Nothing, n) (p, (StaffDynamic x)) = ((Just x, n), [(p, StaffDynamic x)])
-        f (Just dyn, n) (p, (StaffDynamic x)) = if dyn == x then ((Just x, n), []) else ((Just x, n), [(p, StaffDynamic x)])
+
+        f (Nothing, t) (p, (StaffDynamic x)) = ((Just x, t), [(p, StaffDynamic x)])
+        f (Just x', t) (p, (StaffDynamic x)) = if x == x' then ((Just x, t), []) else ((Just x, t), [(p, StaffDynamic x)])
+
+        f (n, Nothing)       (p, (StaffMetronomeMark x y)) = ((n, Just (x,y)), [(p, StaffMetronomeMark x y)])
+        f (n, Just (x', y')) (p, (StaffMetronomeMark x y)) = if x == x' && y == y' then ((n, Just (x,y)), []) 
+                                                                else ((n, Just (x,y)), [(p, StaffMetronomeMark x y)])
+
         f z x = (z, [x])
 
 
