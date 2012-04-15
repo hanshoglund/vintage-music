@@ -263,11 +263,11 @@ hasStem BrevisNoteHead          = False
 hasStem WholeNoteHead           = False
 hasStem UnfilledNoteHead        = True
 hasStem FilledNoteHead          = True
-hasStem DiamondNoteHead         = True
-hasStem CrossNoteHead           = True
-hasStem CircledCrossNoteHead    = True
-hasStem UnfilledSquareNoteHead  = True
-hasStem FilledSquareNoteHead    = True
+hasStem DiamondNoteHead         = False
+hasStem CrossNoteHead           = False
+hasStem CircledCrossNoteHead    = False
+hasStem UnfilledSquareNoteHead  = False
+hasStem FilledSquareNoteHead    = False
 
 
 -- | Separate small intervals (i.e. primes and seconds) from others.

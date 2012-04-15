@@ -20,12 +20,20 @@ module Music.Notable.Engraving.Staff
     noteLines,
     noteLines',
 
-
 -- * Spaced objects
 
 -- ** Barlines
     singleBarLine,
     doubleBarLine,
+    thickBarLine,
+    shortBarLine,
+    tickBarLine,
+    finalBarLine,
+
+-- ** Sustain lines
+    SustainLinePosition,
+    engraveSustainLine,
+    
 -- *** Rehearsal marks
 
 -- ** Clefs
@@ -56,25 +64,22 @@ module Music.Notable.Engraving.Staff
     apostrophe,
     cesura,
 
--- ** Chords
-    --engraveChords,
-
 -- * Non-spaced objects
-
--- ** Beams
+-- ** Beams and tremolo beams
     Beams,
     engraveBeams,
--- *** Tremolo beams
     TremoloBeams,
     engraveTremoloBeams,    
--- ** Ties
+-- ** Ties and slurs
     engraveTie,    
--- ** Slurs    
     engraveSlur,
--- ** Tuplets
+-- ** Brackets
     engraveTuplet,
 
 -- ** Text     
+    Rehearsal,
+    engraveRehearsal,
+
     BeatsPerMinute,
     toMetronomeScale,
     engraveMetronomeMark,
@@ -140,8 +145,8 @@ kExpressionOffset    :: Spaces
 kDynamicOffset       :: Spaces
 kMetronomeMarkOffset = 5
 kInstructionOffset   = 5
-kExpressionOffset    = 7
-kDynamicOffset       = 7
+kExpressionOffset    = 6
+kDynamicOffset       = 6
 
 kMetronomeMarkScale  :: Double
 kInstructionScale    :: Double
@@ -184,11 +189,7 @@ noteLines' num =
 --   Bar lines engraved at length four, to fit into a standard five-line system. To obtain other
 --   lengths, use 'stretchY' or 'stretchTo'.
 singleBarLine :: Engraving
-singleBarLine = lineE <> spaceE
-    where
-        spaceE  =  spaceRect (convert space * 4/9) (convert space * 4)
-        lineE   =  style $ vrule (4 * convert space) 
-            where { style = lineWidth kBarLineWeight }
+singleBarLine = barLine 1 4
         
 
 -- | A double bar line.
@@ -196,19 +197,51 @@ singleBarLine = lineE <> spaceE
 --   Bar lines engraved at length four, to fit into a standard five-line system. To obtain other
 --   lengths, use 'stretchY' or 'stretchTo'.
 doubleBarLine :: Engraving
-doubleBarLine = beside unitX (align unitX singleBarLine) singleBarLine
+doubleBarLine = beside unitX (align unitX singleBarLine) (barLine 1 4)
 -- TODO factor out this pattern
 
--- TODO
--- thickBarLine
+thickBarLine :: Engraving
+thickBarLine = barLine 3 4
+
+shortBarLine :: Engraving
+shortBarLine = barLine 1 2
+
+tickBarLine :: Engraving
+tickBarLine  = moveSpacesUp 2 $ barLine 1 1
+
+finalBarLine :: Engraving
+finalBarLine = barLine 1 4 `leftTo` barLine 3 4
+
 -- dashedBarLine
--- shortBarLine
--- tickBarLine
--- finalBarLine
 -- startRepriseBarLine
 -- endRepriseBarLine
 -- startEndRepriseBarLine
 
+barLine thickness height = lineE <> spaceE
+    where
+        spaceE  =  spaceRect (convert space * 4/9) (convert space * 4)
+        lineE   =  style $ vrule (height * convert space) 
+            where { style = lineWidth (thickness * kBarLineWeight) }
+
+
+--
+-- Rehearsal marks
+--                
+
+type Rehearsal = String
+
+engraveRehearsal :: Rehearsal -> Engraving
+engraveRehearsal = mempty -- TODO
+
+--
+-- Sustain lines
+--
+
+-- | Position to indicate, offset from middle line.
+type SustainLinePosition = HalfSpaces
+
+engraveSustainLine :: SustainLinePosition -> Spaces -> Engraving
+engraveSustainLine = mempty -- TODO
 
 --
 -- Clefs
@@ -477,6 +510,10 @@ data SpacedObject
     | StaffTimeSignature TimeSignature 
     | StaffBarLine 
     | StaffDoubleBarLine 
+    | StaffThickBarLine 
+    | StaffShortBarLine 
+    | StaffTickBarLine 
+    | StaffFinalBarLine 
     | StaffCesura
     | StaffChord Chord
     deriving (Eq, Show)
@@ -579,10 +616,14 @@ engraveStaff staff@(Staff opt sN nsN) = mempty
 
 -- noteLines
 engraveSpacedObject :: SpacedObject -> Engraving
-engraveSpacedObject (StaffClef x)   =  engraveClef x
-engraveSpacedObject (StaffChord x)  =  engraveChord x
-engraveSpacedObject StaffBarLine    =  singleBarLine
+engraveSpacedObject (StaffClef x)       =  engraveClef x
+engraveSpacedObject (StaffChord x)      =  engraveChord x
+engraveSpacedObject StaffBarLine        =  singleBarLine
 engraveSpacedObject StaffDoubleBarLine  =  doubleBarLine
+engraveSpacedObject StaffThickBarLine   =  thickBarLine
+engraveSpacedObject StaffShortBarLine   =  shortBarLine
+engraveSpacedObject StaffTickBarLine    =  tickBarLine
+engraveSpacedObject StaffFinalBarLine   =  finalBarLine
 
 engraveNonSpacedObject :: NonSpacedObject -> Engraving
 engraveNonSpacedObject (StaffMetronomeMark nv bpm) = engraveMetronomeMark nv bpm

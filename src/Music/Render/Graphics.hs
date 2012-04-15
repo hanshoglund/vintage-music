@@ -14,7 +14,8 @@
 module Music.Render.Graphics
 (
     Graphic(..),
-    writeGraphics
+    writeGraphics,
+    writeMultipleGraphics,
 )
 where
 
@@ -49,6 +50,8 @@ writeGraphics file (Graphic diagram) = do
     -- fst $ renderDia Cairo (CairoOptions "test.png" (Width 250) PNG) diagram
     return ()
 
+writeMultipleGraphics :: [(FilePath, Graphic)] -> IO ()
+writeMultipleGraphics gs = mapM (uncurry writeGraphics) gs >> return ()
 
 
 --
