@@ -1022,7 +1022,7 @@ int2Double = fromIntegral
 staffHead :: Staff
 staffHead = trivial { spacedObjects = s }
     where
-        s = [(0, StaffBarLine), (0.5, StaffClef trebleClef)]
+        s = [{-(0, StaffBarLine), -}(0.5, StaffClef trebleClef)]
 
 toDiatonic :: Pitch -> (Pitch, Maybe Accidental)
 toDiatonic x = (l + h, a)
@@ -1055,11 +1055,11 @@ openStringPos :: Part -> Str -> HalfSpaces
 openStringPos p s = HalfSpaces . int2Double $ fromEnum s
 
 notateLeftHand :: Part -> NoteValue -> LeftHand Pitch Str -> Chord
-notateLeftHand r nv ( OpenString           s )      =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 DiamondNoteHead Nothing] } where p = openStringPos r s
-notateLeftHand r nv ( NaturalHarmonic      x s )    =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 UnfilledNoteHead Nothing] }
-notateLeftHand r nv ( NaturalHarmonicTrem  x y s )  =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 DiamondNoteHead Nothing] }
+notateLeftHand r nv ( OpenString           s )      =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 (noteHeadFromNoteValue nv) Nothing] } where p = openStringPos r s
+notateLeftHand r nv ( NaturalHarmonic      x s )    =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 CircledCrossNoteHead Nothing] }
+notateLeftHand r nv ( NaturalHarmonicTrem  x y s )  =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 CircledCrossNoteHead Nothing] }
 notateLeftHand r nv ( StoppedString        x s )    =  trivial { dots = dotsFromNoteValue nv, notes = [Note p (noteHeadFromNoteValue (nv/2)) a] } where (p,a) = notatePitch x
-notateLeftHand r nv ( StoppedStringTrem    x y s )  =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 DiamondNoteHead Nothing] }
+notateLeftHand r nv ( StoppedStringTrem    x y s )  =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 CircledCrossNoteHead Nothing] }
 
 notateRightHand :: Part -> Technique -> [(Spaces, Chord)]
 notateRightHand r ( Pizz   _ x )   =  [(0, notateLeftHand r 1 x)]
@@ -1097,6 +1097,17 @@ notatePart =
     where
         t2s = timeToSpace
 
+removeRedundantMarks :: Staff -> Staff
+removeRedundantMarks (Staff o s ns) = Staff o s (snd $ List.concatMapAccumL f z ns)
+    where
+        z :: (Maybe Notable.Dynamic, Maybe ())
+        z = (Nothing, Nothing)
+        f (Nothing, n) (p, (StaffDynamic x)) = ((Just x, n), [(p, StaffDynamic x)])
+        f (Just dyn, n) (p, (StaffDynamic x)) = if dyn == x then ((Just x, n), []) else ((Just x, n), [(p, StaffDynamic x)])
+        f z x = (z, [x])
+
+
+
 
 -- | All parts, generated from 'score'.
 parts :: [Score Dur Cue]
@@ -1120,7 +1131,8 @@ addTempo :: Score Dur Cue -> Score Dur Cue
 addTempo = dmap (\d x -> setTempo (60 * (getDur . cueTechnique) x / d) x)
 
 partNotations :: [Engraving]
-partNotations = fmap (engraveStaff . notatePart) parts
+partNotations = fmap (engraveStaff . addSpace 0 5) . sameWidth . fmap (removeRedundantMarks . notatePart) $ parts
+
 
 -- | A notation of the entire score in panorama form.
 scoreNotation :: Engraving
@@ -1558,7 +1570,7 @@ canon2 = compress 1.1 $ instant
     ||| (setDynamics mf . stretch 80 . setPart DoubleBass $ openString IV)
 
 -- score = canon2
-score = intro2 >>> {-middle1 >>> -}canon1b >>> canon2
+score = stretch 0.8 $ intro2 >>> {-middle1 >>> -}canon1b >>> canon2
 
 -- TODO coda?
 
