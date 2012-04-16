@@ -1058,7 +1058,6 @@ sharpsOnly 9  =  (5, Nothing)
 sharpsOnly 10 =  (5, Just Sharp)
 sharpsOnly 11 =  (6, Nothing)
 
--- TODO other clefs than treble
 notatePitch :: Clef -> Pitch -> (HalfSpaces, Maybe Accidental)        
 notatePitch c x = (HalfSpaces . fromIntegral $ p + d', a)
     where
@@ -1169,7 +1168,7 @@ isPhrase _            = False
 notateCue :: Cue -> Staff
 notateCue cue = trivial { spacedObjects = s, nonSpacedObjects = ns }
     where
-        s = [(0, StaffTickBarLine)] ++ chords
+        s = [(0, StaffBarLine)] ++ chords
 
         ns = t ++ n
         t = if isPhrase (cueTechnique cue) then [([1], notateTempo . cueTempo $ cue)] else []
