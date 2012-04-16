@@ -172,7 +172,7 @@ import qualified Music.Util.Either as Either
 
 import Music.Notable.Core
 import Music.Notable.Core.Diagrams hiding (Time, stretch, stretchTo, duration, during, after)
-import Music.Notable.Engraving hiding (Articulation, fff, ff, f, mf, mp, p, pp, ppp)
+import Music.Notable.Engraving hiding (rest, Articulation, fff, ff, f, mf, mp, p, pp, ppp)
 import qualified Music.Notable.Engraving as Notable
 \end{code}
 
@@ -407,6 +407,10 @@ instance PitchFunctor (Scale Pitch) where
 
 invert :: PitchFunctor f => f -> f
 invert = mapPitch negate
+
+invertAround :: PitchFunctor f => Pitch -> f -> f
+invertAround p = mapPitch (+ p) . invert . mapPitch (subtract p)
+
 \end{code}
 
 Even though all offsets and durations in the piece will be manged by the `Music.Time` functionality,
@@ -589,6 +593,9 @@ class Stopped a where
 class HasDur a where
     getDur :: a -> Dur
 
+-- class HasPitch a where
+    -- getPitch :: Part -> a -> Pitch
+
 instance Stopped (LeftHand p s) where
     stopping ( OpenString           s     ) = Open
     stopping ( NaturalHarmonic      x s   ) = Open
@@ -610,6 +617,23 @@ instance Time t => HasDur (RightHand t r p a) where
     getDur ( Single c x )   =  1
     getDur ( Phrase r xs )  =  timeToDouble . sum . fst . unzip $ xs
     getDur ( Jete   r xs )  =  1
+
+-- instance HasPitch (LeftHand Pitch Str) where
+--     getPitch r ( OpenString           s     ) = openStringPitch r s
+--     getPitch r ( NaturalHarmonic      x s   ) = 0
+--     getPitch r ( NaturalHarmonicTrem  x y s ) = 0
+--     getPitch r ( NaturalHarmonicGliss x y s ) = 0
+--     getPitch r ( QuarterStoppedString s     ) = 0
+--     getPitch r ( StoppedString        x s   ) = 0
+--     getPitch r ( StoppedStringTrem    x y s ) = 0
+--     getPitch r ( StoppedStringGliss   x y s ) = 0
+-- 
+-- instance HasPitch a => HasPitch (RightHand t r Pitch a) where
+--     getPitch r ( Pizz   c x )       =  getPitch r x
+--     getPitch r ( Single c x )       =  getPitch r x
+--     getPitch r ( Phrase a (x:xs) )  =  getPitch r (snd x)
+--     getPitch r ( Jete   a (x:xs) )  =  getPitch r x
+
 
 instance PitchFunctor (LeftHand Pitch s) where
     mapPitch f ( StoppedString        x s   ) = StoppedString      (f x) s
@@ -1178,9 +1202,6 @@ notateLeftHand r nv ( OpenString           s )   =  notateOpenString r nv s
 notateLeftHand r nv ( NaturalHarmonic      x s ) =  notateNaturalHarmonic r nv x s
 notateLeftHand r nv ( StoppedString        x s ) =  notateStoppedString r nv x s
 
--- notateLeftHand r nv ( NaturalHarmonicTrem  x y s )  =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 CircledCrossNoteHead Nothing] }
--- notateLeftHand r nv ( StoppedStringTrem    x y s )  =  trivial { dots = dotsFromNoteValue nv, notes = [Note 0 CircledCrossNoteHead Nothing] }
-
 
 -- TODO pizz, jete
 notateRightHand :: Part -> Technique -> [(Spaces, Chord)]
@@ -1193,17 +1214,33 @@ isPhrase :: Technique -> Bool
 isPhrase (Phrase _ _) = True
 isPhrase _            = False
 
+pitchPosition :: Part -> Technique -> HalfSpaces
+pitchPosition r (Single _ (NaturalHarmonic x s)) = p
+    where
+        (p, a) = notatePitch c . (subtract t) $ naturalHarmonicPitch r s x
+        c  = standardClef r
+        t  = transposition r
+pitchPosition r (Single _ (StoppedString x s)) = p
+    where
+        (p, a) = notatePitch c . (subtract t) $ x
+        c  = standardClef r
+        t  = transposition r
+pitchPosition r _                                = 0
+        
 notateCue :: Cue -> Staff
 notateCue cue = trivial { spacedObjects = s, nonSpacedObjects = ns }
     where
-        s = [(0, StaffBarLine)] ++ chords
+        s = [(0, StaffNothing)] ++ chordN ++ sustainLine
+        sustainLine = if (not . isPhrase $ cueTechnique cue) 
+            then [(headOffset + 2.2 * space, 
+            StaffSustainLine (pitchPosition (cuePart cue) (cueTechnique cue), scale * Spaces kHorizontalSpace - (headOffset + 4.4) ))] else []
 
         ns = t ++ n
         t = if isPhrase (cueTechnique cue) then [([1], notateTempo . cueTempo $ cue)] else []
         n = [([1], notateDynamic . cueDynamics $ cue)]
         
-        chords = fmap (\(p,x) -> (p * scale + headOffset, StaffChord x)) chords'
-        chords' = notateRightHand (cuePart cue) (cueTechnique cue)
+        chordN = fmap (\(p,x) -> (p * scale + headOffset, StaffChord x)) chordN'
+        chordN' = notateRightHand (cuePart cue) (cueTechnique cue)
         
         scale = Spaces (60 / (cueTempo cue))
         headOffset = 1.8
@@ -1580,84 +1617,6 @@ patternSequenceFrom p = patternSequence p . fmap pattern
 
 
 
-Harmony
-----------
-
-\begin{code}
--- secondChord :: [Int] -> [Str] -> [Int] -> Score Dur Cue
--- secondChord xs ss ps =  instant
---     ||| (setDynamics p . setPart (Cello  (xs !! 0)) $ naturalHarmonic (ss !! 0) (ps !! 0))
---     ||| (setDynamics p . setPart (Viola  (xs !! 0)) $ naturalHarmonic (ss !! 1) (ps !! 1))
---     ||| (setDynamics p . setPart (Violin (xs !! 0)) $ naturalHarmonic (ss !! 2) (ps !! 2))
---     ||| (setDynamics p . setPart (Violin (xs !! 0)) $ naturalHarmonic (ss !! 3) (ps !! 3))
--- 
--- secondChordTrem :: [Int] -> [Str] -> [Int] -> Score Dur Cue
--- secondChordTrem xs ss ps =  instant
---     ||| (setDynamics p . setPart (Cello  (xs !! 0)) $ naturalHarmonicTrem (ss !! 0) 0 (ps !! 0))
---     ||| (setDynamics p . setPart (Viola  (xs !! 0)) $ naturalHarmonicTrem (ss !! 1) 0 (ps !! 1))
---     ||| (setDynamics p . setPart (Violin (xs !! 0)) $ naturalHarmonicTrem (ss !! 2) 0 (ps !! 2))
---     ||| (setDynamics p . setPart (Violin (xs !! 0)) $ naturalHarmonicTrem (ss !! 3) 0 (ps !! 3))
-
-
--- scs = concatSeq $ do
---     ss <- return [IV,III,II,I]
---     ps <- List.permutations [1,2,3,4]
---     -- xs <- List.permutations [2,1,2,1]
---     -- return $ secondChord xs ss ps
---     return $ secondChord [1,1,1,1] ss ps ||| secondChord [2,2,2,2] ss ps
-
--- g, a, d, e
--- scs = concatSeq $ do
---     ss <- return [IV,III,II,I]
---     xs <- List.permutations [2,1,2,1]
---     ps <- List.permutations [1,2,2,3]
---     return $ secondChord xs ss ps
-
--- g, a, d, e
--- scs = concatSeq $ do
---     xs <- return [1,1,1,1]
---     ss <- return [IV,III,II,I]
---     ps <- List.permutations [1,1,1,2]
---     return $ secondChord xs ss ps
-
-
-
--- a  =  instant
---     -- ||| (setDynamics ppp . setPart DoubleBass  $ naturalHarmonic IV 4)
---     ||| (setDynamics ppp . setPart (Cello  2)  $ naturalHarmonic IV 3)
---     ||| (setDynamics ppp . setPart (Viola  1)  $ naturalHarmonic III 2)
---     ||| (setDynamics ppp . setPart (Violin 2)  $ naturalHarmonic II  1)
---     ||| (setDynamics ppp . setPart (Violin 1)  $ naturalHarmonic II  1)
--- 
--- b  =  instant
---     -- ||| (setDynamics ppp . setPart DoubleBass  $ naturalHarmonic IV 4)
---     ||| (setDynamics ppp . setPart (Cello 1)   $ naturalHarmonic IV 3)
---     ||| (setDynamics ppp . setPart (Viola 2)   $ naturalHarmonic III 2)
---     ||| (setDynamics ppp . setPart (Violin 2)  $ naturalHarmonic II  1)
---     ||| (setDynamics ppp . setPart (Violin 1)  $ naturalHarmonic II  1)
--- 
--- d  =  instant
---     ||| (setDynamics ppp . setPart (Cello 2)  $ naturalHarmonic II 2)
---     ||| (setDynamics ppp . setPart (Cello 2)  $ naturalHarmonic III 3)
---     ||| (setDynamics ppp . setPart (Viola 2)  $ naturalHarmonic III 1)
---     ||| (setDynamics ppp . setPart (Viola 2)  $ naturalHarmonic II 2)
--- 
--- mm = instant
---     ||| (setDynamics pp . delay 0   . stretch 2 . mapPitch (+ 7) . tonality . setPart (Cello 1) $ patternSequenceFrom 0 [0,0,1,0])
--- nn = instant
---     ||| (setDynamics pp . delay 0   . stretch 2 . mapPitch (+ 7) . tonality . setPart (Cello 1) . invert $ patternSequenceFrom 0 [0,1,0,0])
--- 
--- m = instant
---     ||| (setDynamics pp . delay 0.0 . stretch 2.1 . mapPitch (+ 0) . tonality . setPart (Cello 1) $ patternSequenceFrom 0 [0,1,2])
---     ||| (setDynamics pp . delay 1.1 . stretch 2.2 . mapPitch (+ 0) . tonality . invert . setPart (Cello 1) $ patternSequenceFrom 0 [1,2,0])
--- 
--- n = instant
---     ||| (setDynamics pp . delay 5   . stretch 5 . mapPitch (+ 7) . tonality . setPart (Cello 1) $ patternSequenceFrom 0 [5,1])
---     ||| (setDynamics pp . delay 0.0 . stretch 4 . mapPitch (+ 0) . tonality . setPart (Cello 1) $ patternSequenceFrom 0 [1,5])
-\end{code}
-
-
-
 Final score
 ----------
 
@@ -1693,13 +1652,14 @@ intro2 = instant
     ||| (delay 35  . before 35 $ introHarm 1)
     ||| (delay 50  . before 35 $ introHarm 2)
     ||| (delay 60  . stretch 5 $ db2)
-    --  ||| (delay 80  . before 15 $ introHarmTrem 1)
-    ||| (delay 90  . before 30 $ introHarm 2)
-    ||| (delay 100 . stretch 5 $ db)
-    ||| (delay 110 . before 30 $ introHarm 1)
-    --  ||| (delay 125 . before 15 $ introHarmTrem 2)
-    ||| (delay 75 . before 25 $ introHarmVln 1)
-    ||| (delay 95 . before 30 $ introHarmVln 1)
+
+    -- --  ||| (delay 80  . before 15 $ introHarmTrem 1)
+    -- ||| (delay 90  . before 30 $ introHarm 2)
+    -- ||| (delay 100 . stretch 5 $ db)
+    -- ||| (delay 110 . before 30 $ introHarm 1)
+    -- --  ||| (delay 125 . before 15 $ introHarmTrem 2)
+    -- ||| (delay 75 . before 25 $ introHarmVln 1)
+    -- ||| (delay 95 . before 30 $ introHarmVln 1)
 
 -- | Like (|||), but shortening the first agument to the duration of the second.
 during' :: (Time t, Temporal d, Timed t d, Delayed t d) => d a -> d a -> d a
@@ -1709,7 +1669,7 @@ during' x y = stretchTo t' x ||| y
 
 -- TODO expand
 middle1 = 
-    bass `during'` (setPart (Cello  1) . setDynamics p . octaveDown . tonality . patternMelody) (pattern 2)
+    bass `during'` (setPart (Cello 1) . setDynamics p . octaveDown . tonality . patternMelody) (pattern 2)
     where
         bass = (setDynamics pp . setPart DoubleBass $ naturalHarmonic I 3)
 
@@ -1735,8 +1695,13 @@ canon2 = compress 1.1 $ instant
     ||| (setDynamics f . stretch 80 . setPart DoubleBass $ openString IV)
 
 score :: Score Dur Cue
--- score = intro2
-score = stretch 0.8 $ intro2 >>> middle1 >>> canon1b >>> (anticipate 30 canon2 intro2)
+-- score = stretch 0.8 intro2
+score = stretch 0.8 $ instant
+    >>> intro2 
+    >>> rest 10 >>> middle1 
+    >>> rest 10 >>> canon1b >>> rest 10 >>> (invertAround 69 canon1) 
+    >>> rest 10 
+    >>> (anticipate 30 canon2 intro2)
 
 
 \end{code}
