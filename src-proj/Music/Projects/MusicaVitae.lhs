@@ -1059,10 +1059,11 @@ sharpsOnly 10 =  (5, Just Sharp)
 sharpsOnly 11 =  (6, Nothing)
 
 -- TODO other clefs than treble
-notatePitch :: Pitch -> (HalfSpaces, Maybe Accidental)        
-notatePitch x = (HalfSpaces . fromIntegral $ p + 1, a)
+notatePitch :: Clef -> Pitch -> (HalfSpaces, Maybe Accidental)        
+notatePitch c x = (HalfSpaces . fromIntegral $ p + d', a)
     where
-        (p, a) = toDiatonic (x - 72)
+        (p, a)  = toDiatonic (x - d)
+        (d, d') = indicatedPitch c
 \end{code}
 
 Rhytmical spelling and spacing
@@ -1108,10 +1109,10 @@ Notating staves
 --------
 
 \begin{code}    
-staffHead :: Staff
-staffHead = trivial { spacedObjects = s }
+staffHead :: Clef -> Staff
+staffHead clef = trivial { spacedObjects = s }
     where
-        s = [{-(0, StaffBarLine), -} (0.5, StaffClef trebleClef)]
+        s = [{-(0, StaffBarLine), -} (0.5, StaffClef clef)]
 
 
 notateOpenString :: Part -> NoteValue -> Str -> Chord
@@ -1119,24 +1120,30 @@ notateOpenString r nv s =
     trivial { dots = dotsFromNoteValue nv, 
               notes = [Note p nh a] } 
     where 
-        (p, a) = notatePitch $ openStringPitch r s
+        (p, a) = notatePitch c . (subtract t) $ openStringPitch r s
         nh = noteHeadFromNoteValue nv
+        c  = standardClef r
+        t  = transposition r
 
 notateNaturalHarmonic :: Part -> NoteValue -> Pitch -> Str -> Chord
 notateNaturalHarmonic r nv x s = 
     trivial { dots = dotsFromNoteValue nv, 
               notes = [Note p DiamondNoteHead a] }
     where
-        (p, a) = notatePitch $ naturalHarmonicPitch r s x
+        (p, a) = notatePitch c . (subtract t) $ naturalHarmonicPitch r s x
         nh = noteHeadFromNoteValue nv
+        c  = standardClef r
+        t  = transposition r
 
 notateStoppedString :: Part -> NoteValue -> Pitch -> Str -> Chord
 notateStoppedString r nv x s = 
     trivial { dots = dotsFromNoteValue nv, 
               notes = [Note p nh a] }
     where 
-        (p,a) = notatePitch x
+        (p,a) = notatePitch c . (subtract t) $ x
         nh = noteHeadFromNoteValue nv
+        c  = standardClef r
+        t  = transposition r
 
 -- TODO trem, gliss
 notateLeftHand :: Part -> NoteValue -> LeftHand Pitch Str -> Chord
@@ -1165,22 +1172,45 @@ notateCue cue = trivial { spacedObjects = s, nonSpacedObjects = ns }
         s = [(0, StaffTickBarLine)] ++ chords
 
         ns = t ++ n
-        t = if isPhrase (cueTechnique cue) then [([1], notateTempo   . cueTempo $ cue)] else []
+        t = if isPhrase (cueTechnique cue) then [([1], notateTempo . cueTempo $ cue)] else []
         n = [([1], notateDynamic . cueDynamics $ cue)]
         
         chords = fmap (\(p,x) -> (p * scale + headOffset, StaffChord x)) chords'
         chords' = notateRightHand (cuePart cue) (cueTechnique cue)
         
-        scale = Spaces (60/(cueTempo cue))
+        scale = Spaces (60 / (cueTempo cue))
         headOffset = 1.8
         -- headOffset = 0
 
 notatePart :: Score Dur Cue -> Staff
-notatePart =
+notatePart score =
     mconcat 
-            . (\xs -> staffHead : fmap (moveStaffObjects 5) xs) 
+            . (\xs -> staffHead clef : fmap (moveStaffObjects 5) xs) 
             . fmap (\(Event t d x) -> moveStaffObjects (timeToSpace t) $ notateCue x) 
             . eventListEvents . toEventList
+            $ score
+    where
+        clef = standardClef part
+        part = cuePart . fromJust . firstEvent $ score
+
+standardClef :: Part -> Clef
+standardClef (Violin _)  = trebleClef
+standardClef (Viola _)   = altoClef
+standardClef (Cello _)   = bassClef
+standardClef DoubleBass  = bassClef
+
+indicatedPitch :: Clef -> (Pitch, Pitch)
+indicatedPitch (GClef, -2) = (72, 1)
+indicatedPitch (CClef,  0) = (60, 0) 
+indicatedPitch (FClef,  2) = (48, -1) 
+
+transposition :: Part -> Pitch
+transposition (Violin _)  = 0
+transposition (Viola _)   = 0
+transposition (Cello _)   = 0
+transposition DoubleBass  = (-12)
+
+
 
 \end{code}
 
@@ -1228,16 +1258,18 @@ parts = map (\part -> filterEvents (\cue -> cuePart cue == part) score') ensembl
 --         parts = fmap 
 
 extractParts' :: [Part] -> Score Dur Cue -> [Score Dur Cue]
-extractParts' parts score = 
-    map (\part -> filterEvents (\cue -> cuePart cue == part) score) parts
-
+extractParts' parts score = map (\part -> filterEvents (\cue -> cuePart cue == part) score) parts
 
 addTempo :: Score Dur Cue -> Score Dur Cue
 addTempo = dmap (\d x -> setTempo (60 * (getDur . cueTechnique) x / d) x)
 
 -- | Notations of each part in panorama form.
 partNotations :: [Engraving]
-partNotations = fmap (engraveStaff . addSpace 0 5) . sameWidth . fmap (removeRedundantMarks . notatePart) $ parts
+partNotations = 
+      fmap ((<> spaceY 4) . engraveStaff . addSpace 0 5) 
+    . sameWidth 
+    . fmap (removeRedundantMarks . notatePart) 
+    $ parts
 
 -- | A notation of the entire score in panorama form.
 scoreNotation :: Engraving
