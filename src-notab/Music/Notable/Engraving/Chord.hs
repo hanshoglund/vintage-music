@@ -899,13 +899,11 @@ engraveNote stemDir pos noteHead =
 -- | Engraves a chord. The origin will be in the main column at the middle line.
 --   (see 'engraveNoteHeads' for an explanation of columns).
 engraveChord :: Chord -> Engraving
-engraveChord chord = mempty
-    `leftTo` engraveVerticalLines (topNoteN, bottomNoteN) (verticalLines chord)
-    `leftTo` spaceX kVerticalLineSpace    
+engraveChord chord =
+    -- `leftTo` engraveVerticalLines (topNoteN, bottomNoteN) (verticalLines chord)
+    -- `leftTo` spaceX kVerticalLineSpace    
     
-    `leftTo` engraveAccidentals accidentalsN
-    `leftTo` spaceX kAccidentalSpace
-    
+    (alignR $ engraveAccidentals accidentalsN `leftTo` spaceX kAccidentalSpace)
     `leftTo` (mempty
         <> engraveRestOrNoteHeads restN directionN notesN
         <> (if hasStemN then engraveStem directionN notesN else mempty)
