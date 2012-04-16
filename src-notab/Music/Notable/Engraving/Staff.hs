@@ -249,7 +249,7 @@ type SustainLine = (SustainLinePosition, SustainLineLength)
 
 -- | Engraves a sustain line. The origin will be to the left, at position zero.
 engraveSustainLine :: SustainLine -> Engraving
-engraveSustainLine (pos, len) = p . s $ rect (convert len) (convert $ 0.5 * space)
+engraveSustainLine (pos, len) = p . s $ rect (convert len) (convert $ (2/5) * space)
     where                       
         p = moveHalfSpacesUp pos . alignL
         s = lineWidth 0 . fillColor black
@@ -515,7 +515,8 @@ engraveExpression txt = t $ mempty
 --
     
 data SpacedObject 
-    = StaffClef Clef
+    = StaffNothing
+    | StaffClef Clef
     | StaffKeySignature KeySignature 
     | StaffTimeSignature TimeSignature 
     | StaffBarLine 
@@ -627,6 +628,7 @@ engraveStaff staff@(Staff opt sN nsN) = mempty
 
 -- noteLines
 engraveSpacedObject :: SpacedObject -> Engraving
+engraveSpacedObject StaffNothing         =  mempty
 engraveSpacedObject (StaffClef x)        =  engraveClef x
 engraveSpacedObject (StaffChord x)       =  engraveChord x
 engraveSpacedObject StaffBarLine         =  singleBarLine
