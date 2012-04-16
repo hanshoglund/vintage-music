@@ -32,6 +32,8 @@ module Music.Notable.Engraving.Staff
 
 -- ** Sustain lines
     SustainLinePosition,
+    SustainLineLength,
+    SustainLine,
     engraveSustainLine,
     
 -- *** Rehearsal marks
@@ -240,9 +242,16 @@ engraveRehearsal = mempty -- TODO
 -- | Position to indicate, offset from middle line.
 type SustainLinePosition = HalfSpaces
 
-engraveSustainLine :: SustainLinePosition -> Spaces -> Engraving
-engraveSustainLine = mempty -- TODO
+-- | Length of line.
+type SustainLineLength = Spaces
 
+type SustainLine = (SustainLinePosition, SustainLineLength)
+
+engraveSustainLine :: SustainLine -> Engraving
+engraveSustainLine (pos, len) = p . s $ rect (convert len) (convert $ 0.5 * space)
+    where                       
+        p = moveHalfSpacesUp pos . alignL
+        s = lineWidth 0 . fillColor black
 --
 -- Clefs
 --
@@ -514,6 +523,7 @@ data SpacedObject
     | StaffShortBarLine 
     | StaffTickBarLine 
     | StaffFinalBarLine 
+    | StaffSustainLine SustainLine
     | StaffCesura
     | StaffChord Chord
     deriving (Eq, Show)
@@ -616,14 +626,15 @@ engraveStaff staff@(Staff opt sN nsN) = mempty
 
 -- noteLines
 engraveSpacedObject :: SpacedObject -> Engraving
-engraveSpacedObject (StaffClef x)       =  engraveClef x
-engraveSpacedObject (StaffChord x)      =  engraveChord x
-engraveSpacedObject StaffBarLine        =  singleBarLine
-engraveSpacedObject StaffDoubleBarLine  =  doubleBarLine
-engraveSpacedObject StaffThickBarLine   =  thickBarLine
-engraveSpacedObject StaffShortBarLine   =  shortBarLine
-engraveSpacedObject StaffTickBarLine    =  tickBarLine
-engraveSpacedObject StaffFinalBarLine   =  finalBarLine
+engraveSpacedObject (StaffClef x)        =  engraveClef x
+engraveSpacedObject (StaffChord x)       =  engraveChord x
+engraveSpacedObject StaffBarLine         =  singleBarLine
+engraveSpacedObject StaffDoubleBarLine   =  doubleBarLine
+engraveSpacedObject StaffThickBarLine    =  thickBarLine
+engraveSpacedObject StaffShortBarLine    =  shortBarLine
+engraveSpacedObject StaffTickBarLine     =  tickBarLine
+engraveSpacedObject StaffFinalBarLine    =  finalBarLine
+engraveSpacedObject (StaffSustainLine x) =  engraveSustainLine x
 
 engraveNonSpacedObject :: NonSpacedObject -> Engraving
 engraveNonSpacedObject (StaffMetronomeMark nv bpm) = engraveMetronomeMark nv bpm
