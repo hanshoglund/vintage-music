@@ -103,15 +103,15 @@ newtype HalfSpaces = HalfSpaces { getHalfSpaces :: Double }
 
 
 -- (internal) The relation between Spaces and Diagram coordinates
-hsDef = 4
+kSpaceDefinition = 4
 
 instance Convert Double Spaces where
-    convert x = Spaces (x * hsDef)
-    reconvert (Spaces x) = x / hsDef
+    convert x = Spaces (x * kSpaceDefinition)
+    reconvert (Spaces x) = x / kSpaceDefinition
 
 instance Convert Double HalfSpaces where
-    convert x = HalfSpaces (x * (2 * hsDef))
-    reconvert (HalfSpaces x) = x / (2 * hsDef)
+    convert x = HalfSpaces (x * (2 * kSpaceDefinition))
+    reconvert (HalfSpaces x) = x / (2 * kSpaceDefinition)
 
 instance Convert Spaces HalfSpaces where
     convert (Spaces x) = HalfSpaces (x * 2)
@@ -131,43 +131,43 @@ instance Convert HalfSpaces Spaces where
 
 -- | Exactly one space.
 space :: Spaces
-space = 1 :: Spaces
+space = 1
 
 -- | Exactly one half-space.
 halfSpace :: HalfSpaces
-halfSpace = 1 :: HalfSpaces
+halfSpace = 1
 
 -- | A prime, or 0 halfspaces.
 prime :: HalfSpaces
-prime  = 0 * halfSpace
+prime = 0
 
 -- | A second, or 1 halfspaces.
 second :: HalfSpaces
-second = 1 * halfSpace
+second = 1
 
 -- | A second, or 2 halfspaces.
 third :: HalfSpaces
-third = 2 * halfSpace
+third = 2
 
 -- | A second, or 3 halfspaces.
 fourth :: HalfSpaces
-fourth = 3 * halfSpace
+fourth = 3
 
 -- | A second, or 4 halfspaces.
 fifth :: HalfSpaces
-fifth = 4 * halfSpace
+fifth = 4
 
 -- | A second, or 5 halfspaces.
 sixth :: HalfSpaces
-sixth = 5 * halfSpace
+sixth = 5
 
 -- | A second, or 6 halfspaces.
 seventh :: HalfSpaces
-seventh = 6 * halfSpace
+seventh = 6
 
 -- | A second, or 7 halfspaces.
 octave :: HalfSpaces
-octave = 7 * halfSpace
+octave = 7
 
 --
 -- Positioning etc

@@ -247,6 +247,7 @@ type SustainLineLength = Spaces
 
 type SustainLine = (SustainLinePosition, SustainLineLength)
 
+-- | Engraves a sustain line. The origin will be to the left, at position zero.
 engraveSustainLine :: SustainLine -> Engraving
 engraveSustainLine (pos, len) = p . s $ rect (convert len) (convert $ 0.5 * space)
     where                       
