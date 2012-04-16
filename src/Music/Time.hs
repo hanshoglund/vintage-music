@@ -45,11 +45,15 @@ module Music.Time
 -- ** Duration
     Timed(..),
 -- ** Split
-    Split(..),
-
--- -- * Transformers
---     TemporalTrans(..)
+    Split(..), 
     
+-- * Miscellaneous
+    anticipate,
+    during,
+    restBefore,
+    restAfter,
+    restBoth,
+    stretchTo
 )
 where
 
@@ -205,3 +209,42 @@ class Time t => Split t d | d -> t where
     split t x = (before t x, after t x)
     before t x = a where (a, b) = split t x
     after  t x = b where (a, b) = split t x
+
+
+    
+-- | Like '(>>>)' but with a negative delay on the second element.
+anticipate :: (Time t, Temporal d, Timed t d, Delayed t d) => t -> d a -> d a -> d a
+anticipate t x y = x ||| delay t' y
+    where
+        t' = (duration x - t) `max` 0
+
+-- | Like (|||), but shortening the first agument to the duration of the second.
+during :: (Time t, Temporal d, Timed t d, Split t d) => d a -> d a -> d a
+during x y = before t' x ||| y
+    where
+        t' = duration y
+
+-- | Prepend a rest of the given duration.
+restBefore :: (Time t, Temporal d, Timed t d, Delayed t d) => t -> d a -> d a
+restBefore = delay
+
+-- | Append a rest of the given duration.
+restAfter :: (Time t, Temporal d, Timed t d, Delayed t d) => t -> d a -> d a
+restAfter t x
+    | t <= 0     =  x
+    | otherwise  =  x >>> r
+    where r = rest t
+
+-- | Prepend and append a rest of half the given duration.
+restBoth :: (Time t, Temporal d, Timed t d, Delayed t d) => t -> d a -> d a
+restBoth t x
+    | t <= 0     =  x
+    | otherwise  =  r >>> x >>> r
+    where 
+        r = rest (t / 2)
+
+-- | Stretch to the given duration.
+stretchTo :: (Time t, Temporal d, Timed t d, Delayed t d) => t -> d a -> d a
+stretchTo t x 
+    | duration x == t  =  x
+    | otherwise        =  stretch (t / duration x) x 

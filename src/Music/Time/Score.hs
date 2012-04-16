@@ -25,10 +25,10 @@ module Music.Time.Score
     arpeggio,           
                         
 -- * Transforming       
-    restBefore,         
-    restBoth,           
-    restAfter,          
-    stretchTo,          
+    -- restBefore,         
+    -- restBoth,           
+    -- restAfter,          
+    -- stretchTo,          
     normalizeDuration,  
 
 -- * Folding

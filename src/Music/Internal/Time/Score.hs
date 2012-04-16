@@ -312,34 +312,9 @@ lastEvent = getLast .
 numberOfEvents :: Time t => Score t a -> Int
 numberOfEvents = foldScore (\t d -> 0) (\t d x -> 1) (const (+)) (const (+))
 
--- | The mean duration of the score.
+-- | The mean duration of the events the score.
 meanDuration :: Time t => Score t a -> t
 meanDuration score = (getSum . foldDuration Sum) score / fromIntegral (numberOfEvents score)
-
--- | Prepend a rest of the given duration to the score.
-restBefore :: Time t => t -> Score t a -> Score t a
-restBefore = delay
-
--- | Append a rest of the given duration to the score.
-restAfter :: Time t => t -> Score t a -> Score t a
-restAfter t x
-    | t <= 0     =  x
-    | otherwise  =  x >>> r
-    where r = rest t
-
--- | Prepend and append a rest of half the given duration to the score.
-restBoth :: Time t => t -> Score t a -> Score t a
-restBoth t x
-    | t <= 0     =  x
-    | otherwise  =  r >>> x >>> r
-    where 
-        r = rest (t / 2)
-
--- | Stretch the score to the given duration.
-stretchTo :: Time t => t -> Score t a -> Score t a
-stretchTo t x 
-    | duration x == t  =  x
-    | otherwise        =  stretch (t / duration x) x
 
 -- | Resize the score so that the mean duration is one.
 normalizeDuration :: Time t => Score t a -> Score t a
