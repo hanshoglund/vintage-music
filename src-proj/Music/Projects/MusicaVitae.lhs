@@ -171,7 +171,7 @@ import qualified Music.Util.List as List
 import qualified Music.Util.Either as Either
 
 import Music.Notable.Core
-import Music.Notable.Core.Diagrams hiding (Time, stretch, stretchTo, duration)
+import Music.Notable.Core.Diagrams hiding (Time, stretch, stretchTo, duration, during, after)
 import Music.Notable.Engraving hiding (Articulation, fff, ff, f, mf, mp, p, pp, ppp)
 import qualified Music.Notable.Engraving as Notable
 \end{code}
@@ -340,7 +340,10 @@ String number will be represented separately using a different type (named `Str`
 to collide with `String`).
 
 \begin{code}
-type Pitch = Int
+type Pitch = Int 
+
+pitch :: Int -> Pitch
+pitch = id
 
 data Str = I | II | III | IV
     deriving ( Eq, Show, Ord, Enum, Bounded )
@@ -429,12 +432,12 @@ instance Render Pitch Midi where
         where n = note :: Pitch -> Score Dur Pitch
     
 instance Render (Scale Pitch) Midi where
-    render scale = render . compress 2 . mapPitch (+ 60) . l . fmap (step scale) $ [0..n-1]
+    render scale = render . compress 2 . l . fmap (step scale) $ [0..n-1]
         where l = line :: [Pitch] -> Score Dur Pitch                                    
               n = numberOfSteps scale    
 
 instance Render (Score Dur Pitch) Midi where
-    render = render . fmap (\p -> MidiNote 0 Nothing p 0 60)
+    render = render . fmap (\p -> MidiNote 0 Nothing (p + 60) 0 60)
 \end{code}
 
 
@@ -1018,6 +1021,31 @@ instance Render (Score Dur Cue) Midi where
 
 \end{code}
 
+We can exploit the `renderCueToMidi` function to get a piano-roll style graphical 
+representation of the piece.
+
+\begin{code}
+
+class Plottable a where
+    plot :: a -> IO ()
+
+instance Plottable (Score Dur Int) where
+    plot = draw . plotPitches
+instance Plottable (Score Dur MidiNote) where
+    plot = plot . (fmap midiNotePitch)
+instance Plottable (Score Dur Cue) where
+    plot = plot . renderTremoloEvents . (>>= renderCueToMidi)
+
+
+plotPitches :: Score Dur Int -> Engraving
+plotPitches = mconcat . map (\(Event t d x) -> p t x . s $ l d) . eventListEvents . toEventList
+    where                                         
+        p t x = moveSpacesRight (Spaces t) . moveHalfSpacesUp (HalfSpaces $ fromIntegral x)
+        s     = lineWidth 0 . fillColor black
+        l d   = alignL $ rect (convert space * d) (convert $ space/4)
+
+
+\end{code}
 
 \pagebreak
 
@@ -1665,25 +1693,25 @@ intro2 = instant
     ||| (delay 35  . before 35 $ introHarm 1)
     ||| (delay 50  . before 35 $ introHarm 2)
     ||| (delay 60  . stretch 5 $ db2)
-    -- ||| (delay 80  . before 15 $ introHarmTrem 1)
+    --  ||| (delay 80  . before 15 $ introHarmTrem 1)
     ||| (delay 90  . before 30 $ introHarm 2)
     ||| (delay 100 . stretch 5 $ db)
     ||| (delay 110 . before 30 $ introHarm 1)
-    -- ||| (delay 125 . before 15 $ introHarmTrem 2)
+    --  ||| (delay 125 . before 15 $ introHarmTrem 2)
     ||| (delay 75 . before 25 $ introHarmVln 1)
     ||| (delay 95 . before 30 $ introHarmVln 1)
 
-
-
+-- | Like (|||), but shortening the first agument to the duration of the second.
+during' :: (Time t, Temporal d, Timed t d, Delayed t d) => d a -> d a -> d a
+during' x y = stretchTo t' x ||| y
+    where
+        t' = duration y
 
 -- TODO expand
-middle1 = instant
-    ||| stretch 10 bass
-    ||| stretch 10 intro2
-    ||| (setPart (Cello  1) . setDynamics p . octaveDown . tonality . patternMelody) (pattern 2)
+middle1 = 
+    bass `during'` (setPart (Cello  1) . setDynamics p . octaveDown . tonality . patternMelody) (pattern 2)
     where
         bass = (setDynamics pp . setPart DoubleBass $ naturalHarmonic I 3)
-
 
 canon1 = compress 1.1 . reverse $ instant
     ||| (setDynamics mf . stretch 2.1 . octaveUp . tonality . setPart (Violin 1) $ patternSequence 0 . map pattern  $ [0,2,2,1,2])
@@ -1708,7 +1736,8 @@ canon2 = compress 1.1 $ instant
 
 score :: Score Dur Cue
 -- score = intro2
-score = stretch 0.8 $ intro2 >>> {-middle1 >>> -}canon1b >>> canon2
+score = stretch 0.8 $ intro2 >>> middle1 >>> canon1b >>> (anticipate 30 canon2 intro2)
+
 
 \end{code}
 
