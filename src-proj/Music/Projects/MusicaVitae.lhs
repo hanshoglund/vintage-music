@@ -1209,7 +1209,7 @@ parts = map (\part -> filterEvents (\cue -> cuePart cue == part) score') ensembl
 extractParts' :: [Part] -> Score Dur Cue -> [Score Dur Cue]
 extractParts' parts score = map (\part -> filterEvents (\cue -> cuePart cue == part) score) parts
 
--- | Notations of each part in panorama form.
+-- | Notations of each part in panorama form.
 partNotations :: [Engraving]
 partNotations =
       fmap ((<> spaceY 4) . engraveStaff . addSpace 0 5)
@@ -1217,7 +1217,7 @@ partNotations =
     . fmap (removeRedundantMarks . notatePart)
     $ parts
 
--- | A notation of the entire score in panorama form.
+-- | A notation of the entire score in panorama form.
 scoreNotation :: Engraving
 scoreNotation = mempty
     <> (foldr above mempty $ partNotations)
@@ -1534,7 +1534,7 @@ db  = setPart DoubleBass . setDynamics pp . stretch 4  $ naturalHarmonic III 4
 db2 = setPart DoubleBass . setDynamics pp . stretch 4  $ naturalHarmonic IV 4
 
 
-intro2 = instant
+intro1 = instant
     ||| (before 30 $ introHarm 1)
     ||| (delay 15  . before 30 $ introHarm 2)
     ||| (delay 25  . stretch 5 $ db)
@@ -1550,6 +1550,7 @@ intro2 = instant
     --  ||| (delay 75 . before 25 $ introHarmVln 1)
     --  ||| (delay 95 . before 30 $ introHarmVln 1)
 
+
 -- TODO expand
 middle1 =
     bass `during'` (setPart (Cello 1) . stretch 1.5 . setDynamics p . octaveDown . tonality . patternMelody) (pattern 2)
@@ -1558,13 +1559,26 @@ middle1 =
 
 -- TODO phase static parts etc
 middle2 = compress 2 $ instant
-    ||| (setPart (Violin 1) . setDynamics pp . stretch 50 $ openString III)
-    ||| (setPart (Violin 2) . setDynamics pp . stretch 50 $ openString II)
-    ||| (setPart (Cello 1) . setDynamics p . stretch 50 $ openString IV)
-    ||| (setPart (Cello 2) . setDynamics p . stretch 50 $ openString III)
     ||| (setDynamics p . stretch 3 . id . tonality . setPart (Viola 1) $ patternSequence 0 . map pattern $ [0,0,1,1])
     ||| (setDynamics p . stretch 4 . id . tonality . setPart (Viola 2) $ patternSequence 0 . map pattern $ [0,-1,0,-1])
+    ||| (setPart (Violin 3) . setDynamics pp . stretch 50 $ openString III)
+    ||| (setPart (Violin 4) . setDynamics pp . stretch 50 $ openString II)
+    ||| (setPart (Cello 1) . setDynamics p . stretch 50 $ openString IV)
+    ||| (setPart (Cello 2) . setDynamics p . stretch 50 $ openString III)
     ||| (setPart DoubleBass . setDynamics pp . stretch 50 $ naturalHarmonic II 1)
+
+-- TODO phase static parts etc
+middle3 = compress 2 $ instant
+    ||| (fifthUp . delay 20 . setDynamics p . stretch 3 . id . tonality . setPart (Violin 1) $ patternSequence 0 . map pattern $ [0,0,1,1])
+    ||| (fifthUp . delay 20 . setDynamics p . stretch 4 . id . tonality . setPart (Violin 2) $ patternSequence 0 . map pattern $ [0,-1,0,-1])
+    ||| (setDynamics p . stretch 3 . id . tonality . setPart (Viola 1) $ patternSequence 0 . map pattern $ [0,0,1,1])
+    ||| (setDynamics p . stretch 4 . id . tonality . setPart (Viola 2) $ patternSequence 0 . map pattern $ [0,-1,0,-1])
+    --  ||| (setPart (Violin 3) . setDynamics pp . stretch 50 $ openString III)
+    --  ||| (setPart (Violin 4) . setDynamics pp . stretch 50 $ openString II)
+    --  ||| (setPart (Cello 1) . setDynamics p . stretch 50 $ openString IV)
+    --  ||| (setPart (Cello 2) . setDynamics p . stretch 50 $ openString III)
+    --  ||| (setPart DoubleBass . setDynamics pp . stretch 50 $ naturalHarmonic II 1)
+
 
 canon1 = compress 1.1 . reverse $ instant
     ||| (setDynamics mf . stretch 2.1 . octaveUp . tonality . setPart (Violin 1) $ patternSequence 0 . map pattern  $ [0,2,1,2])
@@ -1596,18 +1610,23 @@ score :: Score Dur Cue
 score = score'
 
 score' = stretch 0.8{-0.9-} $ instant
-    >>> intro2
-    >>> rest 10 
+-- gör om intro
+-- kortare, enklare?
+-- abstrahera ut?
+    >>> intro1
+    >>> rest 5
     >>> middle1
--- riktigt höga flageoletter här?
-    >>> rest 10 
+    >>> rest 30 
+    -- riktigt höga flageoletter här?
     >>> middle2
-    >>> rest 10 
+    >>> rest 40 
+    >>> middle3
+    >>> rest 40 
     >>> canon1b 
-    >>> rest 10 
-    >>> (invertAround 69 canon1)
-    >>> rest 10
-    >>> (anticipate 30 canon2 intro2)
+    >>> rest 20 
+    >>> (invertAround 69 canon1) -- denna kortare!
+    >>> rest 20
+    >>> (anticipate 30 canon2 intro1)
 
 
 \end{code}
