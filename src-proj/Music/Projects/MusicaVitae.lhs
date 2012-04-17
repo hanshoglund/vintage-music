@@ -929,20 +929,20 @@ representation of the piece.
 class Plottable a where
     plot :: a -> IO ()
 
-instance Plottable (Score Dur Int) where
+instance Plottable (Score Dur (Int, Double)) where
     plot = draw . plotPitches
 instance Plottable (Score Dur MidiNote) where
-    plot = plot . (fmap midiNotePitch)
+    plot = plot . (fmap (\x -> (midiNotePitch x, midiNoteBend x)))
 instance Plottable (Score Dur Cue) where
     plot = plot . renderTremoloEvents . (>>= renderCueToMidi)
 
 
-plotPitches :: Score Dur Int -> Engraving
-plotPitches = pad . mconcat . map (\(Event t d x) -> p t x . s $ l d) . toEvents
+plotPitches :: Score Dur (Int, Double) -> Engraving
+plotPitches = pad . mconcat . map (\(Event t d (x,b)) -> p t x b . s b $ l d) . toEvents
     where          
         pad x = strutY 1 `above` x `above` strutY 1
-        p t x = moveSpacesRight (Spaces t) . moveHalfSpacesUp (HalfSpaces $ fromIntegral x)
-        s     = lineWidth 0 . fillColor black
+        p t x b = moveSpacesRight (Spaces t) . moveHalfSpacesUp (HalfSpaces $ (fromIntegral x) + b)
+        s b   = lineWidth 0 . fillColor black . opacity (1 - (abs b * 3))
         l d   = alignL $ rect (convert space * d) (convert $ space/4)
 
 
@@ -1517,18 +1517,11 @@ introHarm sect = stretch 1 $ instant
     where a  = setPart (Cello sect) . setDynamics pp $ naturalHarmonic IV 1
           g  = setPart (Viola sect) . setDynamics pp $ naturalHarmonic II 1
 
-introHarmTrem :: Int -> Score Dur Cue
-introHarmTrem sect = stretch 2 $ instant
-    >>> stretch 3 a >>> stretch 2.4 g
-    where a  = setPart (Cello sect) . setDynamics pp $ naturalHarmonicTrem IV 0 1
-          g  = setPart (Viola sect) . setDynamics pp $ naturalHarmonicTrem II 0 1
-
-introHarmVln :: Int -> Score Dur Cue
-introHarmVln sect = stretch 1 $ instant
-    >>> stretch 3 d >>> stretch 2.2 d2 >>> introHarm sect
-    where d  = setPart (Violin sect) . setDynamics pp $ naturalHarmonic I  2
-          d2 = setPart (Violin sect) . setDynamics pp $ naturalHarmonic II 1
-          a  = setPart (Violin sect) . setDynamics pp $ naturalHarmonic III 1
+midtroHarm :: Int -> Score Dur Cue
+midtroHarm sect = stretch 1 $ instant
+    >>> stretch 3 a >>> stretch 2.2 g >>> stretch 3.4 a >>> midtroHarm sect
+    where g  = setPart (Violin $ sect) . setDynamics pp     $ naturalHarmonic I 3
+          a  = setPart (Violin $ sect + 2) . setDynamics pp $ naturalHarmonic III 1
 
 db  = setPart DoubleBass . setDynamics pp . stretch 4  $ naturalHarmonic III 4
 db2 = setPart DoubleBass . setDynamics pp . stretch 4  $ naturalHarmonic IV 4
@@ -1542,40 +1535,21 @@ intro1 = instant
     ||| (delay 50  . before 35 $ introHarm 2)
     ||| (delay 60  . stretch 5 $ db2)
 
-    -- --  ||| (delay 80  . before 15 $ introHarmTrem 1)
-    --  ||| (delay 90  . before 30 $ introHarm 2)
-    --  ||| (delay 100 . stretch 5 $ db)
-    --  ||| (delay 110 . before 30 $ introHarm 1)
-    -- --  ||| (delay 125 . before 15 $ introHarmTrem 2)
-    --  ||| (delay 75 . before 25 $ introHarmVln 1)
-    --  ||| (delay 95 . before 30 $ introHarmVln 1)
-
-midtroHarm :: Int -> Score Dur Cue
-midtroHarm sect = stretch 1 $ instant
-    >>> stretch 3 a >>> stretch 2.2 g >>> stretch 3.4 a >>> midtroHarm sect
-    where g  = setPart (Violin $ sect) . setDynamics pp     $ naturalHarmonic I 3
-          a  = setPart (Violin $ sect + 2) . setDynamics pp $ naturalHarmonic III 1
-
 midtro1 = instant
     ||| (before 30 $ midtroHarm 1)
     ||| (delay 15  . before 30 $ midtroHarm 2)
 
 
--- TODO expand
+
 middle1 =
     bass `during'` (setPart (Cello 1) . stretch 1.5 . setDynamics p . octaveDown . tonality . patternMelody) (pattern 2)
     where
         bass = (setDynamics p . setPart DoubleBass $ naturalHarmonic I 3)
 
--- TODO phase static parts etc
 middle2 = compress 2 $ instant
     ||| (setDynamics p . stretch 3 . id . tonality . setPart (Viola 1) $ patternSequence 0 . map pattern $ [0,0,1,1])
     ||| (setDynamics p . stretch 4 . id . tonality . setPart (Viola 2) $ patternSequence 0 . map pattern $ [0,-1,0,-1])
-    ||| (setPart (Violin 3) . setDynamics pp . stretch 50 $ openString III)
-    ||| (setPart (Violin 4) . setDynamics pp . stretch 50 $ openString I)
-    -- ||| (setPart (Cello 1) . setDynamics p . stretch 50 $ openString IV)
-    -- ||| (setPart (Cello 2) . setDynamics p . stretch 50 $ openString II)
-    -- ||| (setPart DoubleBass . setDynamics pp . stretch 50 $ naturalHarmonic II 1)
+
 
 
 
@@ -1599,9 +1573,9 @@ canon2 = compress 1.1 $ instant
 
 -- TODO are these the right pitches ?
     ||| (setDynamics f . concatSeq $ map (\x -> stretch 20 . setPart (Cello 1)  $ stoppedString x) $ take 5 [57,56..])
-    ||| (setDynamics f . concatSeq $ map (\x -> stretch 30 . setPart (Cello 2)  $ stoppedString x) $ take 4 [54,52..])
+    ||| (setDynamics f . concatSeq $ map (\x -> stretch 30 . setPart (Cello 2)  $ stoppedString x) $ take 3 [54,52..])
 
-    ||| (setDynamics f . concatSeq $ map (\x -> stretch 40 . setPart DoubleBass $ openString x) [IV,III,II])
+    ||| (setDynamics f . concatSeq $ map (\x -> stretch 40 . setPart DoubleBass $ openString x) [IV,III])
 
 
 
@@ -1614,24 +1588,21 @@ score' = stretch 0.8{-0.9-} $ instant
 -- kortare, enklare?
 -- abstrahera ut?
     >>> intro1
-    >>> rest 5
+    >>> rest 30
     >>> middle1
-    >>> rest 5
+    >>> rest 15
     >>> middle1
-    >>> rest 5
+    >>> rest 15
     >>> middle1
-    >>> rest 60 
-    -- >>> rest 30
+    >>> rest 15 
+
     >>> middle2
     -- riktigt höga flageoletter här?
     >>> midtro1
-    -- >>> rest 40 
     >>> canon1b 
-    -- >>> rest 20 
     >>> (invertAround 69 canon1) -- denna kortare!
     >>> midtro1
-    -- >>> rest 20
-    >>> (anticipate 30 canon2 intro1)
+    >>> (anticipate 30 canon2 (reverse intro1))
 
 
 \end{code}
