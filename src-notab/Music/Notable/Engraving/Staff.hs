@@ -103,16 +103,17 @@ module Music.Notable.Engraving.Staff
     SpacedObject(..),
     StaffOptions(..), 
     Staff(..), 
-    moveStaffObjects,
-    splitStaff,
-    splitStaffAt,
     staffWidth,
+    moveObjectsRight,
+    moveObjectsLeft,
     addSpaceAtStart,
     addSpaceAtEnd,
     addSpace,
     scaleStaff,
     scaleStaffTo,
-    sameWidth,
+    justifyStaves,
+    splitStaff,
+    splitStaffWhen,
     engraveStaff,
 )
 
@@ -123,6 +124,7 @@ import Data.Index
 import Data.Trivial
 
 import Music.Util
+import Music.Util.List
 
 import Music.Notable.Core
 import Music.Notable.Core.Symbols
@@ -513,7 +515,8 @@ engraveExpression txt = t $ mempty
 --
 -- Staves
 --
-    
+
+-- | Spaced staff objects, associated with a horizontal position.    
 data SpacedObject 
     = StaffNothing
     | StaffClef Clef
@@ -530,6 +533,7 @@ data SpacedObject
     | StaffChord Chord
     deriving (Eq, Show)
 
+-- | Nonspaced staff objects, placed in relation to one or more spaced objects. 
 data NonSpacedObject 
     = StaffBeams Beams
     | StaffTremoloBeams TremoloBeams 
@@ -561,6 +565,15 @@ data Staff =
             nonSpacedObjects :: [([Index [SpacedObject]], NonSpacedObject)] }
     deriving (Eq, Show)
 
+-- | The trivial instance for staff has no objects and no extra space.
+instance Trivial Staff where
+    trivial = Staff trivial [] []
+
+-- | The empty element is the 'trivial' staff.
+--
+--   The binary operation suporimposes the objects on two staves. The position of spaced objects are
+--   not affected (in particular, they are not stacked horizontally), but the indices for non-spaced
+--   objects are adjusted to refer to the same objects. 
 instance Monoid Staff where
     mempty = trivial
     Staff ox xs xns `mappend` Staff oy ys yns = 
@@ -569,37 +582,36 @@ instance Monoid Staff where
             inc n = fmap (inc' n)
             inc' n (is, x) = (map (+ n) is, x)
 
-instance Trivial Staff where
-    trivial = Staff trivial [] []
-
-moveStaffObjects :: Spaces -> Staff -> Staff
-moveStaffObjects n (Staff o s ns) = Staff o (map (\(p, x) -> (p + n, x)) s) ns
-
-splitStaff :: Spaces -> Staff -> (Staff, Staff)
-splitStaff x (Staff o s ns) = (sx, sy)
-    where
-        sx = undefined
-        sy = undefined
-
-splitStaffAt :: Spaces -> (SpacedObject -> Bool) -> (Staff, Staff)
-splitStaffAt = undefined
-
+-- | The width of the staff, defined as the position of its rightmost elements
+--   plus any extra space before and after.
 staffWidth :: Staff -> Spaces
 staffWidth (Staff o s _) = spaceBefore o + w + spaceAfter o
     where
-        w = maximum . fmap fst $ s
+        w = maximumWith 0 . fmap fst $ s
 
+-- | Move objects on the staff to the right.
+moveObjectsRight :: Spaces -> Staff -> Staff
+moveObjectsRight n (Staff o s ns) = Staff o (map (\(p, x) -> (p + n, x)) s) ns
+
+-- | Move objects on the staff to the left.
+moveObjectsLeft :: Spaces -> Staff -> Staff
+moveObjectsLeft n = moveObjectsRight (negate n)
+
+-- | Add extra space to the start of the staff.
 addSpaceAtStart :: Spaces -> Staff -> Staff
 addSpaceAtStart x = addSpace x 0
 
+-- | Add extra space to the end of the staff.
 addSpaceAtEnd :: Spaces -> Staff -> Staff
 addSpaceAtEnd x = addSpace 0 x
 
+-- | Add extra space to the start and end of the staff.
 addSpace :: Spaces -> Spaces -> Staff -> Staff
 addSpace x y (Staff o s ns) = Staff (f o) s ns
     where
         f (StaffOptions b a l) = StaffOptions (b + x) (a + y) l
 
+-- | Scapes the given staff by stretching its objects.
 scaleStaff :: Spaces -> Staff -> Staff
 scaleStaff x (Staff o s ns) = Staff o (fmap (mapFirst (* x)) s) ns
 
@@ -609,24 +621,23 @@ scaleStaffTo x staff@(Staff o s ns) = scaleStaff x' staff
        x' =  ((x - a) / (staffWidth staff - a))
        a  =  spaceBefore o + spaceAfter o
 
-
-sameWidth :: [Staff] -> [Staff]
-sameWidth ss = map (\s -> addSpaceAtEnd (((m - staffWidth s) / 2) `max` 0) s) $ ss
+-- | Assure staves have the same width by adding space at end.
+justifyStaves :: [Staff] -> [Staff]
+justifyStaves ss = map (\s -> addSpaceAtEnd (((m - staffWidth s) / 2) `max` 0) s) $ ss
     where
         m = maximum . map staffWidth $ ss
-            
 
-engraveStaff :: Staff -> Engraving
-engraveStaff staff@(Staff opt sN nsN) = mempty
-    <> (translateX spb $ sE <> nsE)
-    <> (alignL . scaleX ({-width (sE <> nsE)-}(convert . staffWidth) staff + spb + spa) $ noteLines)
-    where 
-        spb = convert $ spaceBefore opt
-        spa = convert $ spaceAfter opt
-        sE  = mconcat $ fmap (\(p, x) -> moveSpacesRight p $ engraveSpacedObject x) sN
-        nsE = mconcat $ fmap (\(i:is, x) -> moveSpacesRight (fst $ index i sN) $ engraveNonSpacedObject x) nsN
+-- | Split a staff at the given position.
+splitStaff :: Spaces -> Staff -> (Staff, Staff)
+splitStaff x (Staff o s ns) = (sx, sy)
+    where
+        sx = undefined
+        sy = undefined
 
--- noteLines
+-- | Split a staff right before the first spaced object that satisfies the predicate.
+splitStaffWhen :: (Spaces -> SpacedObject -> Bool) -> (Staff, Staff)
+splitStaffWhen = undefined
+
 engraveSpacedObject :: SpacedObject -> Engraving
 engraveSpacedObject StaffNothing         =  mempty
 engraveSpacedObject (StaffClef x)        =  engraveClef x
@@ -644,4 +655,14 @@ engraveNonSpacedObject (StaffMetronomeMark nv bpm) = engraveMetronomeMark nv bpm
 engraveNonSpacedObject (StaffDynamic x)            = engraveDynamic x
 engraveNonSpacedObject (StaffInstruction x)        = engraveInstruction x
 engraveNonSpacedObject (StaffExpression x)         = engraveExpression x
+
+engraveStaff :: Staff -> Engraving
+engraveStaff staff@(Staff opt sN nsN) = mempty
+    <> (translateX spb $ sE <> nsE)
+    <> (alignL . scaleX ({-width (sE <> nsE)-}(convert . staffWidth) staff + spb + spa) $ noteLines)
+    where 
+        spb = convert $ spaceBefore opt
+        spa = convert $ spaceAfter opt
+        sE  = mconcat $ fmap (\(p, x) -> moveSpacesRight p $ engraveSpacedObject x) sN
+        nsE = mconcat $ fmap (\(i:is, x) -> moveSpacesRight (fst $ index i sN) $ engraveNonSpacedObject x) nsN
 

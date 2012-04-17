@@ -321,7 +321,10 @@ normalizeDuration :: Time t => Score t a -> Score t a
 normalizeDuration score = stretch (1 / meanDuration score) score
 
 toEventList :: Time t => Score t a -> EventList t a
-toEventList = render
+toEventList = renderScore
+
+toEvents :: Time t => Score t a -> [Event t a]
+toEvents = eventListEvents . renderScore
 
 toList :: Time t => Score t a -> [a]
 toList = fmap eventValue . eventListEvents . toEventList
@@ -343,9 +346,6 @@ assureEqualDur x y
 assureDur :: Time t => t -> Score t a -> Score t a
 assureDur t s | duration s < t  =  s >>> rest (t - duration s)
               | otherwise       =  s
-
-toEvents :: Time t => Score t a -> [Event t a]
-toEvents = eventListEvents . renderScore
 
 negativeError :: String -> a
 negativeError name = error $ name ++ ": negative value"

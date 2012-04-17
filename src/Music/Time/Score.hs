@@ -24,11 +24,7 @@ module Music.Time.Score
     chordDelayStretch,  
     arpeggio,           
                         
--- * Transforming       
-    -- restBefore,         
-    -- restBoth,           
-    -- restAfter,          
-    -- stretchTo,          
+-- * Transforming
     normalizeDuration,  
 
 -- * Folding
@@ -40,8 +36,9 @@ module Music.Time.Score
     firstEvent,         
     lastEvent,          
     printScoreEvents,   
-    toEventList,
     toList,
+    toEvents,
+    toEventList,
 
 -- TODO normal forms and related maps
 )
