@@ -47,6 +47,7 @@ import Music.Time.Functors
 import Music.Render
 import Music.Render.Midi
 import Music.Render.Graphics
+import Music.Util ( onlyIf, onlyIfNot )
 import qualified Music.Util.List as List
 import qualified Music.Util.Either as Either
 
@@ -648,6 +649,137 @@ instance (Time t, LevelFunctor a) => LevelFunctor (Score t a) where
 instance (Time t, PitchFunctor a) => PitchFunctor (Score t a) where
     mapPitch f = fmap (mapPitch f)
 
+\end{code}
+
+
+Cue generation
+==========
+
+Allthough the *cues* defined in the previous chapter is a flexible representation for an
+orchestral piece, they are somewhat cubersome to construct. This is easily solved by
+adding some higher-level constructors.
+
+The constructors all create *standard cues* with the following definitions:
+
+\begin{code}
+standardCue           =  note . Cue (Violin 1) Tutti mf 0
+standardArticulation  =  Straight
+standardPhrasing      =  Phrasing
+\end{code}
+
+These can be overriden using the methods of the type classes `Temporal`, `Timed`, `Delayed`,
+`PartFunctor`, `PitchFunctor` and `LevelFunctor` respectively.
+
+
+
+Open Strings
+----------
+\begin{code}
+openString :: Str -> Score Dur Cue
+openString x = standardCue
+    $ Single standardArticulation
+    $ OpenString x
+
+openStringPizz :: Str -> Score Dur Cue
+openStringPizz x = standardCue
+     $ Pizz standardArticulation
+     $ OpenString x
+
+openStringJete :: [Str] -> Score Dur Cue
+openStringJete xs = standardCue
+     $ Jete standardPhrasing
+     $ map OpenString xs
+
+openStrings :: [(Dur, Str)] -> Score Dur Cue
+openStrings xs = standardCue
+     $ Phrase standardPhrasing
+     $ map (\(d,x) -> (d, OpenString x)) xs
+\end{code}
+
+
+
+
+Natural harmonics
+----------
+\begin{code}
+naturalHarmonic :: Str -> Pitch -> Score Dur Cue
+naturalHarmonic s x = standardCue
+     $ Single standardArticulation
+     $ NaturalHarmonic x s
+
+naturalHarmonicPizz :: Str -> Pitch -> Score Dur Cue
+naturalHarmonicPizz s x = standardCue
+     $ Pizz standardArticulation
+     $ NaturalHarmonic x s
+
+naturalHarmonicJete :: Str -> [Pitch] -> Score Dur Cue
+naturalHarmonicJete s xs = standardCue
+     $ Jete standardPhrasing
+     $ map (\x -> NaturalHarmonic x s) xs
+
+naturalHarmonics :: Str -> [(Dur, Pitch)] -> Score Dur Cue
+naturalHarmonics s xs = standardCue
+     $ Phrase standardPhrasing
+     $ map (\(d,x) -> (d, NaturalHarmonic x s)) xs
+\end{code}
+
+
+
+Quarter stopped strings
+----------
+\begin{code}
+quarterStoppedString :: Str -> Score Dur Cue
+quarterStoppedString x = standardCue
+     $ Single standardArticulation
+     $ QuarterStoppedString x
+
+quarterStoppedStrings :: [(Dur, Str)] -> Score Dur Cue
+quarterStoppedStrings xs = standardCue
+     $ Phrase standardPhrasing
+     $ map (\(d,x) -> (d, QuarterStoppedString x)) xs
+\end{code}
+
+
+
+Stopped strings
+----------
+\begin{code}
+stoppedString :: Pitch -> Score Dur Cue
+stoppedString x = standardCue
+     $ Single standardArticulation
+     $ StoppedString x I
+
+stoppedStringPizz :: Pitch -> Score Dur Cue
+stoppedStringPizz x = standardCue
+     $ Pizz standardArticulation
+     $ StoppedString x I
+
+stoppedStringJete :: [Pitch] -> Score Dur Cue
+stoppedStringJete xs = standardCue
+     $ Jete standardPhrasing
+     $ map (\x -> StoppedString x I) xs
+
+stoppedStrings :: [(Dur, Pitch)] -> Score Dur Cue
+stoppedStrings xs = standardCue
+     $ Phrase standardPhrasing
+     $ map (\(d,x) -> (d, StoppedString x I)) xs
+\end{code}
+
+
+
+
+Tremolo
+----------
+\begin{code}
+stoppedStringTrem :: Pitch -> Pitch -> Score Dur Cue
+stoppedStringTrem x y = standardCue
+     $ Single standardArticulation
+     $ StoppedStringTrem x y I
+
+naturalHarmonicTrem :: Str -> Pitch -> Pitch -> Score Dur Cue
+naturalHarmonicTrem s x y = standardCue
+     $ Single standardArticulation
+     $ NaturalHarmonicTrem x y s
 \end{code}
 
 
@@ -1272,144 +1404,9 @@ instance Render Engraving Graphic where
 
 
 
-High-level music generation
-=======================
-
-Allthough the *cues* defined in the previous chapters is a flexible representation for an
-orchestral piece, they are somewhat cubersome to construct. This is easily solved by
-adding some higher-level constructors.
-
-The constructors all create *standard cues* with the following definitions:
-
-\begin{code}
-standardCue           =  note . Cue (Violin 1) Tutti mf 0
-standardArticulation  =  Straight
-standardPhrasing      =  Phrasing
-\end{code}
-
-These can be overriden using the methods of the type classes `Temporal`, `Timed`, `Delayed`,
-`PartFunctor`, `PitchFunctor` and `LevelFunctor` respectively.
 
 
-
-Open Strings
-----------
-\begin{code}
-openString :: Str -> Score Dur Cue
-openString x = standardCue
-    $ Single standardArticulation
-    $ OpenString x
-
-openStringPizz :: Str -> Score Dur Cue
-openStringPizz x = standardCue
-     $ Pizz standardArticulation
-     $ OpenString x
-
-openStringJete :: [Str] -> Score Dur Cue
-openStringJete xs = standardCue
-     $ Jete standardPhrasing
-     $ map OpenString xs
-
-openStrings :: [(Dur, Str)] -> Score Dur Cue
-openStrings xs = standardCue
-     $ Phrase standardPhrasing
-     $ map (\(d,x) -> (d, OpenString x)) xs
-\end{code}
-
-
-
-
-Natural harmonics
-----------
-\begin{code}
-naturalHarmonic :: Str -> Pitch -> Score Dur Cue
-naturalHarmonic s x = standardCue
-     $ Single standardArticulation
-     $ NaturalHarmonic x s
-
-naturalHarmonicPizz :: Str -> Pitch -> Score Dur Cue
-naturalHarmonicPizz s x = standardCue
-     $ Pizz standardArticulation
-     $ NaturalHarmonic x s
-
-naturalHarmonicJete :: Str -> [Pitch] -> Score Dur Cue
-naturalHarmonicJete s xs = standardCue
-     $ Jete standardPhrasing
-     $ map (\x -> NaturalHarmonic x s) xs
-
-naturalHarmonics :: Str -> [(Dur, Pitch)] -> Score Dur Cue
-naturalHarmonics s xs = standardCue
-     $ Phrase standardPhrasing
-     $ map (\(d,x) -> (d, NaturalHarmonic x s)) xs
-\end{code}
-
-
-
-Quarter stopped strings
-----------
-\begin{code}
-quarterStoppedString :: Str -> Score Dur Cue
-quarterStoppedString x = standardCue
-     $ Single standardArticulation
-     $ QuarterStoppedString x
-
-quarterStoppedStrings :: [(Dur, Str)] -> Score Dur Cue
-quarterStoppedStrings xs = standardCue
-     $ Phrase standardPhrasing
-     $ map (\(d,x) -> (d, QuarterStoppedString x)) xs
-\end{code}
-
-
-
-Stopped strings
-----------
-\begin{code}
-stoppedString :: Pitch -> Score Dur Cue
-stoppedString x = standardCue
-     $ Single standardArticulation
-     $ StoppedString x I
-
-stoppedStringPizz :: Pitch -> Score Dur Cue
-stoppedStringPizz x = standardCue
-     $ Pizz standardArticulation
-     $ StoppedString x I
-
-stoppedStringJete :: [Pitch] -> Score Dur Cue
-stoppedStringJete xs = standardCue
-     $ Jete standardPhrasing
-     $ map (\x -> StoppedString x I) xs
-
-stoppedStrings :: [(Dur, Pitch)] -> Score Dur Cue
-stoppedStrings xs = standardCue
-     $ Phrase standardPhrasing
-     $ map (\(d,x) -> (d, StoppedString x I)) xs
-\end{code}
-
-
-
-
-Tremolo
-----------
-\begin{code}
-stoppedStringTrem :: Pitch -> Pitch -> Score Dur Cue
-stoppedStringTrem x y = standardCue
-     $ Single standardArticulation
-     $ StoppedStringTrem x y I
-
-naturalHarmonicTrem :: Str -> Pitch -> Pitch -> Score Dur Cue
-naturalHarmonicTrem s x y = standardCue
-     $ Single standardArticulation
-     $ NaturalHarmonicTrem x y s
-\end{code}
-
-
-\pagebreak
-
-
-
-
-
-Musical material and composition
+Musical material
 ==========
 
 Pitches
@@ -1462,6 +1459,9 @@ fifthDown   =  mapPitch (+ (-7))
 fifthUp     =  mapPitch (+ 7)
 octaveUp    =  mapPitch (+ 12)
 duodecUp    =  mapPitch (+ 19)
+
+transposeUp x   = mapPitch (+ x)
+transposeDown x = mapPitch (+ (-x))
 \end{code}
 
 
@@ -1520,8 +1520,31 @@ patternSequenceFrom p = patternSequence p . fmap pattern
 \end{code}
 
 
+Imitation
+----------
 
-Final score
+\begin{code}
+type Sc = Score Dur Cue
+type Tr = Sc -> Sc
+
+canon :: RandomGen r => r -> Int -> Pitch -> [(Part, Tr)] -> Sc
+canon r i p ts = canon' False r i p (map (\(p,t) -> setPart p . t) ts)
+
+invertedCanon :: RandomGen r => r -> Int -> Pitch -> [(Part, Tr)] -> Sc
+invertedCanon r i p ts = canon' False r i p (map (\(p,t) -> setPart p . t) ts)
+
+canon' :: RandomGen r => Bool -> r -> Int -> Pitch -> [Tr] -> Sc
+canon' inv r len step tr = 
+    concatPar $ fmap createPart (zip tr rs)
+    where
+        createPart (f,r) = f . tonality . i . s $ (take len $ randomPatterns r)
+        s   =  patternSequenceFrom step
+        i   =  invert `onlyWhen` inv
+        rs  =  splitted r
+\end{code}
+
+
+Score
 ----------
 
 \begin{code}
@@ -1607,27 +1630,6 @@ middle2 = compress 1.6 . setDynamics mf $ instant
 
 
 
-type Sc = Score Dur Cue
-type Tr = Sc -> Sc
-
-mkCanon :: Bool -> [Double] -> [Part] -> [Pitch] -> [Index [Pattern]] -> Sc
-mkCanon = undefined
-
-canon :: [Part] -> [Tr] -> [Tr] -> [[Int]] -> Sc
-canon r f g = canon' . List.zip4 r f g
-
-canon' :: [(Part, Tr, Tr, [Int])] -> Sc
-canon' = concatPar . map h
-    where h (r, f, g, p) = setPart r . f . tonality . g . patternSequenceFrom 0 $ p
-
-
-compose = zipWith (.)
-        
-midCanon0 = setDynamics mf . compress 1.1 $ canon 
-        (violins ++ violas) 
-        ((map stretch [2.1, 2.2, 2.5, 2.9, 3.5, 4.1]) `compose` [octaveUp, octaveUp, fifthUp, fifthUp, id, id])
-        (repeat id)
-        [[0,2,1,2], [1,2,0,2], [2,0,1,2], [0,2,1,2], [2,2,1,0], [1,2,0,2]]
 
 
 
@@ -1671,7 +1673,8 @@ finalCanonBass = setDynamics mf . compress 1.1 $ instant
 
 
 score :: Score Dur Cue
-score = score'
+-- score = score'
+score = canon rand' 4 1 (zip violins (map stretch [2,2.1..] `compose` map transposeUp [12,12,19,19]))
 
 score' = stretch 0.8{-0.9-} $ instant
     >>> intro1
@@ -1713,9 +1716,13 @@ To use a different sequence, set rand to another generator, i.e. the standard.
 -- rand' = System.IO.Unsafe.unsafePerformIO System.Random.newStdGen
 rand' = rand
 
-randomInts    = randoms rand' :: [Int]
-randomDoubles = randoms rand' :: [Double]
-randomPatterns = fmap (truncate . (* 3)) $ randomDoubles
+randomInts r     = randoms r :: [Int]
+randomDoubles r  = randoms r :: [Double]
+randomPatterns r = fmap (truncate . (* 3)) $ randomDoubles r
+
+randomInts' r     = randomInts rand'
+randomDoubles' r  = randomDoubles rand'
+randomPatterns' r = randomPatterns rand'
     
 \end{code}
 
@@ -1743,6 +1750,21 @@ allOpenStrings = stretch (1/3) . concatSeq $ do
 
 Miscellaneous
 ----------
+
+\begin{code}   
+removeEquals :: Eq a => [a] -> [a]
+removeEquals = List.remove2 (==)
+
+compose = zipWith (.)
+
+onlyWhen x y    = x `onlyIf` (const y)
+onlyWhenNot x y = x `onlyIfNot` (const y)
+
+splitted :: RandomGen r => r -> [r]
+splitted = List.unfoldr (Just . System.Random.split)
+  
+    
+\end{code}
 
 Useful to fix the type of a score.
 
