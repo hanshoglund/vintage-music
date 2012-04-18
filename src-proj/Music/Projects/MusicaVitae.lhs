@@ -1590,8 +1590,8 @@ finalCanon = compress 1.1 $ instant
     ||| (setDynamics f . stretch 3.1 . fifthUp  . tonality . setPart (Viola 2)  $ patternSequence 1 . map pattern $ [1,2,1,1,2])
 
 finalCanonBass = compress 1.1 $ instant
-    ||| (setDynamics mf . concatSeq $ map (\x -> stretch 20 . setPart (Cello 1)  $ stoppedString x) $ take 3 [57,56..])
-    ||| (setDynamics mf . concatSeq $ map (\x -> stretch 30 . setPart (Cello 2)  $ stoppedString x) $ take 2 [54,52..])
+    ||| (setDynamics mf . concatSeq $ map (\x -> stretch 20 . setPart (Cello 1)  $ stoppedString x) $ take 3 [57,55,54,52])
+    ||| (setDynamics mf . concatSeq $ map (\x -> stretch 30 . setPart (Cello 2)  $ stoppedString x) $ take 2 [54,52,50,49])
     ||| (setDynamics mf . concatSeq $ map (\x -> stretch 40 . setPart DoubleBass $ openString x) [IV{-,III-}])
 
 
