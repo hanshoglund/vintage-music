@@ -717,10 +717,12 @@ midiInstrument (Cue part doubling dynamics tempo technique) =
         (Pizz _ _) -> Just 45
         _          -> midiInstrument' part
 
+-- midiInstrument' _             =  Just 49
 midiInstrument' ( Violin _ )  =  Just 40
 midiInstrument' ( Viola _ )   =  Just 41
 midiInstrument' ( Cello _ )   =  Just 42
 midiInstrument' DoubleBass    =  Just 43
+
 \end{code}
 
 
@@ -1556,8 +1558,9 @@ middle2 = compress 1.6 . setDynamics mf $ instant
 
 
 
+midCanon = midCanon' >>> (stretch 0.8 . reverse $ midCanon')
 
-canon1 = compress 1.1 . reverse $ instant
+midCanon' = compress 1.1 . reverse $ instant
     ||| (setDynamics mf . stretch 2.1 . octaveUp . tonality . setPart (Violin 1) $ patternSequence 0 . map pattern  $ [0,2,1,2])
     ||| (setDynamics mf . stretch 2.2 . octaveUp . tonality . setPart (Violin 2) $ patternSequence 0 . map pattern  $ [1,2,0,2])
     ||| (setDynamics mf . stretch 2.5 . fifthUp  . tonality . setPart (Violin 3) $ patternSequence 0 . map pattern  $ [2,0,1,2])
@@ -1565,33 +1568,31 @@ canon1 = compress 1.1 . reverse $ instant
     ||| (setDynamics mf . stretch 3.5 . id       . tonality . setPart (Viola  1) $ patternSequence  0 . map pattern  $ [2,2,1,0])
     ||| (setDynamics mf . stretch 4.1 . id       . tonality . setPart (Viola  2) $ patternSequence  0 . map pattern $ [1,2,0,2])
 
-canon1b = canon1 >>> (stretch 0.8 . reverse $ canon1)
+canon2upper = setDynamics p . reverse $ instant
+    ||| ({-delay 15  . -}stretch 2.7 . duodecUp . tonality . setPart (Violin 1)  . invert . patternSequence 0 . map pattern $ [2,0,0,1,2])
+    ||| ({-delay 14  . -}stretch 2.4 . duodecUp . tonality . setPart (Violin 2)  . invert . patternSequence 0 . map pattern $ [0,0,1,2,2])
+    ||| ({-delay 13  . -}stretch 2.2 . duodecUp . tonality . setPart (Violin 3) . invert . patternSequence 0 . map pattern $ [1,0,2,1,0])
+    ||| ({-delay 9   . -}stretch 2.1 . duodecUp . tonality . setPart (Violin 4)  . invert . patternSequence 0 . map pattern $ [0,0,1,2,1])
+    ||| ({-delay 8   . -}stretch 2.0 . octaveUp  . tonality . setPart (Viola  1)  . invert . patternSequence 1 . map pattern $ [1,0,2,1])
+    ||| ({-delay 0   . -}stretch 1.9   . octaveUp  . tonality . setPart (Viola  2)  . invert . patternSequence 1 . map pattern $ [0,2,2,0])
 
-canon1c = setDynamics p . reverse $ instant
-    ||| (delay 15  . stretch 2.7 . duodecUp . tonality . setPart (Violin 1)  . invert . patternSequence 0 . map pattern $ [2,0,0,1,2])
-    ||| (delay 14  . stretch 2.4 . duodecUp . tonality . setPart (Violin 2)  . invert . patternSequence 0 . map pattern $ [0,0,1,2,2])
-    ||| (delay 13  . stretch 2.2 . duodecUp . tonality . setPart (Violin 3) . invert . patternSequence 0 . map pattern $ [1,0,2,1,0])
-    ||| (delay 9 . stretch 2.1 . duodecUp . tonality . setPart (Violin 4)  . invert . patternSequence 0 . map pattern $ [0,0,1,2,1])
-    ||| (delay 8   . stretch 2.3 . octaveUp  . tonality . setPart (Viola  1)  . invert . patternSequence 0 . map pattern $ [1,0,2,1])
-    ||| (delay 0   . stretch 2.6   . octaveUp  . tonality . setPart (Viola  2)  . invert . patternSequence 0 . map pattern $ [0,2,2,0])
+canon2lower = setDynamics p $ instant
+    ||| (          stretch 2.5 . id  . tonality . setPart (Cello 1) . invert . patternSequence 1 . map pattern  $ [2,1,0])
+    ||| (delay 13 . stretch 2.4 . id  . tonality . setPart (Cello 2) . invert . patternSequence 1 . map pattern $ [2,1,1])
 
-canon3 = setDynamics p $ instant
-    ||| (          stretch 2.5 . id  . tonality . setPart (Cello 1) . invert . patternSequence 1 . map pattern  $ [2,1,0,2])
-    ||| (delay 13 . stretch 2.4 . id  . tonality . setPart (Cello 2) . invert . patternSequence 1 . map pattern $ [2,1,1,2])
-
-canon2 = compress 1.1 $ instant
+finalCanon = compress 1.1 $ instant
     ||| (setDynamics f . stretch 2   . duodecUp . tonality . setPart (Violin 1) $ patternSequence 1 . map pattern $ [0,2,2,1,2])
     ||| (setDynamics f . stretch 2.2 . duodecUp . tonality . setPart (Violin 2) $ patternSequence 1 . map pattern $ [1,2,2,0,2])
     ||| (setDynamics f . stretch 2.35 . octaveUp . tonality . setPart (Violin 3) $ patternSequence 1 . map pattern $ [1,2,0,1,2])
     ||| (setDynamics f . stretch 2.5 . octaveUp . tonality . setPart (Violin 4) $ patternSequence 1 . map pattern $ [1,2,2,1,2])
     
-    ||| (setDynamics f . stretch 2.7 . fifthUp  . tonality . setPart (Viola 1)  $ patternSequence 0 . map pattern $ [2,1,2,1,0])
-    ||| (setDynamics f . stretch 3.1 . fifthUp  . tonality . setPart (Viola 2)  $ patternSequence 0 . map pattern $ [1,2,1,1,2])
+    ||| (setDynamics f . stretch 2.7 . fifthUp  . tonality . setPart (Viola 1)  $ patternSequence 1 . map pattern $ [2,1,2,1,0])
+    ||| (setDynamics f . stretch 3.1 . fifthUp  . tonality . setPart (Viola 2)  $ patternSequence 1 . map pattern $ [1,2,1,1,2])
 
-endBass = stretch 1.2 $ instant
-    ||| (setDynamics f . concatSeq $ map (\x -> stretch 20 . setPart (Cello 1)  $ stoppedString x) $ take 3 [57,56..])
-    ||| (setDynamics f . concatSeq $ map (\x -> stretch 30 . setPart (Cello 2)  $ stoppedString x) $ take 2 [54,52..])
-    ||| (setDynamics f . concatSeq $ map (\x -> stretch 40 . setPart DoubleBass $ openString x) [IV{-,III-}])
+finalCanonBass = compress 1.1 $ instant
+    ||| (setDynamics mf . concatSeq $ map (\x -> stretch 20 . setPart (Cello 1)  $ stoppedString x) $ take 3 [57,56..])
+    ||| (setDynamics mf . concatSeq $ map (\x -> stretch 30 . setPart (Cello 2)  $ stoppedString x) $ take 2 [54,52..])
+    ||| (setDynamics mf . concatSeq $ map (\x -> stretch 40 . setPart DoubleBass $ openString x) [IV{-,III-}])
 
 
 
@@ -1606,17 +1607,14 @@ score' = stretch 0.8{-0.9-} $ instant
     >>> rest 100
     >>> middle2
     
+    -- duration here should be 218.24
     >>> midtro1    
-    >>> canon1b 
-    >>> midtro1
+    >>> midCanon 
+    >>> midtro1    
     
-    >>> anticipate 40 canon1c canon3
-
-    -- >>> (canon2 ||| endBass)
-
-   >>> (anticipate 30 (canon2 ||| endBass) outro1)
-
-    -- >>> outro1
+    >>> canon2upper >>> canon2lower           
+    >>> (finalCanon ||| finalCanonBass)
+    -- >>> (anticipate 30 (finalCanon ||| finalCanonBass) outro1)
 
 
 \end{code}
