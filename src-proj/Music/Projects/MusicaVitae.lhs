@@ -34,6 +34,7 @@ import Prelude hiding ( reverse )
 import Data.Maybe
 import Data.Convert ( convert )
 import Data.Trivial
+import Data.Index
 import System.Random
 
 import Music
@@ -1524,16 +1525,11 @@ Final score
 
 -- instant >>> ||| concatSeq, concatPar
 -- reverse loop
--- duration stretch compress
+-- duration stretch compress stretchTo
 -- note rest delay
 -- split before after
 
--- holding          stretches x to duration of y
--- during           truncates x to duration of y
--- anticipate       >>> with negative offset
--- stretchTo        absolute stretch/compress
-
--- restBefore restAfter restBoth
+-- sustain prolong anticipate     
 
 
 introHarm :: Int -> Score Dur Cue
@@ -1584,13 +1580,15 @@ outro1 = reverse . stretch 1.5 $ instant
 
 
 
+middle1 = concatSeq . List.intersperse (rest 10) $ map middle' [0,1,2]
 
 
-
-middle1 = setDynamics p . stretch 2 $ melody `holding` bass
+middle' x = setDynamics p . stretch 2 $ melody `sustain` bass
     where
-        melody = (octaveDown . tonality . setPart (Cello 1)  $ patternMelodyFrom 2)
+        melody = (octaveDown . tonality . setPart (Cello 1)  $ patternMelodyFrom x)
         bass   = (                        setPart DoubleBass $ naturalHarmonic I 3)
+
+
 
 middle2 = compress 1.6 . setDynamics mf $ instant
     ||| (           stretch 4 . id . tonality . setPart (Viola 1) $ patternSequenceFrom 0 $ [0,1,1,0])
@@ -1609,13 +1607,15 @@ middle2 = compress 1.6 . setDynamics mf $ instant
 type Sc = Score Dur Cue
 type Tr = Sc -> Sc
 
+mkCanon :: Bool -> [Double] -> [Part] -> [Pitch] -> [Index [Pattern]] -> Sc
+mkCanon = undefined
+
 canon :: [Part] -> [Tr] -> [Tr] -> [[Int]] -> Sc
-canon rs fs gs ps = canon' $ List.zip4 rs fs gs ps
+canon r f g = canon' . List.zip4 r f g
 
 canon' :: [(Part, Tr, Tr, [Int])] -> Sc
 canon' = concatPar . map h
-    where
-        h (r, f, g, p) = (setPart r . f . tonality . g . patternSequenceFrom 0 $ p)
+    where h (r, f, g, p) = setPart r . f . tonality . g . patternSequenceFrom 0 $ p
 
 
 compose = zipWith (.)
@@ -1644,8 +1644,8 @@ canon2upper = setDynamics p . reverse $ instant
     ||| (stretch 2.4 . duodecUp . tonality . setPart (Violin 2) . invert . patternSequenceFrom 0 $ [0,0,1,2,2])
     ||| (stretch 2.2 . duodecUp . tonality . setPart (Violin 3) . invert . patternSequenceFrom 0 $ [1,0,2,1,0])
     ||| (stretch 2.1 . duodecUp . tonality . setPart (Violin 4) . invert . patternSequenceFrom 0 $ [0,0,1,2,1])
-    ||| (stretch 2.0 . octaveUp . tonality . setPart (Viola  1) . invert . patternSequenceFrom 1 $ [1,0,2,1])
-    ||| (stretch 1.9 . octaveUp . tonality . setPart (Viola  2) . invert . patternSequenceFrom 1 $ [0,2,2,0])
+    ||| (stretch 2.0 . octaveUp . tonality . setPart (Viola  1) . invert . patternSequenceFrom (-1) $ [1,0,2,1])
+    ||| (stretch 1.9 . octaveUp . tonality . setPart (Viola  2) . invert . patternSequenceFrom (-1) $ [0,2,2,0])
 
 canon2lower = setDynamics p $ instant
     ||| (           stretch 2.5 . id  . tonality . setPart (Cello 1) . invert . patternSequenceFrom 1 $ [2,1,0])
@@ -1675,10 +1675,9 @@ score' = stretch 0.8{-0.9-} $ instant
     
     >>> rest 30
     >>> middle1
-    >>> rest 100
+    >>> rest 30
     >>> middle2
     
-    -- duration here should be 218.24
     >>> midtro1    
     >>> midCanon 
     >>> midtro1    
@@ -1704,18 +1703,18 @@ These scores contains all available harmonics and open strings respectively (goo
 
 \begin{code}
 allHarmonics :: Score Dur Cue
-allHarmonics = stretch (1/3) $ instant
-    >>> concatSeq [ setPart DoubleBass $ naturalHarmonic str pos | str <- enumFrom I, pos <- [0..7] ]
-    >>> concatSeq [ setPart (Cello 1)  $ naturalHarmonic str pos | str <- enumFrom I, pos <- [0..7] ]
-    >>> concatSeq [ setPart (Viola 1)  $ naturalHarmonic str pos | str <- enumFrom I, pos <- [0..7] ]
-    >>> concatSeq [ setPart (Violin 1) $ naturalHarmonic str pos | str <- enumFrom I, pos <- [0..7] ]
+allHarmonics = stretch (1/3) . concatSeq $ do  
+    part <- List.reverse ensemble
+    str <- enumFrom I
+    pos <- [0..7]
+    return $ setPart part $ naturalHarmonic str pos
 
 allOpenStrings :: Score Dur Cue
-allOpenStrings = stretch (1/3) $ instant
-    >>> concatSeq [ setPart DoubleBass   $ openString str | str <- enumFrom I ]
-    >>> concatSeq [ setPart (instr part) $ openString str | instr <- [Cello, Viola, Violin]
-                                                          , part  <- [2,1]
-                                                          , str   <- enumFrom I ]
+allOpenStrings = stretch (1/3) . concatSeq $ do
+    part <- List.reverse ensemble
+    str <- enumFrom I
+    return $ setPart part $ openString str
+
 \end{code}
 
 Useful to fix the type of a score.
