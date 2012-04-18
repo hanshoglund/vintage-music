@@ -20,6 +20,7 @@ playback of intonation, use a sampler that support Midi Tuning Standard, such as
 \begin{code}
 
 {-# LANGUAGE
+    NoMonomorphismRestriction,
     TypeSynonymInstances,
     FlexibleInstances,
     MultiParamTypeClasses,
@@ -33,6 +34,7 @@ import Prelude hiding ( reverse )
 import Data.Maybe
 import Data.Convert ( convert )
 import Data.Trivial
+import System.Random
 
 import Music
 import Music.Inspect
@@ -89,6 +91,14 @@ data Part
     | DoubleBass
     deriving ( Eq, Show )
 
+instance Enum Part where
+    fromEnum x = fromJust $ List.findIndex (== x) ensemble
+    toEnum x = ensemble !! x
+    
+instance Bounded Part where
+    minBound = Violin 1
+    maxBound = DoubleBass
+        
 data Section
     = High | Low | Middle
     deriving ( Eq, Show, Enum, Bounded )
@@ -132,9 +142,9 @@ isViolin, isViola, isCello, isDoubleBass :: Part -> Bool
 
 highParts, lowParts
     :: [Part]
-highViolinParts, highViolaParts, highCelloParts
+highViolins, highViolas, highCellos
     :: [Part]
-lowViolinParts, lowViolaParts, lowCelloParts
+lowViolins, lowViolas, lowCellos
     :: [Part]
 doubleBass :: Part
 
@@ -145,7 +155,7 @@ ensemble
 sectionParts s  =  filter (\x -> partSection x == s) ensemble
 
 highParts  =  sectionParts High
-lowParts   =  sectionParts High
+lowParts   =  sectionParts Low
 
 isViolin     ( Violin _ )    =  True
 isViolin     _               =  False
@@ -156,13 +166,16 @@ isCello      _               =  False
 isDoubleBass ( DoubleBass )  =  True
 isDoubleBass _               =  True
 
-highViolinParts  =  filter isViolin (sectionParts High)
-highViolaParts   =  filter isViola  (sectionParts High)
-highCelloParts   =  filter isCello  (sectionParts High)
-lowViolinParts   =  filter isViolin (sectionParts Low)
-lowViolaParts    =  filter isViola  (sectionParts Low)
-lowCelloParts    =  filter isCello  (sectionParts Low)
-doubleBass       =  DoubleBass
+violins  =  filter isViolin ensemble
+violas   =  filter isViola  ensemble
+cellos   =  filter isCello  ensemble
+highViolins  =  filter isViolin (sectionParts High)
+highViolas   =  filter isViola  (sectionParts High)
+highCellos   =  filter isCello  (sectionParts High)
+lowViolins   =  filter isViolin (sectionParts Low)
+lowViolas    =  filter isViola  (sectionParts Low)
+lowCellos    =  filter isCello  (sectionParts Low)
+doubleBass   =  DoubleBass
 \end{code}
 
 
@@ -804,6 +817,18 @@ midiBendJust' 8  =  0.0391
 
 
 
+Velocity
+--------
+
+\begin{code}
+renderDynamic :: Dynamics -> Dur -> MidiDynamic
+renderDynamic n t = round . d $ n `levelAt` t
+    where 
+        -- d x = x * 63 + 63
+        d x = ((x + 1) / 2 ** 1.2) * 128
+
+\end{code}
+
 Left hand
 ----------
 The `renderLeftHand` function returns a score of duration one, possibly containing tremolos.
@@ -874,9 +899,9 @@ setMidiBend b = Either.fmapEither f g
           g = fmap (\(MidiNote c i p _ n) -> MidiNote c i p b n)
 
 setMidiDynamic :: Dynamics -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
-setMidiDynamic (Dynamics n) = tmapEither f g
-    where f = (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63))
-          g = (\t x -> tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (round $ n t * 63 + 63)) x)
+setMidiDynamic n = tmapEither f g
+    where f = (\t (MidiNote c i p b _) -> MidiNote c i p b (renderDynamic n t))
+          g = (\t x -> tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (renderDynamic n t)) x)
 \end{code}
 
 
@@ -1387,13 +1412,13 @@ Pitches
 ----------
 
 The pitch material is based on a 15-tone symmetric scale. The lower half is mixolydian
-and the upper half is aeolian (i.e. the inverse of mixolydian).
+and the upper half is aeolian.
 
 We will represent melodies in a relative fashion, using 0 to represent a reference pitch.
 This simplifies inversion and similar techniques. We use A3 as the reference pitch
 (corresponding to step 0). The `tonality` function applies the major-minor scale at
-the reference pitch, so pitch operations applied *before* this function is diatonic, while
-operations applied *after* it is chromatic.
+the reference pitch, so pitch operations applied *before* this function are tonal, while
+operations applied *after* it are chromatic.
 
 \begin{code}
 majMinScale = Scale $ getScale lower ++ getScale upper
@@ -1406,13 +1431,12 @@ tonality = mapPitch $ offset . scale . tonic
     where
         tonic  = (+ 7)
         scale  = (majMinScale `step`)
-        offset = (+ 57)
+        offset = (+ 57)  
+        
 \end{code}
 
 The `tonalSeq` function generates a binary musical sequence, in which the second operand is transposed
 the given amount of steps. The `tonalConcat` function is the same on higher arities.
-
-The `fifthUp`, `fifthDown` etc are handy shortcuts for (chromatic) transposition.
 
 \begin{code}
 tonalSeq :: (Time t, PitchFunctor a) => Pitch -> Score t a -> Score t a -> Score t a
@@ -1420,7 +1444,11 @@ tonalConcat :: (Time t, PitchFunctor a) => Pitch -> [Score t a] -> Score t a
 
 tonalSeq    p x y  =  x >>> mapPitch (+ p) y
 tonalConcat p      =  List.foldr (tonalSeq p) instant
+\end{code}
 
+The `fifthUp`, `fifthDown` etc are handy shortcuts for (chromatic) transposition.
+
+\begin{code}
 duodecDown, octaveDown, fifthDown :: PitchFunctor a => a -> a
 fifthUp, octaveUp, duodecUp       :: PitchFunctor a => a -> a
 
@@ -1442,8 +1470,6 @@ pairs and provide the `patternMelody` function to convert them into a melody. Th
 duration is in half-seconds but it can of course be scaled to any tempo.
 
 We use three patterns are based on a simple upward-moving stepwise gesture (0-3).
-Some patterns incorporating jumps are (4-5). I am not sure these should be used.
-
 To get downward motion, we use the invert function.
 
 
@@ -1458,30 +1484,32 @@ pattern :: Int -> Pattern
 pattern n
     | n < 0      =  invert $ patterns !! (negate n)
     | otherwise  =  patterns !! n
-
-
--- Play using
---     play . tonality . patternMelody $ pattern 0
-patterns =
-    [
-        zip [ 3, 3 ]
-            [ 0, 1 ],
-        zip [ 1, 1, 1, 1, 3, 3 ]
-            [ 0, 1, 1, 2, 0, 1 ],
-        zip [ 1, 1, 1, 2, 1, 3, 3 ]
-            [ 0, 1, 1, 2, 3, 0, 1 ]
-    ]
+    where
+        patterns = 
+            [
+            zip [ 3, 3 ]
+                [ 0, 1 ],
+            zip [ 1, 1, 1, 1, 3, 3 ]
+                [ 0, 1, 1, 2, 0, 1 ],
+            zip [ 1, 1, 1, 2, 1, 3, 3 ]
+                [ 0, 1, 1, 2, 3, 0, 1 ]
+            ]
 
 patternMelody :: Pattern -> Score Dur Cue
 patternMelody x = stretch (scaling x / 2) . stoppedStrings $ x
     where
         scaling = sum . map fst
 
-patternSequence :: Pitch -> [Pattern] -> Score Dur Cue
-patternSequence p = tonalConcat p . fmap patternMelody
-
 patternMelodyFrom :: Int -> Score Dur Cue
 patternMelodyFrom = patternMelody . pattern
+
+\end{code}
+
+Arbitrarily complex melodies can be formed by combinations of the three basic patterns.
+
+\begin{code}
+patternSequence :: Pitch -> [Pattern] -> Score Dur Cue
+patternSequence p = tonalConcat p . fmap patternMelody
 
 patternSequenceFrom :: Pitch -> [Int] -> Score Dur Cue
 patternSequenceFrom p = patternSequence p . fmap pattern
@@ -1493,12 +1521,19 @@ Final score
 ----------
 
 \begin{code}
--- | Like (|||), but shortening the first agument to the duration of the second.
-stretchDuring :: (Time t, Temporal d, Timed t d, Delayed t d) => d a -> d a -> d a
-stretchDuring x y = stretchTo t' x ||| y
-    where
-        t' = duration y
 
+-- instant >>> ||| concatSeq, concatPar
+-- reverse loop
+-- duration stretch compress
+-- note rest delay
+-- split before after
+
+-- holding          stretches x to duration of y
+-- during           truncates x to duration of y
+-- anticipate       >>> with negative offset
+-- stretchTo        absolute stretch/compress
+
+-- restBefore restAfter restBoth
 
 
 introHarm :: Int -> Score Dur Cue
@@ -1527,72 +1562,108 @@ db2 = setPart DoubleBass . setDynamics pp . stretch 4 $ naturalHarmonic IV 4
 
 
 intro1 = instant
-    ||| (            before 30 $ introHarm 1)
-    ||| (delay 15  . before 30 $ introHarm 2)
-    ||| (delay 25  . stretch 5 $ db)
-    ||| (delay 35  . before 35 $ introHarm 1)
-    ||| (delay 50  . before 35 $ introHarm 2)
-    ||| (delay 60  . stretch 5 $ db2)
+    ||| (           before 30 $ introHarm 1)
+    ||| (delay 15 . before 30 $ introHarm 2) ||| (delay 25 . stretch 5 $ db)
+    ||| (delay 35 . before 35 $ introHarm 1)
+    ||| (delay 50 . before 35 $ introHarm 2) ||| (delay 60 . stretch 5 $ db2)
 
 midtro1 = instant
-    ||| (            before 30 $ midtroHarm 1)
-    ||| (delay 15  . before 30 $ midtroHarm 2)
+    ||| (           before 30 $ midtroHarm 1)
+    ||| (delay 15 . before 30 $ midtroHarm 2)
 
 outro1 = reverse . stretch 1.5 $ instant
-    ||| (            before 40 $ outtroHarm 2)
-    ||| (delay 15  . before 40 $ outtroHarm 1)
-    ||| (delay 25  . stretch 5 $ db)
-    ||| (delay 35  . before 35 $ outtroHarm 2)
-    ||| (delay 50  . before 35 $ outtroHarm 1)
-    ||| (delay 60  . stretch 5 $ db2)
+    ||| (           before 40 $ outtroHarm 2)
+    ||| (delay 15 . before 40 $ outtroHarm 1) ||| (delay 25 . stretch 5 $ db)
+    ||| (delay 35 . before 35 $ outtroHarm 2)
+    ||| (delay 50 . before 35 $ outtroHarm 1) ||| (delay 60 . stretch 5 $ db2)
 
 
-middle1 = stretch 2 $ bass `stretchDuring` mel
+
+
+
+
+
+
+
+
+
+middle1 = setDynamics p . stretch 2 $ melody `holding` bass
     where
-        mel  = (setPart (Cello 1) . setDynamics p . octaveDown . tonality . patternMelody) (pattern 2)
-        bass = (setDynamics p . setPart DoubleBass $ naturalHarmonic I 3)
+        melody = (octaveDown . tonality . setPart (Cello 1)  $ patternMelodyFrom 2)
+        bass   = (                        setPart DoubleBass $ naturalHarmonic I 3)
 
 middle2 = compress 1.6 . setDynamics mf $ instant
-    ||| (           stretch 4 . id . tonality . setPart (Viola 1) $ patternSequence 0 . map pattern $ [0,1,1,0])
-    ||| (delay 12 . stretch 3 . id . tonality . setPart (Viola 2) $ patternSequence 0 . map pattern $ [0,0,1,1])
+    ||| (           stretch 4 . id . tonality . setPart (Viola 1) $ patternSequenceFrom 0 $ [0,1,1,0])
+    ||| (delay 12 . stretch 3 . id . tonality . setPart (Viola 2) $ patternSequenceFrom 0 $ [0,0,1,1])
 
 
 
-midCanon = midCanon' >>> (stretch 0.8 . reverse $ midCanon')
 
-midCanon' = compress 1.1 . reverse $ instant
-    ||| (setDynamics mf . stretch 2.1 . octaveUp . tonality . setPart (Violin 1) $ patternSequence 0 . map pattern  $ [0,2,1,2])
-    ||| (setDynamics mf . stretch 2.2 . octaveUp . tonality . setPart (Violin 2) $ patternSequence 0 . map pattern  $ [1,2,0,2])
-    ||| (setDynamics mf . stretch 2.5 . fifthUp  . tonality . setPart (Violin 3) $ patternSequence 0 . map pattern  $ [2,0,1,2])
-    ||| (setDynamics mf . stretch 2.9 . fifthUp  . tonality . setPart (Violin 4) $ patternSequence 0 . map pattern  $ [0,2,1,2])
-    ||| (setDynamics mf . stretch 3.5 . id       . tonality . setPart (Viola  1) $ patternSequence  0 . map pattern  $ [2,2,1,0])
-    ||| (setDynamics mf . stretch 4.1 . id       . tonality . setPart (Viola  2) $ patternSequence  0 . map pattern $ [1,2,0,2])
+
+
+
+
+
+
+
+type Sc = Score Dur Cue
+type Tr = Sc -> Sc
+
+canon :: [Part] -> [Tr] -> [Tr] -> [[Int]] -> Sc
+canon rs fs gs ps = canon' $ List.zip4 rs fs gs ps
+
+canon' :: [(Part, Tr, Tr, [Int])] -> Sc
+canon' = concatPar . map h
+    where
+        h (r, f, g, p) = (setPart r . f . tonality . g . patternSequenceFrom 0 $ p)
+
+
+compose = zipWith (.)
+        
+midCanon0 = setDynamics mf . compress 1.1 $ canon 
+        (violins ++ violas) 
+        ((map stretch [2.1, 2.2, 2.5, 2.9, 3.5, 4.1]) `compose` [octaveUp, octaveUp, fifthUp, fifthUp, id, id])
+        (repeat id)
+        [[0,2,1,2], [1,2,0,2], [2,0,1,2], [0,2,1,2], [2,2,1,0], [1,2,0,2]]
+
+
+
+
+midCanon = (reverse midCanon') >>> (stretch 0.8 midCanon')
+
+midCanon' = setDynamics mf . compress 1.1 $ instant
+    ||| (stretch 2.1 . octaveUp . tonality . setPart (Violin 1) . patternSequenceFrom 0 $ [0,2,1,2])
+    ||| (stretch 2.2 . octaveUp . tonality . setPart (Violin 2) . patternSequenceFrom 0 $ [1,2,0,2])
+    ||| (stretch 2.5 . fifthUp  . tonality . setPart (Violin 3) . patternSequenceFrom 0 $ [2,0,1,2])
+    ||| (stretch 2.9 . fifthUp  . tonality . setPart (Violin 4) . patternSequenceFrom 0 $ [0,2,1,2])
+    ||| (stretch 3.5 . id       . tonality . setPart (Viola  1) . patternSequenceFrom 0 $ [2,2,1,0])
+    ||| (stretch 4.1 . id       . tonality . setPart (Viola  2) . patternSequenceFrom 0 $ [1,2,0,2])
 
 canon2upper = setDynamics p . reverse $ instant
-    ||| ({-delay 15  . -}stretch 2.7 . duodecUp . tonality . setPart (Violin 1)  . invert . patternSequence 0 . map pattern $ [2,0,0,1,2])
-    ||| ({-delay 14  . -}stretch 2.4 . duodecUp . tonality . setPart (Violin 2)  . invert . patternSequence 0 . map pattern $ [0,0,1,2,2])
-    ||| ({-delay 13  . -}stretch 2.2 . duodecUp . tonality . setPart (Violin 3) . invert . patternSequence 0 . map pattern $ [1,0,2,1,0])
-    ||| ({-delay 9   . -}stretch 2.1 . duodecUp . tonality . setPart (Violin 4)  . invert . patternSequence 0 . map pattern $ [0,0,1,2,1])
-    ||| ({-delay 8   . -}stretch 2.0 . octaveUp  . tonality . setPart (Viola  1)  . invert . patternSequence 1 . map pattern $ [1,0,2,1])
-    ||| ({-delay 0   . -}stretch 1.9   . octaveUp  . tonality . setPart (Viola  2)  . invert . patternSequence 1 . map pattern $ [0,2,2,0])
+    ||| (stretch 2.7 . duodecUp . tonality . setPart (Violin 1) . invert . patternSequenceFrom 0 $ [2,0,0,1,2])
+    ||| (stretch 2.4 . duodecUp . tonality . setPart (Violin 2) . invert . patternSequenceFrom 0 $ [0,0,1,2,2])
+    ||| (stretch 2.2 . duodecUp . tonality . setPart (Violin 3) . invert . patternSequenceFrom 0 $ [1,0,2,1,0])
+    ||| (stretch 2.1 . duodecUp . tonality . setPart (Violin 4) . invert . patternSequenceFrom 0 $ [0,0,1,2,1])
+    ||| (stretch 2.0 . octaveUp . tonality . setPart (Viola  1) . invert . patternSequenceFrom 1 $ [1,0,2,1])
+    ||| (stretch 1.9 . octaveUp . tonality . setPart (Viola  2) . invert . patternSequenceFrom 1 $ [0,2,2,0])
 
 canon2lower = setDynamics p $ instant
-    ||| (          stretch 2.5 . id  . tonality . setPart (Cello 1) . invert . patternSequence 1 . map pattern  $ [2,1,0])
-    ||| (delay 13 . stretch 2.4 . id  . tonality . setPart (Cello 2) . invert . patternSequence 1 . map pattern $ [2,1,1])
+    ||| (           stretch 2.5 . id  . tonality . setPart (Cello 1) . invert . patternSequenceFrom 1 $ [2,1,0])
+    ||| (delay 13 . stretch 2.4 . id  . tonality . setPart (Cello 2) . invert . patternSequenceFrom 1 $ [2,1,1])
 
-finalCanon = compress 1.1 $ instant
-    ||| (setDynamics f . stretch 2   . duodecUp . tonality . setPart (Violin 1) $ patternSequence 1 . map pattern $ [0,2,2,1,2])
-    ||| (setDynamics f . stretch 2.2 . duodecUp . tonality . setPart (Violin 2) $ patternSequence 1 . map pattern $ [1,2,2,0,2])
-    ||| (setDynamics f . stretch 2.35 . octaveUp . tonality . setPart (Violin 3) $ patternSequence 1 . map pattern $ [1,2,0,1,2])
-    ||| (setDynamics f . stretch 2.5 . octaveUp . tonality . setPart (Violin 4) $ patternSequence 1 . map pattern $ [1,2,2,1,2])
-    
-    ||| (setDynamics f . stretch 2.7 . fifthUp  . tonality . setPart (Viola 1)  $ patternSequence 1 . map pattern $ [2,1,2,1,0])
-    ||| (setDynamics f . stretch 3.1 . fifthUp  . tonality . setPart (Viola 2)  $ patternSequence 1 . map pattern $ [1,2,1,1,2])
+finalCanon = setDynamics f . compress 1.1 $ instant
+    ||| (stretch 2    . duodecUp . tonality . setPart (Violin 1) $ patternSequenceFrom 1 $ [0,2,2,1,2])
+    ||| (stretch 2.2  . duodecUp . tonality . setPart (Violin 2) $ patternSequenceFrom 1 $ [1,2,2,0,2])
+    ||| (stretch 2.35 . octaveUp . tonality . setPart (Violin 3) $ patternSequenceFrom 1 $ [1,2,0,1,2])
+    ||| (stretch 2.5  . octaveUp . tonality . setPart (Violin 4) $ patternSequenceFrom 1 $ [1,2,2,1,2])    
+    ||| (stretch 2.7  . fifthUp  . tonality . setPart (Viola 1)  $ patternSequenceFrom 1 $ [2,1,2,1,0])
+    ||| (stretch 3.1  . fifthUp  . tonality . setPart (Viola 2)  $ patternSequenceFrom 1 $ [1,2,1,1,2])
 
-finalCanonBass = compress 1.1 $ instant
-    ||| (setDynamics mf . concatSeq $ map (\x -> stretch 20 . setPart (Cello 1)  $ stoppedString x) $ take 3 [57,55,54,52])
-    ||| (setDynamics mf . concatSeq $ map (\x -> stretch 30 . setPart (Cello 2)  $ stoppedString x) $ take 2 [54,52,50,49])
-    ||| (setDynamics mf . concatSeq $ map (\x -> stretch 40 . setPart DoubleBass $ openString x) [IV{-,III-}])
+finalCanonBass = setDynamics mf . compress 1.1 $ instant
+    ||| (concatSeq $ map (\x -> stretch 20 . setPart (Cello 1)  $ stoppedString x) $ take 3 [57,55,54,52])
+    ||| (concatSeq $ map (\x -> stretch 30 . setPart (Cello 2)  $ stoppedString x) $ take 2 [54,52,50,49])
+    ||| (concatSeq $ map (\x -> stretch 40 . setPart DoubleBass $ openString x)    $ [IV{-,III-}])
+
 
 
 
@@ -1614,7 +1685,6 @@ score' = stretch 0.8{-0.9-} $ instant
     
     >>> canon2upper >>> canon2lower           
     >>> (finalCanon ||| finalCanonBass)
-    -- >>> (anticipate 30 (finalCanon ||| finalCanonBass) outro1)
 
 
 \end{code}
@@ -1628,16 +1698,17 @@ score' = stretch 0.8{-0.9-} $ instant
 Test and utility functions
 ========
 
-Some extra definitions for testing.
+This chapter contains some extra definitions for testing and rendering.
+              
+These scores contains all available harmonics and open strings respectively (good for hearing intonation etc).
 
 \begin{code}
 allHarmonics :: Score Dur Cue
 allHarmonics = stretch (1/3) $ instant
     >>> concatSeq [ setPart DoubleBass $ naturalHarmonic str pos | str <- enumFrom I, pos <- [0..7] ]
-    >>> concatSeq [ setPart (Cello 1) $ naturalHarmonic str pos | str <- enumFrom I, pos <- [0..7] ]
-    >>> concatSeq [ setPart (Viola 1) $ naturalHarmonic str pos | str <- enumFrom I, pos <- [0..7] ]
+    >>> concatSeq [ setPart (Cello 1)  $ naturalHarmonic str pos | str <- enumFrom I, pos <- [0..7] ]
+    >>> concatSeq [ setPart (Viola 1)  $ naturalHarmonic str pos | str <- enumFrom I, pos <- [0..7] ]
     >>> concatSeq [ setPart (Violin 1) $ naturalHarmonic str pos | str <- enumFrom I, pos <- [0..7] ]
-
 
 allOpenStrings :: Score Dur Cue
 allOpenStrings = stretch (1/3) $ instant
@@ -1645,10 +1716,46 @@ allOpenStrings = stretch (1/3) $ instant
     >>> concatSeq [ setPart (instr part) $ openString str | instr <- [Cello, Viola, Violin]
                                                           , part  <- [2,1]
                                                           , str   <- enumFrom I ]
+\end{code}
 
+Useful to fix the type of a score.
+
+\begin{code}
+sc :: Score Dur a -> Score Dur a
+sc = id                           
+
+putSc :: Score Dur Cue -> IO ()
+putSc = putStr . printScoreEvents . sc 
+\end{code}
+
+
+This variable contains number of events in the main score.
+
+\begin{code}
 scoreEvents = numberOfEvents . renderTremoloEvents $ score >>= renderCueToMidi
+\end{code}
+
+
+The RandomSeq type allow us to use a fixed sequence as a random number generator.
+
+\begin{code}
+data RandomSeq = RandomSeq Int [Int]
+
+instance Show RandomSeq where show _ = "{randomSeq}"
+
+randomSeq :: [Int] -> RandomSeq
+randomSeq xs = RandomSeq 1 xs
+
+instance RandomGen RandomSeq where
+    next  (RandomSeq p xs) = (head xs, RandomSeq p (drop p xs))
+    split (RandomSeq p xs) = (RandomSeq (p * 2) xs, RandomSeq (p * 2) (drop p xs))
+
+    -- generate:
+    --     take 1000 $ randoms (unsafePerformIO newStdGen) :: [Int]    
 
 \end{code}
+
+
 
 The main function allow us to compile this module into a standalone program (which simply generates the piece when run).
 
