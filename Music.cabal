@@ -46,6 +46,8 @@ Library
         Data.List.Index
         Data.Trivial
 
+        System.Random.Seq
+
         -- Music library
         Music
         Music.Time
@@ -90,6 +92,7 @@ Library
         -- Music.Model.MusicXML.Write
 
         Music.Projects.MusicaVitae
+        Music.Projects.MusicaVitae.Random
 
         -- Notable music engraving engine
         -- To be moved to separate library soon (!)

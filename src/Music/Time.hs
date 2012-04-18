@@ -49,7 +49,8 @@ module Music.Time
     
 -- * Miscellaneous
     anticipate,
-    during,
+    sustain,
+    prolong,
     restBefore,
     restAfter,
     restBoth,
@@ -212,17 +213,20 @@ class Time t => Split t d | d -> t where
 
 
     
--- | Like '(>>>)' but with a negative delay on the second element.
+-- | Like '|||', but stretching the second agument to the duration of the first.
+sustain :: (Time t, Temporal d, Timed t d, Delayed t d) => d a -> d a -> d a
+sustain x y = x ||| stretchTo (duration x) y
+
+-- | Like '|||', but shortening the second agument to the duration of the first.
+prolong :: (Time t, Temporal d, Timed t d, Split t d) => d a -> d a -> d a
+prolong x y = x ||| before (duration x) y
+
+-- | Like '>>>' but with a negative delay on the second element.
 anticipate :: (Time t, Temporal d, Timed t d, Delayed t d) => t -> d a -> d a -> d a
 anticipate t x y = x ||| delay t' y
     where
         t' = (duration x - t) `max` 0
 
--- | Like (|||), but shortening the first agument to the duration of the second.
-during :: (Time t, Temporal d, Timed t d, Split t d) => d a -> d a -> d a
-during x y = before t' x ||| y
-    where
-        t' = duration y
 
 -- | Prepend a rest of the given duration.
 restBefore :: (Time t, Temporal d, Timed t d, Delayed t d) => t -> d a -> d a

@@ -36,6 +36,7 @@ import Data.Convert ( convert )
 import Data.Trivial
 import Data.Index
 import System.Random
+import System.IO.Unsafe
 
 import Music
 import Music.Inspect
@@ -53,6 +54,8 @@ import Music.Notable.Core
 import Music.Notable.Core.Diagrams hiding (Time, stretch, stretchTo, duration, during, after)
 import Music.Notable.Engraving hiding (rest, Articulation, fff, ff, f, mf, mp, p, pp, ppp)
 import qualified Music.Notable.Engraving as Notable
+
+import Music.Projects.MusicaVitae.Random
 \end{code}
 
 \pagebreak
@@ -1698,6 +1701,26 @@ Test and utility functions
 ========
 
 This chapter contains some extra definitions for testing and rendering.
+
+Random number sources
+----------
+
+We use a fixed random sequence stored in an extrenal module (which defines the variable `rand`).
+To use a different sequence, set rand to another generator, i.e. the standard.
+
+\begin{code}
+
+-- rand' = System.IO.Unsafe.unsafePerformIO System.Random.newStdGen
+rand' = rand
+
+randomInts    = randoms rand' :: [Int]
+randomDoubles = randoms rand' :: [Double]
+randomPatterns = fmap (truncate . (* 3)) $ randomDoubles
+    
+\end{code}
+
+Open strings and harmonics
+----------
               
 These scores contains all available harmonics and open strings respectively (good for hearing intonation etc).
 
@@ -1717,6 +1740,10 @@ allOpenStrings = stretch (1/3) . concatSeq $ do
 
 \end{code}
 
+
+Miscellaneous
+----------
+
 Useful to fix the type of a score.
 
 \begin{code}
@@ -1733,27 +1760,6 @@ This variable contains number of events in the main score.
 \begin{code}
 scoreEvents = numberOfEvents . renderTremoloEvents $ score >>= renderCueToMidi
 \end{code}
-
-
-The RandomSeq type allow us to use a fixed sequence as a random number generator.
-
-\begin{code}
-data RandomSeq = RandomSeq Int [Int]
-
-instance Show RandomSeq where show _ = "{randomSeq}"
-
-randomSeq :: [Int] -> RandomSeq
-randomSeq xs = RandomSeq 1 xs
-
-instance RandomGen RandomSeq where
-    next  (RandomSeq p xs) = (head xs, RandomSeq p (drop p xs))
-    split (RandomSeq p xs) = (RandomSeq (p * 2) xs, RandomSeq (p * 2) (drop p xs))
-
-    -- generate:
-    --     take 1000 $ randoms (unsafePerformIO newStdGen) :: [Int]    
-
-\end{code}
-
 
 
 The main function allow us to compile this module into a standalone program (which simply generates the piece when run).
