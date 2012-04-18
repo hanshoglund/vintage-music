@@ -1551,7 +1551,7 @@ middle1 = stretch 2 $ bass `stretchDuring` mel
         bass = (setDynamics p . setPart DoubleBass $ naturalHarmonic I 3)
 
 middle2 = compress 1.6 . setDynamics mf $ instant
-    ||| (           stretch 4 . id . tonality . setPart (Viola 1) $ patternSequence 0 . map pattern $ [0,-1,0])
+    ||| (           stretch 4 . id . tonality . setPart (Viola 1) $ patternSequence 0 . map pattern $ [0,1,1,0])
     ||| (delay 12 . stretch 3 . id . tonality . setPart (Viola 2) $ patternSequence 0 . map pattern $ [0,0,1,1])
 
 
@@ -1567,15 +1567,17 @@ canon1 = compress 1.1 . reverse $ instant
 
 canon1b = canon1 >>> (stretch 0.8 . reverse $ canon1)
 
-canon1c = compress 1.3 . reverse $ instant
-    ||| (setDynamics pp . stretch 4.1 . fifthUp  . tonality . setPart (Violin 1) $ patternSequence 0 . map pattern  $ [0,2,1,2])
-    ||| (setDynamics pp . stretch 3.5 . fifthUp . tonality . setPart (Violin 3) $ patternSequence 0 . map pattern  $ [2,0,1,2])
-    ||| (setDynamics pp . stretch 2.9 . duodecUp . tonality . setPart (Viola  1) $ patternSequence 0 . map pattern  $ [1,2,0,2])
-    ||| (setDynamics pp . stretch 2.5 . duodecUp . tonality . setPart (Viola  2) $ patternSequence 0 . map pattern  $ [0,2,1,2])
+canon1c = setDynamics p . reverse $ instant
+    ||| (delay 15  . stretch 2.7 . duodecUp . tonality . setPart (Violin 1)  . invert . patternSequence 0 . map pattern $ [2,0,0,1,2])
+    ||| (delay 14  . stretch 2.4 . duodecUp . tonality . setPart (Violin 2)  . invert . patternSequence 0 . map pattern $ [0,0,1,2,2])
+    ||| (delay 13  . stretch 2.2 . duodecUp . tonality . setPart (Violin 3) . invert . patternSequence 0 . map pattern $ [1,0,2,1,0])
+    ||| (delay 9 . stretch 2.1 . duodecUp . tonality . setPart (Violin 4)  . invert . patternSequence 0 . map pattern $ [0,0,1,2,1])
+    ||| (delay 8   . stretch 2.3 . octaveUp  . tonality . setPart (Viola  1)  . invert . patternSequence 0 . map pattern $ [1,0,2,1])
+    ||| (delay 0   . stretch 2.6   . octaveUp  . tonality . setPart (Viola  2)  . invert . patternSequence 0 . map pattern $ [0,2,2,0])
 
-canon3 = compress 1.4 $ instant
-    ||| (setDynamics pp . stretch 4.1 . id  . tonality . (mapPitch (+ (0))) . setPart (Cello 1)  $ patternSequence (-1) . map pattern  $ [-2,-1,-2,-0])
-    ||| (delay 9 . setDynamics pp . stretch 4.8 . id  . tonality . (mapPitch (+ (-2))) . setPart (Cello 2)  $ patternSequence (-1) . map pattern $ [-1,-2,-1,-2])
+canon3 = setDynamics p $ instant
+    ||| (          stretch 2.5 . id  . tonality . setPart (Cello 1) . invert . patternSequence 1 . map pattern  $ [2,1,0,2])
+    ||| (delay 13 . stretch 2.4 . id  . tonality . setPart (Cello 2) . invert . patternSequence 1 . map pattern $ [2,1,1,2])
 
 canon2 = compress 1.1 $ instant
     ||| (setDynamics f . stretch 2   . duodecUp . tonality . setPart (Violin 1) $ patternSequence 1 . map pattern $ [0,2,2,1,2])
@@ -1601,18 +1603,14 @@ score' = stretch 0.8{-0.9-} $ instant
     
     >>> rest 30
     >>> middle1
-    >>> rest 15
-    >>> middle1
-    >>> rest 15
-    >>> middle1
-    >>> rest 15
+    >>> rest 100
     >>> middle2
-
+    
     >>> midtro1    
     >>> canon1b 
     >>> midtro1
     
-    >>> anticipate 30 (fifthUp . invertAround 69 $ canon1c) canon3
+    >>> anticipate 40 canon1c canon3
 
     -- >>> (canon2 ||| endBass)
 
