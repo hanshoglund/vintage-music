@@ -631,8 +631,13 @@ justifyStaves ss = map (\s -> addSpaceAtEnd (((m - staffWidth s) / 2) `max` 0) s
 splitStaff :: Spaces -> Staff -> (Staff, Staff)
 splitStaff x (Staff o s ns) = (sx, sy)
     where
-        sx = undefined
-        sy = undefined
+        sx = (Staff ox sx nsx)
+        sy = (Staff oy sy nsy)
+
+        (ox, oy) = (o, o)
+
+        ns' = sort ns
+        
 
 -- | Split a staff right before the first spaced object that satisfies the predicate.
 splitStaffWhen :: (Spaces -> SpacedObject -> Bool) -> (Staff, Staff)

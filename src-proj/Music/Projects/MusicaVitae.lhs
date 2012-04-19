@@ -57,6 +57,9 @@ import Music.Notable.Engraving hiding (rest, Articulation, fff, ff, f, mf, mp, p
 import qualified Music.Notable.Engraving as Notable
 
 import Music.Projects.MusicaVitae.Random
+
+
+import Data.Ord
 \end{code}
 
 \pagebreak
@@ -99,11 +102,11 @@ data Part
 instance Enum Part where
     fromEnum x = fromJust $ List.findIndex (== x) ensemble
     toEnum x = ensemble !! x
-    
+
 instance Bounded Part where
     minBound = Violin 1
     maxBound = DoubleBass
-        
+
 data Section
     = High | Low | Middle
     deriving ( Eq, Show, Enum, Bounded )
@@ -963,7 +966,7 @@ Velocity
 \begin{code}
 renderDynamic :: Dynamics -> Dur -> MidiDynamic
 renderDynamic n t = round . d $ n `levelAt` t
-    where 
+    where
         -- d x = x * 63 + 63
         d x = ((x + 1) / 2 ** 1.2) * 128
 
@@ -1106,7 +1109,7 @@ instance Plottable (Score Dur Cue) where
 
 plotPitches :: Score Dur (Int, Int, Double) -> Engraving
 plotPitches = pad . mconcat . map (\(Event t d (x,y,b)) -> p t x b . s y $ l d) . toEvents
-    where          
+    where
         pad x = strutY 1 `above` x `above` strutY 1
         p t x b = moveSpacesRight (Spaces t) . moveHalfSpacesUp (HalfSpaces $ (fromIntegral x) + b)
         s v   = lineWidth 0 . fillColor black . opacity ((fromIntegral v + 40) / 127)
@@ -1140,7 +1143,7 @@ In standard notation, horizontal spacing is not linear, but logarithmic (the spa
 the space of quarter notes, for example). As we use multiple tempos this may be confusing, as the proportions between durations
 can not easily be seen from the high-level graphical structure. We therefore opt for a linear spacing instead.
 
-\begin{code}                              
+\begin{code}
 kHorizontalSpace :: Spaces
 kHorizontalSpace = 7.5
 
@@ -1170,7 +1173,7 @@ notateDynamic x
     | x `levelAt` 0 <= 0.0   =  StaffDynamic $ Notable.mf
     | x `levelAt` 0 <= 0.25  =  StaffDynamic $ Notable.f
     | x `levelAt` 0 <= 0.5   =  StaffDynamic $ Notable.ff
-    | otherwise              =  StaffDynamic $ Notable.fff    
+    | otherwise              =  StaffDynamic $ Notable.fff
 \end{code}
 
 
@@ -1248,7 +1251,7 @@ notateOpenString r nv s =
     where
         nh = noteHeadFromNoteValue nv
         (p,a) = baz r s
-        
+
 notateNaturalHarmonic :: Part -> NoteValue -> Pitch -> Str -> Chord
 notateNaturalHarmonic r nv x s =
     trivial { dots = dotsFromNoteValue nv,
@@ -1272,7 +1275,7 @@ foo r x s = (p,a)
         (p,a) = notatePitch c . (subtract t) $ x
         c  = standardClef r
         t  = transposition r
-        
+
 bar :: Part -> Int -> Str -> (HalfSpaces, Maybe Accidental)
 bar r x s = (p,a)
     where
@@ -1332,17 +1335,17 @@ kSustainLineOffset = 2.2
 notateCue :: Cue -> Staff
 notateCue cue = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
     where
-        sN = barLineN ++ chordsN ++ sustainLineN            
-    
+        sN = barLineN ++ chordsN ++ sustainLineN
+
         barLineN = if phr then [(0, StaffTickBarLine)]
                           else [(0, StaffNothing)]
-    
+
         chordsN   =  fmap (\(t,x) -> (t * scale + kNoteHeadOffset, StaffChord x)) chordsN'
         chordsN'  =  notateRightHand (cuePart cue) (cueTechnique cue)
-    
+
         sustainLineN  =  x `emptyWhen` phr
             where
-                x    =  [(pos, obj)]        
+                x    =  [(pos, obj)]
                 pos  =  kNoteHeadOffset + kSustainLineOffset
                 yPos =  pitchPosition (cuePart cue) (cueTechnique cue)
                 obj  =  StaffSustainLine (yPos, scale * kHorizontalSpace - (kNoteHeadOffset + 4.4))
@@ -1354,22 +1357,10 @@ notateCue cue = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
         dynamicN = [([1], notateDynamic . cueDynamics $ cue)]
 
         scale = Spaces (60 / (cueTempo cue))
-        phr = isPhrase $ cueTechnique cue 
-
-
-notatePart :: Score Dur Cue -> Staff
-notatePart score = notatePart' (prependStaffHead clef) score
-    where
-        clef = maybe trebleClef (standardClef . cuePart) . firstEvent $ score
-
-        notatePart' :: ([Staff] -> [Staff]) -> Score Dur Cue -> Staff
-        notatePart' f score = mconcat . f . fmap notateCueEvent . toEvents $ score
-            where
-                notateCueEvent (Event t d x) = moveObjectsRight (timeToSpace t) $ notateCue x
+        phr = isPhrase $ cueTechnique cue
 
 
 \end{code}
-
 
 Removing redundant information
 --------
@@ -1398,31 +1389,90 @@ removeRedundantMarks (Staff o s ns) = Staff o s (snd $ List.concatMapAccumL f z
 
 \end{code}
 
+
+Notating parts
+----------
+
+\begin{code}
+notatePart :: Score Dur Cue -> Staff
+notatePart score = removeRedundantMarks $ notatePart' (prependStaffHead clef) score
+    where
+        clef = maybe trebleClef (standardClef . cuePart) . firstEvent $ score
+
+        notatePart' :: ([Staff] -> [Staff]) -> Score Dur Cue -> Staff
+        notatePart' f score = mconcat . f . fmap notateCueEvent . toEvents $ score
+            where
+                notateCueEvent (Event t d x) = moveObjectsRight (timeToSpace t) $ notateCue x
+\end{code}
+
+
+
+Basic paging
+--------
+\begin{code}
+
+page :: Spaces -> Staff -> [Staff]
+page t = justifyStaves . List.unfoldr (Just . splitStaff' t)
+
+-- | Split a staff at the given position.
+splitStaff' :: Spaces -> Staff -> (Staff, Staff)
+splitStaff' t (Staff o s ns) = ((Staff ox sx nsx), (Staff oy sy' nsy))
+    where
+        (ox, oy)   = (o, o)
+        (sx, sy)   = List.span (\(p,_) -> p < t) s
+        sy'        = move t sy
+        (nsx, nsy) = List.span (\(i,_) -> head i < length sx) ns'
+        ns'        = List.sortBy (comparing fst) ns
+                   
+        move t     = map (\(p, x) -> (p - t, x)) -- compare moveObjectsLeft, moveObjectsRight
+
+
+\end{code}
+
 Assembling the score and parts
 --------
 
 \begin{code}
+
+extractPart :: Part -> Score Dur Cue -> Score Dur Cue
+extractPart part = filterEvents (cuePart `equals` part)
+
+extractParts :: [Part] -> Score Dur Cue -> [Score Dur Cue]
+extractParts parts score = map (flip extractPart $ score) parts
+
+
+
+panoramaPart :: [Score Dur Cue] -> [Engraving]
+panoramaPart = 
+    fmap ((<> spaceY 4) . engraveStaff . addSpaceAtEnd 50)
+    . justifyStaves 
+    . fmap notatePart
+
+
+
+
+
+
+
+
 -- | All parts, generated from 'score'.
 parts :: [Score Dur Cue]
 parts = extractParts ensemble (calculateTempo score)
 
-extractParts :: [Part] -> Score Dur Cue -> [Score Dur Cue]
-extractParts parts score = map (\part -> filterEvents (cuePart `equals` part) score) parts
-
+-- partBooks :: [[Engraving]]
+-- scoreBook :: [Engraving]
 
 
 -- | Notations of each part in panorama form.
 partNotations :: [Engraving]
-partNotations =
-      fmap ((<> spaceY 4) . engraveStaff . addSpaceAtEnd 50)
-    . justifyStaves . fmap (removeRedundantMarks . notatePart)
-    $ parts
+partNotations = panoramaPart parts
 
 -- | A notation of the entire score in panorama form.
 scoreNotation :: Engraving
-scoreNotation = mempty
-    <> (foldr above mempty $ partNotations)
-    <> (moveOriginBy (r2(0,-7)) . alignTL $ spaceY 45)
+scoreNotation = m <> sp
+    where
+        m  = foldr above mempty $ partNotations
+        sp = moveOriginBy (r2(0,-7)) . alignTL $ spaceY 45
 
 \end{code}
 
@@ -1470,8 +1520,8 @@ tonality = mapPitch $ offset . scale . tonic
     where
         tonic  = (+ 7)
         scale  = (majMinScale `step`)
-        offset = (+ 57)  
-        
+        offset = (+ 57)
+
 \end{code}
 
 The `tonalSeq` function generates a binary musical sequence, in which the second operand is transposed
@@ -1527,7 +1577,7 @@ pattern n
     | n < 0      =  invert $ patterns !! (negate n)
     | otherwise  =  patterns !! n
     where
-        patterns = 
+        patterns =
             [
             zip [ 3, 3 ]
                 [ 0, 1 ],
@@ -1572,7 +1622,7 @@ invertedCanon :: RandomGen r => r -> Int -> Pitch -> [(Part, Tr)] -> Sc
 invertedCanon r i p ts = canon' False r i p (map (\(p,t) -> setPart p . t) ts)
 
 canon' :: RandomGen r => Bool -> r -> Int -> Pitch -> [Tr] -> Sc
-canon' inv r len step tr = 
+canon' inv r len step tr =
     concatPar $ fmap createPart (zip tr rs)
     where
         createPart (f,r) = f . tonality . i . s $ (take len $ randomPatterns r)
@@ -1593,39 +1643,39 @@ Score
 -- note rest delay
 -- split before after
 
--- sustain prolong anticipate     
+-- sustain prolong anticipate
 
 
 introHarm :: Int -> Score Dur Cue
 introHarm sect = stretch 3 $ loop x
-    where                                           
+    where
         x  =  stretch 2.4 a >>> stretch 2.2 g >>> stretch 3.4 a >>> rest 1
         g  =  setPart (Viola sect) $ naturalHarmonic II 1
         a  =  setPart (Cello sect) $ naturalHarmonic IV 1
 
 midtroHarm1 :: Int -> Score Dur Cue
 midtroHarm1 sect = stretch 2.2 $ loop x
-    where                                           
+    where
         x  =  stretch 2.5 a >>> rest 1 >>> stretch 3.1 a >>> rest 1
         a  =  setPart (Cello sect) $ openString IV
 
 midtroHarm2 :: Int -> Score Dur Cue
 midtroHarm2 sect = stretch 3 $ loop x
-    where 
+    where
         x = stretch 2.4 a >>> stretch 2.2 g >>> stretch 3.4 a >>> rest 1
         a  = setPart (Violin $ sect + 2) $ naturalHarmonic III 1
         g  = setPart (Violin $ sect)     $ naturalHarmonic I 3
 
 outtroHarm :: Int -> Int -> Score Dur Cue
 outtroHarm vs cs = stretch 2.4 $ loop x
-    where                                           
+    where
         x  =  stretch 2.2 a >>> stretch 3.4 g >>> stretch 2.8 a >>> rest 1
         a  =  setPart (Violin vs) $ openString I
         g  =  setPart (Cello cs) $ openString IV
 
 outtroHarm' :: Int -> Int -> Score Dur Cue
 outtroHarm' vs cs = stretch 2.4 $ loop x
-    where                                           
+    where
         x  =  stretch 2.2 a >>> stretch 3.4 g >>> stretch 2.8 a >>> rest 1
         a  =  setPart (Violin vs) $ openString I
         g  =  setPart (Cello cs) $ openString IV
@@ -1680,25 +1730,25 @@ middle2 = setDynamics pp . stretch 2.2 . setDynamics mf $ instant
     ||| (          stretch 1   . id . tonality . setPart (Cello 2) $ patternSequenceFrom 0 $ [0,1,0,1,0])
     ||| (delay 6 . stretch 1.3 . id . tonality . setPart (Cello 1) $ patternSequenceFrom 0 $ [1,0,1,0,1])
 
-middle3 = setDynamics p . stretch 1.6 . reverse $ 
+middle3 = setDynamics p . stretch 1.6 . reverse $
     canon rand 8 0 (zip ps (ss `compose` ts))
     where
         ps = ([Violin 3, Violin 4, Viola 1, Viola 2])
-        ss = map delay [0,3..] `compose` map stretch [1,1.16..] 
+        ss = map delay [0,3..] `compose` map stretch [1,1.16..]
         ts = map transposeUp [7,7,0,0]
 
-middle3high = setDynamics p . stretch 1.6 . reverse $ 
+middle3high = setDynamics p . stretch 1.6 . reverse $
     canon rand 7 0 (zip ps (ss `compose` ts))
     where
         ps = ([Violin 1, Violin 2])
-        ss = map delay [0,3..] `compose` map stretch [1,1.2..] 
+        ss = map delay [0,3..] `compose` map stretch [1,1.2..]
         ts = map transposeUp [12,12]
 
 midCanon = (reverse midCanon') >>> (stretch 0.8 midCanon')
 
--- midCanon' = setDynamics mf . compress 1.1 $ 
+-- midCanon' = setDynamics mf . compress 1.1 $
 --     canon rand 4 0 (zip ps ts)
---     where                                                                  
+--     where
 --         ps = violins ++ violas
 --         ts = map stretch [2.1,2.2,2.5,2.9,3.5,4.1] `compose` map transposeUp [12,12,7,7,0,0]
 
@@ -1726,7 +1776,7 @@ finalCanon = setDynamics f . compress 1.1 $ instant
     ||| (stretch 2    . duodecUp . tonality . setPart (Violin 1) $ patternSequenceFrom 1 $ [0,2,2,2,1,1])
     ||| (stretch 2.2  . duodecUp . tonality . setPart (Violin 2) $ patternSequenceFrom 1 $ [1,2,2,1,0,0])
     ||| (stretch 2.35 . octaveUp . tonality . setPart (Violin 3) $ patternSequenceFrom 1 $ [1,2,0,2,1,1])
-    ||| (stretch 2.5  . octaveUp . tonality . setPart (Violin 4) $ patternSequenceFrom 1 $ [1,2,2,1,1,1])    
+    ||| (stretch 2.5  . octaveUp . tonality . setPart (Violin 4) $ patternSequenceFrom 1 $ [1,2,2,1,1,1])
     ||| (stretch 2.7  . fifthUp  . tonality . setPart (Viola 1)  $ patternSequenceFrom 1 $ [2,1,2,1,0,1])
     ||| (stretch 3.1  . fifthUp  . tonality . setPart (Viola 2)  $ patternSequenceFrom 1 $ [1,2,1,2,0,1])
 
@@ -1740,20 +1790,20 @@ finalCanonBass = setDynamics f . compress 1.1 $ instant
 
 
 -- harmsS :: Score Dur Cue
--- harmsS = stretch (1/3) . concatSeq $ do  
+-- harmsS = stretch (1/3) . concatSeq $ do
 --     part <- List.reverse cellos
 --     str <- enumFrom I
 --     pos <- [0..4]
 --     return $ setPart part $ naturalHarmonic str pos
--- 
--- 
--- niceHarms = 
---     putStr . concat . List.intersperse  "\n" . toList  . fmap showPitch  . fmap midiNotePitch . 
---         renderTremoloEvents $ harmsS >>= renderCueToMidi 
--- 
--- harms = 
---     toList . fmap toDiatonic  . fmap midiNotePitch . 
---         renderTremoloEvents $ harmsS >>= renderCueToMidi 
+--
+--
+-- niceHarms =
+--     putStr . concat . List.intersperse  "\n" . toList  . fmap showPitch  . fmap midiNotePitch .
+--         renderTremoloEvents $ harmsS >>= renderCueToMidi
+--
+-- harms =
+--     toList . fmap toDiatonic  . fmap midiNotePitch .
+--         renderTremoloEvents $ harmsS >>= renderCueToMidi
 
 
 
@@ -1761,9 +1811,9 @@ harmPatterns :: [[Int]]
 harmPatterns = harmPatterns' 3
     where
         harmPattern = [-1,0,0,1] ++ fmap (+ 2) harmPattern
-        harmPatterns' x = 
-            [ take x (drop 2 harmPattern), 
-              take x (drop 2 harmPattern), 
+        harmPatterns' x =
+            [ take x (drop 2 harmPattern),
+              take x (drop 2 harmPattern),
               take (x + 2) harmPattern ] ++ harmPatterns' (x + 2)
 
 harmDurations :: [Dur]
@@ -1800,18 +1850,18 @@ playOpen (Cello _)    2  = setPart (Cello  1) $ openString IV
 
 
 harms :: Int -> Part -> Score Dur Cue
-harms n part =          
+harms n part =
     concatSeq (List.intersperse (rest 0.2) notes)
-    where    
-        notes = map (\(t, p) -> stretch t $ playHarm part p) (zip harmDurations patterns)       
+    where
+        notes = map (\(t, p) -> stretch t $ playHarm part p) (zip harmDurations patterns)
         patterns :: [Int]
         patterns = harmPatterns !! (n `mod` 6)
 
 opens :: Int -> Part -> Score Dur Cue
-opens n part =          
+opens n part =
     concatSeq (List.intersperse (rest 0.2) notes)
-    where    
-        notes = map (\(t, p) -> stretch t $ playOpen part p) (zip harmDurations patterns)       
+    where
+        notes = map (\(t, p) -> stretch t $ playOpen part p) (zip harmDurations patterns)
         patterns :: [Int]
         patterns = harmPatterns !! (n `mod` 6)
 
@@ -1890,19 +1940,19 @@ harmScore = instant
 
 mainScore = stretch 1{-0.8-} $ instant
     >>> intro1
-    
+
     >>> rest 10
     >>> middle1
     >>> rest 10
     >>> anticipate 30 middle2 (anticipate 40 middle3 middle3high)
     >>> rest 5
-    
-    >>> midtro1 
-    >>> midCanon 
+
+    >>> midtro1
+    >>> midCanon
     >>> midtro2
 
-    >>> rest 5    
-    >>> anticipate 40 canon2upper canon2lower           
+    >>> rest 5
+    >>> anticipate 40 canon2upper canon2lower
     >>> anticipate 10 (finalCanon ||| finalCanonBass) outro1
 
 \end{code}
@@ -1936,17 +1986,17 @@ randomPatterns r = fmap (truncate . (* 3)) $ randomDoubles r
 randomInts' r     = randomInts rand'
 randomDoubles' r  = randomDoubles rand'
 randomPatterns' r = randomPatterns rand'
-    
+
 \end{code}
 
 Open strings and harmonics
 ----------
-              
+
 These scores contains all available harmonics and open strings respectively (good for hearing intonation etc).
 
 \begin{code}
 allHarmonics :: Score Dur Cue
-allHarmonics = stretch (1/3) . concatSeq $ do  
+allHarmonics = stretch (1/3) . concatSeq $ do
     part <- List.reverse ensemble
     str <- enumFrom I
     pos <- [0..7]
@@ -1964,7 +2014,7 @@ allOpenStrings = stretch (1/3) . concatSeq $ do
 Miscellaneous
 ----------
 
-\begin{code}   
+\begin{code}
 
 equals :: Eq b => (a -> b) -> b -> a -> Bool
 equals f x = (== x) . f
@@ -1997,7 +2047,7 @@ splitted = List.unfoldr (Just . System.Random.split)
 
 showPitch :: Pitch -> String
 showPitch x = sp p' ++ maybe "" ((" " ++) . show) a ++ " " ++ show (o - 4)
-    where 
+    where
         (p, a) = toDiatonic x
         (o, p') = p `quotRem` 7
         sp 0 = "C"
@@ -2006,18 +2056,18 @@ showPitch x = sp p' ++ maybe "" ((" " ++) . show) a ++ " " ++ show (o - 4)
         sp 3 = "F"
         sp 4 = "G"
         sp 5 = "A"
-        sp 6 = "B"  
-    
+        sp 6 = "B"
+
 \end{code}
 
 Useful to fix the type of a score.
 
 \begin{code}
 sc :: Score Dur a -> Score Dur a
-sc = id                           
+sc = id
 
 putSc :: Show a => Score Dur a -> IO ()
-putSc = putStr . printScoreEvents . sc 
+putSc = putStr . printScoreEvents . sc
 \end{code}
 
 
