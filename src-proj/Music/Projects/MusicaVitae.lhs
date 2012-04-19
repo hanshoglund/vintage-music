@@ -35,6 +35,8 @@ import Data.Maybe
 import Data.Convert ( convert )
 import Data.Trivial
 import Data.Index
+import Data.Char
+import Data.Ord ( comparing )
 import System.Random
 import System.IO.Unsafe
 
@@ -47,7 +49,7 @@ import Music.Time.Functors
 import Music.Render
 import Music.Render.Midi
 import Music.Render.Graphics
-import Music.Util ( onlyIf, onlyIfNot )
+import Music.Util
 import qualified Music.Util.List as List
 import qualified Music.Util.Either as Either
 
@@ -59,7 +61,6 @@ import qualified Music.Notable.Engraving as Notable
 import Music.Projects.MusicaVitae.Random
 
 
-import Data.Ord
 \end{code}
 
 \pagebreak
@@ -1412,7 +1413,13 @@ Basic paging
 \begin{code}
 
 page :: Spaces -> Staff -> [Staff]
-page t = justifyStaves . List.unfoldr (Just . splitStaff' t)
+page t = justifyStaves . List.unfoldr f
+    where
+        f s | isStaffEmpty s = Nothing
+            | otherwise      = Just $ splitStaff' t s
+
+isStaffEmpty :: Staff -> Bool
+isStaffEmpty (Staff o s ns) = null s
 
 -- | Split a staff at the given position.
 splitStaff' :: Spaces -> Staff -> (Staff, Staff)
@@ -1442,30 +1449,61 @@ extractParts parts score = map (flip extractPart $ score) parts
 
 
 
-panoramaPart :: [Score Dur Cue] -> [Engraving]
-panoramaPart = 
+engravePanorama :: [Score Dur Cue] -> [Engraving]
+engravePanorama = 
     fmap ((<> spaceY 4) . engraveStaff . addSpaceAtEnd 50)
-    . justifyStaves 
-    . fmap notatePart
+    . justifyStaves . fmap notatePart
+
+
+kPageWidth = 160 :: Spaces                         
+kSystemsPerPage = 14                                             
+kSpaceBetweenSystems = 8
+
+engravePartLines :: Score Dur Cue -> [Engraving]
+engravePartLines = fmap engraveStaff . page kPageWidth . notatePart
+
+engravePartPages :: Score Dur Cue -> [Engraving]
+engravePartPages = map catDown . map addSpaceBetween . splitInto kSystemsPerPage . engravePartLines
+    where
+        addSpaceBetween = map (<> spaceY (kSpaceBetweenSystems / 2))
 
 
 
-
-
-
-
+data PartBook = 
+    PartBook
+    {        
+        partBookPart :: Part,
+        partBookScore :: Score Dur Cue
+    }
+partBookFilePath :: PartBook -> FilePath
+partBookFilePath (PartBook p s) = toLowerCase . filter isAlphaNum $ show p
+    
+engravePartBook :: PartBook -> [Engraving] 
+engravePartBook = engravePartPages . partBookScore
 
 -- | All parts, generated from 'score'.
 parts :: [Score Dur Cue]
 parts = extractParts ensemble (calculateTempo score)
 
--- partBooks :: [[Engraving]]
+partBooks :: [PartBook]
+partBooks = fmap (\(p,s) -> PartBook p s) $ zip ensemble parts
+
+
+writePartBook :: FilePath -> PartBook -> IO ()
+writePartBook path book = writeMultipleGraphics (zip names pages)
+    where                           
+        name  = path ++ partBookFilePath book                   
+        names = map (\i -> name ++ "_p" ++ show i) [1..]
+        pages = map Graphic $ engravePartBook book
+    
+    
+
 -- scoreBook :: [Engraving]
 
 
 -- | Notations of each part in panorama form.
 partNotations :: [Engraving]
-partNotations = panoramaPart parts
+partNotations = engravePanorama parts
 
 -- | A notation of the entire score in panorama form.
 scoreNotation :: Engraving
@@ -2022,6 +2060,12 @@ equals f x = (== x) . f
 removeEquals :: Eq a => [a] -> [a]
 removeEquals = List.remove2 (==)
 
+splitInto :: Int -> [a] -> [[a]]
+splitInto _ [] = []
+splitInto i x = f : splitInto i rest
+    where (f,rest) = splitAt i x
+
+
 compose = zipWith (.)
 
 onlyWhen x y    = x `onlyIf` (const y)
@@ -2039,7 +2083,6 @@ emptyIf x p = x `nonEmptyIf` (not . p)
 
 nonEmptyIf :: Monoid m => m -> (m -> Bool) -> m
 nonEmptyIf x p = if p x then x else mempty
-
 
 
 splitted :: RandomGen r => r -> [r]
