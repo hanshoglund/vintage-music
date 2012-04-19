@@ -1575,19 +1575,19 @@ midtroHarm sect = stretch 3 . setDynamics p $ loop x
 midtroHarm2 :: Int -> Score Dur Cue
 midtroHarm2 sect = stretch 2.4 . setDynamics mf $ loop x
     where                                           
-        x  =  stretch 2.2 a >>> stretch 3.4 g >>> stretch 2.8 a >>> rest 1
+        x  =  stretch 2.2 a >>> rest 3.4 >>> stretch 2.8 a >>> rest 1
         a  =  setPart (Cello sect) $ openString III
-        g  =  setPart DoubleBass   $ naturalHarmonic I 3
 
-outtroHarm :: Int -> Score Dur Cue
-outtroHarm sect = stretch 2.4 . setDynamics mf $ loop x
+outtroHarm :: Int -> Int -> Score Dur Cue
+outtroHarm vs cs = stretch 2.4 . setDynamics mf $ loop x
     where                                           
         x  =  stretch 2.2 a >>> stretch 3.4 g >>> stretch 2.8 a >>> rest 1
-        a  =  setPart (Violin sect) $ openString I
-        g  =  setPart (Cello sect) $ openString IV
+        a  =  setPart (Violin vs) $ openString I
+        g  =  setPart (Cello cs) $ openString IV
 
 db  = setPart DoubleBass . setDynamics pp . stretch 4 $ naturalHarmonic III 4
 db2 = setPart DoubleBass . setDynamics pp . stretch 4 $ naturalHarmonic IV 4
+dbG = setPart DoubleBass $ openString IV
 
 
 intro1 = instant
@@ -1599,16 +1599,18 @@ intro1 = instant
 midtro1 = instant
     ||| (           before 30 $ midtroHarm2 1)
     ||| (delay 15 . before 30 $ midtroHarm2 2)
+    ||| (delay 10 . stretch 15 $ dbG)
+    ||| (delay 30 . stretch 15 $ dbG)
 
 midtro2 = instant
     ||| (           before 30 $ midtroHarm 1)
     ||| (delay 15 . before 30 $ midtroHarm 2)
 
 outro1 = stretch 1.5 $ instant
-    ||| (           before 40 $ outtroHarm 1)
-    ||| (delay 15 . before 40 $ outtroHarm 2) ||| (delay 25 . stretch 5 $ db)
-    ||| (delay 35 . before 35 $ outtroHarm 1)
-    ||| (delay 50 . before 35 $ outtroHarm 2) ||| (delay 60 . stretch 5 $ db2)
+    ||| (           before 40 $ outtroHarm 1 1)
+    ||| (delay 15 . before 40 $ outtroHarm 2 2) ||| (delay 25 . stretch 5 $ db)
+    ||| (delay 35 . before 35 $ outtroHarm 3 1)
+    ||| (delay 50 . before 35 $ outtroHarm 4 2) ||| (delay 60 . stretch 5 $ db2)
 
 
 
@@ -1620,20 +1622,20 @@ outro1 = stretch 1.5 $ instant
 middle1 = concatSeq . List.intersperse (rest 10) $ map middle' [0,1,2]
 
 
-middle' x = setDynamics p . stretch 2.2 $ melody `sustain` bass
+middle' x = setDynamics p . stretch 2.2 $ melody {-`sustain` bass-}
     where
         melody = (octaveDown . tonality . setPart (Cello 1)  $ patternMelodyFrom x)
-        bass   = (                        setPart DoubleBass $ naturalHarmonic I 3)
+--        bass   = (                        setPart DoubleBass $ naturalHarmonic I 3)
 
 middle2 = setDynamics p . stretch 2.2 . setDynamics mf $ instant
-    ||| (          stretch 1   . id . tonality . setPart (Cello 2) $ patternSequenceFrom 0 $ [0,1,0,1,0])
-    ||| (delay 6 . stretch 1.3 . id . tonality . setPart (Cello 1) $ patternSequenceFrom 0 $ [0,0,1,1,1])
+    ||| (          stretch 1   . octaveDown . tonality . setPart (Cello 2) $ patternSequenceFrom 0 $ [0,1,0,1,0])
+    ||| (delay 6 . stretch 1.3 . octaveDown . tonality . setPart (Cello 1) $ patternSequenceFrom 0 $ [1,0,1,0,1])
 
 
 middle3 = setDynamics p . stretch 1.6 . reverse $ 
     canon rand 8 0 (zip ps (ss `compose` ts))
     where
-        ps = ([Violin 3, Violin 4] ++ violas)
+        ps = ([Violin 3, Violin 4, Viola 1, Viola 2])
         ss = map delay [0,3..] `compose` map stretch [1,1.16..] 
         ts = map transposeUp [7,7,0,0]
 
