@@ -1609,20 +1609,22 @@ outro1 = reverse . stretch 1.5 $ instant
 middle1 = concatSeq . List.intersperse (rest 10) $ map middle' [0,1,2]
 
 
-middle' x = setDynamics p . stretch 2 $ melody `sustain` bass
+middle' x = setDynamics p . stretch 1.6 $ melody `sustain` bass
     where
         melody = (octaveDown . tonality . setPart (Cello 1)  $ patternMelodyFrom x)
         bass   = (                        setPart DoubleBass $ naturalHarmonic I 3)
 
+middle2 = setDynamics p . stretch 1.7 . setDynamics mf $ instant
+    ||| (            stretch (1)   . id . tonality . setPart (Cello 2) $ patternSequenceFrom 0 $ [0,1,1,0])
+    ||| (delay 6 . stretch (3/4) . id . tonality . setPart (Cello 1) $ patternSequenceFrom 0 $ [0,0,1,1])
 
 
-middle2 = compress 1.6 . setDynamics mf $ instant
-    ||| (           stretch 4 . id . tonality . setPart (Viola 1) $ patternSequenceFrom 0 $ [0,1,1,0])
-    ||| (delay 12 . stretch 3 . id . tonality . setPart (Viola 2) $ patternSequenceFrom 0 $ [0,0,1,1])
-
-
-
-
+middle3 = setDynamics p . stretch 1.6 . reverse $ 
+    canon rand 4 0 (zip ps (ss `compose` ts))
+    where
+        ps = ([Violin 3, Violin 4] ++ violas)
+        ss = map delay [0,3..] `compose` map stretch [1,1.16..] 
+        ts = map transposeUp [7,7,0,0]
 
 
 
@@ -1636,13 +1638,19 @@ middle2 = compress 1.6 . setDynamics mf $ instant
 
 midCanon = (reverse midCanon') >>> (stretch 0.8 midCanon')
 
+-- midCanon' = setDynamics mf . compress 1.1 $ 
+--     canon rand 4 0 (zip ps ts)
+--     where                                                                  
+--         ps = violins ++ violas
+--         ts = map stretch [2.1,2.2,2.5,2.9,3.5,4.1] `compose` map transposeUp [12,12,7,7,0,0]
+
 midCanon' = setDynamics mf . compress 1.1 $ instant
-    ||| (stretch 2.1 . octaveUp . tonality . setPart (Violin 1) . patternSequenceFrom 0 $ [0,2,1,2])
-    ||| (stretch 2.2 . octaveUp . tonality . setPart (Violin 2) . patternSequenceFrom 0 $ [1,2,0,2])
-    ||| (stretch 2.5 . fifthUp  . tonality . setPart (Violin 3) . patternSequenceFrom 0 $ [2,0,1,2])
-    ||| (stretch 2.9 . fifthUp  . tonality . setPart (Violin 4) . patternSequenceFrom 0 $ [0,2,1,2])
-    ||| (stretch 3.5 . id       . tonality . setPart (Viola  1) . patternSequenceFrom 0 $ [2,2,1,0])
-    ||| (stretch 4.1 . id       . tonality . setPart (Viola  2) . patternSequenceFrom 0 $ [1,2,0,2])
+    ||| (stretch 2.1 . octaveUp . tonality . setPart (Violin 1) . patternSequenceFrom 0 $ [0,2,0,1,2])
+    ||| (stretch 2.2 . octaveUp . tonality . setPart (Violin 2) . patternSequenceFrom 0 $ [1,2,0,0,2])
+    ||| (stretch 2.5 . fifthUp  . tonality . setPart (Violin 3) . patternSequenceFrom 0 $ [2,0,0,1,2])
+    ||| (stretch 2.9 . fifthUp  . tonality . setPart (Violin 4) . patternSequenceFrom 0 $ [0,2,1,1,2])
+    ||| (stretch 3.5 . id       . tonality . setPart (Viola  1) . patternSequenceFrom 0 $ [2,2,2,1,0])
+    ||| (stretch 4.1 . id       . tonality . setPart (Viola  2) . patternSequenceFrom 0 $ [1,2,1,0,2])
 
 canon2upper = setDynamics p . reverse $ instant
     ||| (stretch 2.7 . duodecUp . tonality . setPart (Violin 1) . invert . patternSequenceFrom 0 $ [2,0,0,1,2])
@@ -1673,22 +1681,21 @@ finalCanonBass = setDynamics mf . compress 1.1 $ instant
 
 
 score :: Score Dur Cue
--- score = score'
-score = canon rand' 4 1 (zip violins (map stretch [2,2.1..] `compose` map transposeUp [12,12,19,19]))
+score = score'
 
 score' = stretch 0.8{-0.9-} $ instant
     >>> intro1
     
-    >>> rest 30
+    >>> rest 10
     >>> middle1
-    >>> rest 30
-    >>> middle2
+    >>> rest 10
+    >>> anticipate 10 middle2 middle3
     
     >>> midtro1    
     >>> midCanon 
     >>> midtro1    
     
-    >>> canon2upper >>> canon2lower           
+    >>> anticipate 10 canon2upper canon2lower           
     >>> (finalCanon ||| finalCanonBass)
 
 
