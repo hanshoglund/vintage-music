@@ -2,7 +2,8 @@
 dist/
 export/
 ideas/
-text/
+text/ 
+parts/
 modules.pdf
 test.mid
 test.pdf

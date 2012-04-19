@@ -50,6 +50,7 @@ import Music.Render
 import Music.Render.Midi
 import Music.Render.Graphics
 import Music.Util
+import Music.Util.System ( execute )
 import qualified Music.Util.List as List
 import qualified Music.Util.Either as Either
 
@@ -1489,12 +1490,26 @@ partBooks :: [PartBook]
 partBooks = fmap (\(p,s) -> PartBook p s) $ zip ensemble parts
 
 
-writePartBook :: FilePath -> PartBook -> IO ()
-writePartBook path book = writeMultipleGraphics (zip names pages)
+
+-- writePartBook :: FilePath -> PartBook -> IO ()
+-- writePartBook = 
+
+writePartBookPages :: FilePath -> PartBook -> IO ()
+writePartBookPages path book = writeMultipleGraphics (zip names pages)
     where                           
         name  = path ++ partBookFilePath book                   
-        names = map (\i -> name ++ "_p" ++ show i) [1..]
+        names = map (\i -> name ++ "_p" ++ show i ++ ".pdf") [1..]
         pages = map Graphic $ engravePartBook book
+
+removeFiles :: [FilePath] -> IO ()
+removeFiles fs = execute "rm" fs
+
+
+joinPdfs :: [FilePath] -> FilePath -> IO ()    
+joinPdfs ins out = 
+    execute "pdftk" args
+    where
+        args = ins ++ ["cat", "output", out]
     
     
 
