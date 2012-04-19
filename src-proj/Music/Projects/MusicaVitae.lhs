@@ -1140,11 +1140,12 @@ In standard notation, horizontal spacing is not linear, but logarithmic (the spa
 the space of quarter notes, for example). As we use multiple tempos this may be confusing, as the proportions between durations
 can not easily be seen from the high-level graphical structure. We therefore opt for a linear spacing instead.
 
-\begin{code}
+\begin{code}                              
+kHorizontalSpace :: Spaces
 kHorizontalSpace = 7.5
 
 timeToSpace :: NoteValue -> Spaces
-timeToSpace = Spaces . (* kHorizontalSpace)
+timeToSpace = (* kHorizontalSpace) . Spaces
 \end{code}
 
 
@@ -1325,28 +1326,36 @@ pitchPosition r _                                = 0
 kNoteHeadOffset :: Spaces
 kNoteHeadOffset = 1.8
 
-notateCue :: Cue -> Staff
-notateCue cue = trivial { spacedObjects = s, nonSpacedObjects = ns }
-    where
-        s = barLine ++ chordN ++ sustainLine    
-        chordN = fmap (\(p,x) -> (p * scale + kNoteHeadOffset, StaffChord x)) chordN'
-        chordN' = notateRightHand (cuePart cue) (cueTechnique cue)
-        
-        
-        barLine = if isPhrase (cueTechnique cue) then [(0, StaffTickBarLine)] else [(0, StaffNothing)]
-        sustainLine = if (not . isPhrase $ cueTechnique cue)
-            then [(kNoteHeadOffset + 2.2 * space,
-            StaffSustainLine (pitchPosition (cuePart cue) (cueTechnique cue), scale * Spaces kHorizontalSpace - (kNoteHeadOffset + 4.4) ))] else []
-        
+kSustainLineOffset :: Spaces
+kSustainLineOffset = 2.2
 
-        ns = tempoN ++ dynamicN
-        tempoN = [([1], notateTempo . cueTempo $ cue)] `nonEmptyWhen` (isPhrase (cueTechnique cue)) 
-        
-        
+notateCue :: Cue -> Staff
+notateCue cue = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
+    where
+        sN = barLineN ++ chordsN ++ sustainLineN            
+    
+        barLineN = if phr then [(0, StaffTickBarLine)]
+                          else [(0, StaffNothing)]
+    
+        chordsN   =  fmap (\(t,x) -> (t * scale + kNoteHeadOffset, StaffChord x)) chordsN'
+        chordsN'  =  notateRightHand (cuePart cue) (cueTechnique cue)
+    
+        sustainLineN  =  x `emptyWhen` phr
+            where
+                x    =  [(pos, obj)]        
+                pos  =  kNoteHeadOffset + kSustainLineOffset
+                yPos =  pitchPosition (cuePart cue) (cueTechnique cue)
+                obj  =  StaffSustainLine (yPos, scale * kHorizontalSpace - (kNoteHeadOffset + 4.4))
+
+
+        nsN = tempoN ++ dynamicN
+
+        tempoN   = [([1], notateTempo . cueTempo $ cue)] `nonEmptyWhen` phr
         dynamicN = [([1], notateDynamic . cueDynamics $ cue)]
 
-
         scale = Spaces (60 / (cueTempo cue))
+        phr = isPhrase $ cueTechnique cue 
+
 
 notatePart :: Score Dur Cue -> Staff
 notatePart score = notatePart' (prependStaffHead clef) score
