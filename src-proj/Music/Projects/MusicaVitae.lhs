@@ -613,6 +613,10 @@ type Technique =
         (LeftHand
             Pitch Str)
 
+isPhrase :: Technique -> Bool
+isPhrase (Phrase _ _) = True
+isPhrase _            = False
+
 data Cue
     = Cue
     {
@@ -971,7 +975,7 @@ The `renderLeftHand` function returns a score of duration one, possibly containi
 This property is formalized by the use of a `TremoloScore`, i.e. a score containing either
 notes or tremolos.
 
-Note: Glissandos are not supported yet.
+TODO gliss
 
 \begin{code}
 renderLeftHand :: Part -> LeftHand Pitch Str -> TremoloScore Dur MidiNote
@@ -1016,7 +1020,7 @@ renderLeftHands part  =  stretchTo 1 . concatSeq . map leftHands
 Cues
 ------
 
-TODO This section needs some cleanup...
+TODO cleanup
 
 \begin{code}
 setMidiChannel :: MidiChannel -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
@@ -1123,6 +1127,52 @@ In this chapter we will define a similar functionality for music notation. We wi
 As this is an orchestral piece, our task is twofold: first we need to render all cues and
 parts in to a single score, then we need to separate the cues into orchetral parts.
 
+
+Rhytm and spacing
+--------
+
+`Music.Notable` use a simple hierarchical representation for graphical elements: each notation of a number of systems, which in
+turn consists of staves, consisting of chords, consisting of notes. On each levels secondary objects such as bar numbers, clefs,
+bar lines, accidentals and so on may be added. Each staff in a system is associated with a vertical space value, while each
+object in a staff is associated with a horizontal space value.
+
+In standard notation, horizontal spacing is not linear, but logarithmic (the space between half-notes is less than twice
+the space of quarter notes, for example). As we use multiple tempos this may be confusing, as the proportions between durations
+can not easily be seen from the high-level graphical structure. We therefore opt for a linear spacing instead.
+
+\begin{code}
+kHorizontalSpace = 7.5
+
+timeToSpace :: NoteValue -> Spaces
+timeToSpace = Spaces . (* kHorizontalSpace)
+\end{code}
+
+
+\begin{code}
+notateTempo :: Tempo -> NonSpacedObject
+notateTempo = StaffMetronomeMark (1/2) . toMetronomeScale . truncate
+
+calculateTempo :: Score Dur Cue -> Score Dur Cue
+calculateTempo = dmap (\d x -> setTempo (60 * (getDur . cueTechnique) x / d) x)
+\end{code}
+
+
+Dynamics
+--------
+
+\begin{code}
+notateDynamic :: Dynamics -> NonSpacedObject
+notateDynamic x
+    | x `levelAt` 0 <= -0.8  =  StaffDynamic $ Notable.ppp
+    | x `levelAt` 0 <= -0.6  =  StaffDynamic $ Notable.pp
+    | x `levelAt` 0 <= -0.3  =  StaffDynamic $ Notable.p
+    | x `levelAt` 0 <= 0.0   =  StaffDynamic $ Notable.mf
+    | x `levelAt` 0 <= 0.25  =  StaffDynamic $ Notable.f
+    | x `levelAt` 0 <= 0.5   =  StaffDynamic $ Notable.ff
+    | otherwise              =  StaffDynamic $ Notable.fff    
+\end{code}
+
+
 Pitch spelling
 --------
 
@@ -1174,47 +1224,6 @@ notatePitch c x = (HalfSpaces . fromIntegral $ p + d', a)
         (d, d') = indicatedPitch c
 \end{code}
 
-Rhytmical spelling and spacing
---------
-
-`Music.Notable` use a simple hierarchical representation for graphical elements: each notation of a number of systems, which in
-turn consists of staves, consisting of chords, consisting of notes. On each levels secondary objects such as bar numbers, clefs,
-bar lines, accidentals and so on may be added. Each staff in a system is associated with a vertical space value, while each
-object in a staff is associated with a horizontal space value.
-
-In standard notation, horizontal spacing is not linear, but logarithmic (the space between half-notes is less than twice
-the space of quarter notes, for example). As we use multiple tempos this may be confusing, as the proportions between durations
-can not easily be seen from the high-level graphical structure. We therefore opt for a linear spacing instead.
-
-\begin{code}
-kHorizontalSpace = 7.5
-
-timeToSpace :: NoteValue -> Spaces
-timeToSpace = Spaces . (* kHorizontalSpace)
-\end{code}
-
-
-Tempo and dynamics
---------
-
-\begin{code}
-notateTempo :: Tempo -> NonSpacedObject
-notateTempo = StaffMetronomeMark (1/2) . toMetronomeScale . truncate
-
-notateDynamic :: Dynamics -> NonSpacedObject
-notateDynamic x
-    | x `levelAt` 0 <= -0.8  =  StaffDynamic $ Notable.ppp
-    | x `levelAt` 0 <= -0.6  =  StaffDynamic $ Notable.pp
-    | x `levelAt` 0 <= -0.3  =  StaffDynamic $ Notable.p
-    | x `levelAt` 0 <= 0.0   =  StaffDynamic $ Notable.mf
-    | x `levelAt` 0 <= 0.25  =  StaffDynamic $ Notable.f
-    | x `levelAt` 0 <= 0.5   =  StaffDynamic $ Notable.ff
-    | otherwise              =  StaffDynamic $ Notable.fff
-
-calculateTempo :: Score Dur Cue -> Score Dur Cue
-calculateTempo = dmap (\d x -> setTempo (60 * (getDur . cueTechnique) x / d) x)
-\end{code}
-
 
 Notating staves
 --------
@@ -1228,35 +1237,58 @@ staffHead clef = trivial { spacedObjects = s }
 prependStaffHead :: Clef -> [Staff] -> [Staff]
 prependStaffHead clef xs = staffHead clef : fmap (moveObjectsRight 5) xs
 
+
+
+
 notateOpenString :: Part -> NoteValue -> Str -> Chord
 notateOpenString r nv s =
     trivial { dots = dotsFromNoteValue nv,
               notes = [Note p nh a] }
     where
-        (p, a) = notatePitch c . (subtract t) $ openStringPitch r s
         nh = noteHeadFromNoteValue nv
-        c  = standardClef r
-        t  = transposition r
-
+        (p,a) = baz r s
+        
 notateNaturalHarmonic :: Part -> NoteValue -> Pitch -> Str -> Chord
 notateNaturalHarmonic r nv x s =
     trivial { dots = dotsFromNoteValue nv,
               notes = [Note p DiamondNoteHead a] }
     where
-        (p, a) = notatePitch c . (subtract t) $ naturalHarmonicPitch r s x
         nh = noteHeadFromNoteValue nv
-        c  = standardClef r
-        t  = transposition r
+        (p,a) = bar r x s
 
 notateStoppedString :: Part -> NoteValue -> Pitch -> Str -> Chord
 notateStoppedString r nv x s =
     trivial { dots = dotsFromNoteValue nv,
               notes = [Note p nh a] }
     where
-        (p,a) = notatePitch c . (subtract t) $ x
         nh = noteHeadFromNoteValue nv
+        (p,a) = foo r x s
+
+
+foo :: Part -> Pitch -> t -> (HalfSpaces, Maybe Accidental)
+foo r x s = (p,a)
+    where
+        (p,a) = notatePitch c . (subtract t) $ x
         c  = standardClef r
         t  = transposition r
+        
+bar :: Part -> Int -> Str -> (HalfSpaces, Maybe Accidental)
+bar r x s = (p,a)
+    where
+        (p, a) = notatePitch c . (subtract t) $ naturalHarmonicPitch r s x
+        c  = standardClef r
+        t  = transposition r
+
+baz :: Part -> Str -> (HalfSpaces, Maybe Accidental)
+baz r s = (p,a)
+    where
+        (p, a) = notatePitch c . (subtract t) $ openStringPitch r s
+        c  = standardClef r
+        t  = transposition r
+
+
+
+
 
 -- TODO trem, gliss
 notateLeftHand :: Part -> NoteValue -> LeftHand Pitch Str -> Chord
@@ -1264,17 +1296,12 @@ notateLeftHand r nv ( OpenString           s )   =  notateOpenString r nv s
 notateLeftHand r nv ( NaturalHarmonic      x s ) =  notateNaturalHarmonic r nv x s
 notateLeftHand r nv ( StoppedString        x s ) =  notateStoppedString r nv x s
 
-
 -- TODO pizz, jete
 notateRightHand :: Part -> Technique -> [(Spaces, Chord)]
 notateRightHand r ( Single _ x )   =  [(0, notateLeftHand r 1 x)]
 notateRightHand r ( Phrase _ xs )  =  snd $ List.mapAccumL (\t (d, x) -> (t + t2s d, (t, notateLeftHand r (d/2) x))) 0 xs
     where
         t2s = timeToSpace
-
-isPhrase :: Technique -> Bool
-isPhrase (Phrase _ _) = True
-isPhrase _            = False
 
 pitchPosition :: Part -> Technique -> HalfSpaces
 pitchPosition r (Single _ (NaturalHarmonic x s)) = p
@@ -1294,35 +1321,42 @@ pitchPosition r (Single _ (StoppedString x s)) = p
         t  = transposition r
 pitchPosition r _                                = 0
 
+
+kNoteHeadOffset :: Spaces
+kNoteHeadOffset = 1.8
+
 notateCue :: Cue -> Staff
 notateCue cue = trivial { spacedObjects = s, nonSpacedObjects = ns }
     where
         s = barLine ++ chordN ++ sustainLine    
+        chordN = fmap (\(p,x) -> (p * scale + kNoteHeadOffset, StaffChord x)) chordN'
+        chordN' = notateRightHand (cuePart cue) (cueTechnique cue)
+        
+        
         barLine = if isPhrase (cueTechnique cue) then [(0, StaffTickBarLine)] else [(0, StaffNothing)]
         sustainLine = if (not . isPhrase $ cueTechnique cue)
-            then [(headOffset + 2.2 * space,
-            StaffSustainLine (pitchPosition (cuePart cue) (cueTechnique cue), scale * Spaces kHorizontalSpace - (headOffset + 4.4) ))] else []
+            then [(kNoteHeadOffset + 2.2 * space,
+            StaffSustainLine (pitchPosition (cuePart cue) (cueTechnique cue), scale * Spaces kHorizontalSpace - (kNoteHeadOffset + 4.4) ))] else []
+        
 
-        ns = t ++ n
-        t = if isPhrase (cueTechnique cue) then [([1], notateTempo . cueTempo $ cue)] else []
-        n = [([1], notateDynamic . cueDynamics $ cue)]
+        ns = tempoN ++ dynamicN
+        tempoN = [([1], notateTempo . cueTempo $ cue)] `nonEmptyWhen` (isPhrase (cueTechnique cue)) 
+        
+        
+        dynamicN = [([1], notateDynamic . cueDynamics $ cue)]
 
-        chordN = fmap (\(p,x) -> (p * scale + headOffset, StaffChord x)) chordN'
-        chordN' = notateRightHand (cuePart cue) (cueTechnique cue)
 
         scale = Spaces (60 / (cueTempo cue))
-        headOffset = 1.8
-
 
 notatePart :: Score Dur Cue -> Staff
 notatePart score = notatePart' (prependStaffHead clef) score
     where
         clef = maybe trebleClef (standardClef . cuePart) . firstEvent $ score
 
-notatePart' :: ([Staff] -> [Staff]) -> Score Dur Cue -> Staff
-notatePart' f score = mconcat . f . fmap notateCueEvent . toEvents $ score
-    where
-        notateCueEvent (Event t d x) = moveObjectsRight (timeToSpace t) $ notateCue x
+        notatePart' :: ([Staff] -> [Staff]) -> Score Dur Cue -> Staff
+        notatePart' f score = mconcat . f . fmap notateCueEvent . toEvents $ score
+            where
+                notateCueEvent (Event t d x) = moveObjectsRight (timeToSpace t) $ notateCue x
 
 
 \end{code}
@@ -1335,7 +1369,7 @@ As we notated each cue separately, information such as dynamics and metronome ma
 a new cue starts. However, in standard notation, identical tempi marks are never repeated. We therefore define a
 function to remove reduncant marks from a staff.
 
-TODO clean up
+TODO cleanup
 
 \begin{code}
 removeRedundantMarks :: Staff -> Staff
@@ -1361,17 +1395,12 @@ Assembling the score and parts
 \begin{code}
 -- | All parts, generated from 'score'.
 parts :: [Score Dur Cue]
-parts = map (\part -> filterEvents (\cue -> cuePart cue == part) score') ensemble
-    where
-        score' = calculateTempo score
+parts = extractParts ensemble (calculateTempo score)
 
--- extractParts :: Score Dur Cue -> [Score Dur Cue]
--- extractParts score = extractParts' parts score
---     where
---         parts = fmap
+extractParts :: [Part] -> Score Dur Cue -> [Score Dur Cue]
+extractParts parts score = map (\part -> filterEvents (cuePart `equals` part) score) parts
 
-extractParts' :: [Part] -> Score Dur Cue -> [Score Dur Cue]
-extractParts' parts score = map (\part -> filterEvents (\cue -> cuePart cue == part) score) parts
+
 
 -- | Notations of each part in panorama form.
 partNotations :: [Engraving]
@@ -1387,6 +1416,7 @@ scoreNotation = mempty
     <> (moveOriginBy (r2(0,-7)) . alignTL $ spaceY 45)
 
 \end{code}
+
 
 Finally, we add instances to let us use the `draw` function on chords, staves and engravings.
 
@@ -1926,6 +1956,10 @@ Miscellaneous
 ----------
 
 \begin{code}   
+
+equals :: Eq b => (a -> b) -> b -> a -> Bool
+equals f x = (== x) . f
+
 removeEquals :: Eq a => [a] -> [a]
 removeEquals = List.remove2 (==)
 
@@ -1933,6 +1967,21 @@ compose = zipWith (.)
 
 onlyWhen x y    = x `onlyIf` (const y)
 onlyWhenNot x y = x `onlyIfNot` (const y)
+
+
+emptyWhen :: Monoid m => m -> Bool -> m
+emptyWhen x p = x `emptyIf` (const p)
+
+nonEmptyWhen :: Monoid m => m -> Bool -> m
+nonEmptyWhen x p = x `nonEmptyIf` (const p)
+
+emptyIf :: Monoid m => m -> (m -> Bool) -> m
+emptyIf x p = x `nonEmptyIf` (not . p)
+
+nonEmptyIf :: Monoid m => m -> (m -> Bool) -> m
+nonEmptyIf x p = if p x then x else mempty
+
+
 
 splitted :: RandomGen r => r -> [r]
 splitted = List.unfoldr (Just . System.Random.split)
