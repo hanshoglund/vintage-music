@@ -31,6 +31,7 @@ where
 
 import Prelude hiding ( reverse )
 
+import Control.Concurrent
 import Data.Maybe
 import Data.Convert ( convert )
 import Data.Trivial
@@ -1490,20 +1491,27 @@ partBooks :: [PartBook]
 partBooks = fmap (\(p,s) -> PartBook p s) $ zip ensemble parts
 
 
+writePartBooks :: IO ()
+writePartBooks = sequence_ $ map (writePartBook "parts/") partBooks
 
--- writePartBook :: FilePath -> PartBook -> IO ()
--- writePartBook = 
+writePartBook :: FilePath -> PartBook -> IO ()
+writePartBook path book = 
+    let (files, action) = writePartBookPages path book in 
+        do  action
+            joinPdfs files (path ++ partBookFilePath book ++ ".pdf")
+            threadDelay 3000000
+            removeFiles files
 
-writePartBookPages :: FilePath -> PartBook -> IO ()
-writePartBookPages path book = writeMultipleGraphics (zip names pages)
+writePartBookPages :: FilePath -> PartBook -> ([FilePath], IO ())
+writePartBookPages path book = (take (length pages) names, writeMultipleGraphics (zip names pages))
     where                           
         name  = path ++ partBookFilePath book                   
         names = map (\i -> name ++ "_p" ++ show i ++ ".pdf") [1..]
         pages = map Graphic $ engravePartBook book
 
+
 removeFiles :: [FilePath] -> IO ()
 removeFiles fs = execute "rm" fs
-
 
 joinPdfs :: [FilePath] -> FilePath -> IO ()    
 joinPdfs ins out = 
