@@ -1242,6 +1242,10 @@ staffHead clef = trivial { spacedObjects = s }
     where
         s = [(0.5, StaffClef clef)]
 
+prependStaffHead2 :: Clef -> Staff -> Staff
+prependStaffHead2 clef staff = staffHead clef `mappend` {-moveObjectsRight 5 -}staff
+
+
 prependStaffHead :: Clef -> [Staff] -> [Staff]
 prependStaffHead clef xs = staffHead clef : fmap (moveObjectsRight 5) xs
 
@@ -1367,7 +1371,10 @@ TODO cleanup
 
 \begin{code}
 removeRedundantMarks :: Staff -> Staff
-removeRedundantMarks (Staff o s ns) = Staff o s (snd $ List.concatMapAccumL f z ns)
+removeRedundantMarks = removeRedundantMarks'
+-- removeRedundantMarks = id
+
+removeRedundantMarks' (Staff o s ns) = Staff o s (snd $ List.concatMapAccumL f z ns)
     where
         z :: (Maybe Notable.Dynamic, Maybe (NoteValue, BeatsPerMinute))
         z = (Nothing, Nothing)
@@ -1425,30 +1432,32 @@ move t     = map (\(p, x) -> (p + t, x)) -- compare moveObjectsLeft, moveObjects
 --   objects may be left dangling to the right of the first staff.
 --
 splitStaff' :: Spaces -> Staff -> (Staff, Staff)
-splitStaff' t (Staff o s ns) = ((Staff ox sx nsx), (Staff oy sy' nsy))
+splitStaff' t (Staff o s ns) = ((Staff ox sx nsx), (Staff oy sy' nsy'))
     where
         (ox, oy)   = splitStaffOptions o
         (sx, sy)   = splitSpacedStaffObjects t s
         (nsx, nsy) = splitNonSpacedStaffObjects (length sx) ns
         sy'        = move (negate t) sy
-
+        nsy'       = map (\(is, x) -> (fmap (subtract (length sx)) is, x)) nsy
 
 splitStaffOptions :: StaffOptions -> (StaffOptions, StaffOptions)
 splitStaffOptions o = (o, o)
 
 splitSpacedStaffObjects :: Spaces -> [(Spaces, SpacedObject)] -> ([(Spaces, SpacedObject)], [(Spaces, SpacedObject)])
 splitSpacedStaffObjects t = 
-    List.span (\(p, _) -> p < t)
+    List.partition (\(p, _) -> p < t)
 
 splitNonSpacedStaffObjects :: Int -> [([Index [SpacedObject]], NonSpacedObject)] -> ([([Index [SpacedObject]], NonSpacedObject)], [([Index [SpacedObject]], NonSpacedObject)])
 splitNonSpacedStaffObjects n = 
-    List.span (\(i, _) -> head i < n) . List.sortBy (comparing fst)
-
+    List.partition (\(i, _) -> head i < n)
 
 
 -- Prepare a staff for splitting by cutting its objects, i.e. divide slurs, ties, sustain lines
+-- Precond: assumes s and ns sorted
 cutStaffObjects :: Spaces -> Staff -> Staff
 cutStaffObjects t (Staff o s ns) = Staff o s ns
+    -- where
+        -- possiblySpanningObjects = 
 
 cutSpacedStaffObject :: Spaces -> SpacedObject -> (SpacedObject, Maybe SpacedObject)
 cutSpacedStaffObject t (StaffSustainLine (p, w)) = (StaffSustainLine (p, w - t), Just $ StaffSustainLine (p, t))
@@ -1481,19 +1490,30 @@ engravePanorama =
     . justifyStaves . fmap notatePart
 
 
-kPageWidth = 160 :: Spaces
-kSystemsPerPage = 14
+kPageWidth           = 140 :: Spaces
+kSystemsPerPage      = 13
 kSpaceBetweenSystems = 8
 
+kPageDimensions = r2 (210, 297)             
+kPageMarigins   = r2 (15, -20)
+kPageScaling    = 4.8
+
 engravePartLines :: Score Dur Cue -> [Engraving]
-engravePartLines = fmap engraveStaff . divideStaff kPageWidth . notatePart
+engravePartLines = fmap engraveStaff . h . divideStaff kPageWidth . notatePart
+    where                                        
+        -- h = id
+        h = fmap (prependStaffHead2 kDefaultClef) -- FIXME
 
 engravePartPages :: Score Dur Cue -> [Engraving]
-engravePartPages = map catDown . map addSpaceBetween . List.divide kSystemsPerPage . engravePartLines
+engravePartPages = map fitIntoPage . map catDown . map (map addSpaceBetween) . List.divide kSystemsPerPage . engravePartLines
+    where      
+        addSpaceBetween   = (<> spaceY (kSpaceBetweenSystems / 2))
+
+fitIntoPage :: Engraving -> Engraving
+fitIntoPage = (<> page) . alignTL . scale kPageScaling . freeze
     where
-        addSpaceBetween = map (<> spaceY (kSpaceBetweenSystems / 2))
-
-
+        page = st . moveOriginBy kPageMarigins . alignTL $ rect (getX kPageDimensions) (getY kPageDimensions)
+        st   = fillColor lightyellow
 
 data PartBook =
     PartBook
@@ -1512,8 +1532,8 @@ writePartBook path book =
     let (files, action) = writePartBookPages path book in
         do  action
             joinPdfs files (path ++ partBookFilePath book ++ ".pdf")
-            threadDelay 3000000
-            removeFiles files
+--            threadDelay 3000000
+--            removeFiles files
 
 writePartBookPages :: FilePath -> PartBook -> ([FilePath], IO ())
 writePartBookPages path book = (take (length pages) names, writeMultipleGraphics (zip names pages))
@@ -1544,13 +1564,15 @@ removeFiles fs = execute "rm" fs
 
 Stuff depending on `score`:
 
-\begin{code}
+\begin{code}   
+ensemble' = [Violin 1]
+    
 -- | All parts, generated from 'score'.
 parts :: [Score Dur Cue]
-parts = extractParts ensemble (calculateTempo score)
+parts = extractParts ensemble' (calculateTempo score)
 
 partBooks :: [PartBook]
-partBooks = fmap (\(p,s) -> PartBook p s) $ zip ensemble parts
+partBooks = fmap (\(p,s) -> PartBook p s) $ zip ensemble' parts
 
 -- scoreBook :: [Engraving]
 
