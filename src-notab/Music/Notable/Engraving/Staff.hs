@@ -104,6 +104,8 @@ module Music.Notable.Engraving.Staff
     StaffOptions(..), 
     Staff(..), 
     staffWidth,
+    spacedObjectWidth,
+    nonSpacedObjectWidth,
     moveObjectsRight,
     moveObjectsLeft,
     addSpaceAtStart,
@@ -585,9 +587,19 @@ instance Monoid Staff where
 -- | The width of the staff, defined as the position of its rightmost elements
 --   plus any extra space before and after.
 staffWidth :: Staff -> Spaces
-staffWidth (Staff o s _) = spaceBefore o + w + spaceAfter o
+staffWidth (Staff o s _) = a + w
     where
         w = maximumWith 0 . fmap fst $ s
+        a = spaceBefore o + spaceAfter o
+
+-- | The width of a spaced object. This is used to detect objects spanning line breaks.
+spacedObjectWidth :: SpacedObject -> Spaces
+spacedObjectWidth (StaffSustainLine (p, w)) = w
+spacedObjectWidth _ = 0
+
+nonSpacedObjectWidth :: NonSpacedObject -> Spaces
+nonSpacedObjectWidth _ = 0
+
 
 -- | Move objects on the staff to the right.
 moveObjectsRight :: Spaces -> Staff -> Staff
@@ -611,10 +623,11 @@ addSpace x y (Staff o s ns) = Staff (f o) s ns
     where
         f (StaffOptions b a l) = StaffOptions (b + x) (a + y) l
 
--- | Scapes the given staff by stretching its objects.
+-- | Scale a staff by stretching its objects.
 scaleStaff :: Spaces -> Staff -> Staff
 scaleStaff x (Staff o s ns) = Staff o (fmap (mapFirst (* x)) s) ns
 
+-- | Scale a staff to the given width by stretching its objects.
 scaleStaffTo :: Spaces -> Staff -> Staff
 scaleStaffTo x staff@(Staff o s ns) = scaleStaff x' staff
     where
@@ -629,15 +642,7 @@ justifyStaves ss = map (\s -> addSpaceAtEnd (((m - staffWidth s) / 2) `max` 0) s
 
 -- | Split a staff at the given position.
 splitStaff :: Spaces -> Staff -> (Staff, Staff)
-splitStaff x (Staff o s ns) = (sx, sy)
-    where
-        sx = (Staff ox sx nsx)
-        sy = (Staff oy sy nsy)
-
-        (ox, oy) = (o, o)
-
-        ns' = sort ns
-        
+splitStaff x (Staff o s ns) = undefined 
 
 -- | Split a staff right before the first spaced object that satisfies the predicate.
 splitStaffWhen :: (Spaces -> SpacedObject -> Bool) -> (Staff, Staff)
@@ -661,6 +666,8 @@ engraveNonSpacedObject (StaffDynamic x)            = engraveDynamic x
 engraveNonSpacedObject (StaffInstruction x)        = engraveInstruction x
 engraveNonSpacedObject (StaffExpression x)         = engraveExpression x
 
+-- | Engraves the given staff.
+--   The origin will be at the left edge on the middle line or space.
 engraveStaff :: Staff -> Engraving
 engraveStaff staff@(Staff opt sN nsN) = mempty
     <> (translateX spb $ sE <> nsE)

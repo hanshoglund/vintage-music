@@ -995,11 +995,12 @@ renderLeftHand part ( StoppedStringTrem    x y s )  =  renderLeftHandTrem x y
 renderLeftHand part ( StoppedStringGliss   x y s )  =  renderLeftHandGliss
 
 renderLeftHandSingle x    =  note . Left  $ renderMidiNote x
-renderLeftHandTrem   x y  =  note . Right $ tremoloBetween tremoloInterval (renderMidiNote x) (renderMidiNote y)
+renderLeftHandTrem   x y  =  note . Right $ tremoloBetween kTremoloInterval (renderMidiNote x) (renderMidiNote y)
 renderLeftHandGliss       =  error "Gliss not implemented"
 
 renderMidiNote x = MidiNote 0 Nothing x 0 60
-tremoloInterval = 0.08
+
+kTremoloInterval = 0.08
 \end{code}
 
 
@@ -1247,86 +1248,76 @@ prependStaffHead clef xs = staffHead clef : fmap (moveObjectsRight 5) xs
 
 
 
+
+
+
+notateOpenStringPitch :: Part -> Str -> (HalfSpaces, Maybe Accidental)
+notateOpenStringPitch r s = (p,a)
+    where
+        (p, a) = notatePitch c . (subtract t) $ openStringPitch r s
+        c  = standardClef r
+        t  = transposition r
+
+notateNaturalHarmonicPitch :: Part -> Str -> Int -> (HalfSpaces, Maybe Accidental)
+notateNaturalHarmonicPitch r s x = (p,a)
+    where
+        (p, a) = notatePitch c . (subtract t) $ naturalHarmonicPitch r s x
+        c  = standardClef r
+        t  = transposition r
+
+notateStoppedStringPitch :: Part -> Pitch -> (HalfSpaces, Maybe Accidental)
+notateStoppedStringPitch r x = (p,a)
+    where
+        (p,a) = notatePitch c . (subtract t) $ x
+        c  = standardClef r
+        t  = transposition r
+
+
+
 notateOpenString :: Part -> NoteValue -> Str -> Chord
 notateOpenString r nv s =
     trivial { dots = dotsFromNoteValue nv,
               notes = [Note p nh a] }
     where
         nh = noteHeadFromNoteValue nv
-        (p,a) = baz r s
+        (p,a) = notateOpenStringPitch r s
 
-notateNaturalHarmonic :: Part -> NoteValue -> Pitch -> Str -> Chord
-notateNaturalHarmonic r nv x s =
+notateNaturalHarmonic :: Part -> NoteValue -> Str -> Pitch -> Chord
+notateNaturalHarmonic r nv s x =
     trivial { dots = dotsFromNoteValue nv,
               notes = [Note p DiamondNoteHead a] }
     where
         nh = noteHeadFromNoteValue nv
-        (p,a) = bar r x s
+        (p,a) = notateNaturalHarmonicPitch r s x
 
-notateStoppedString :: Part -> NoteValue -> Pitch -> Str -> Chord
-notateStoppedString r nv x s =
+notateStoppedString :: Part -> NoteValue -> Str -> Pitch -> Chord
+notateStoppedString r nv s x =
     trivial { dots = dotsFromNoteValue nv,
               notes = [Note p nh a] }
     where
         nh = noteHeadFromNoteValue nv
-        (p,a) = foo r x s
+        (p,a) = notateStoppedStringPitch r x
 
 
-foo :: Part -> Pitch -> t -> (HalfSpaces, Maybe Accidental)
-foo r x s = (p,a)
-    where
-        (p,a) = notatePitch c . (subtract t) $ x
-        c  = standardClef r
-        t  = transposition r
-
-bar :: Part -> Int -> Str -> (HalfSpaces, Maybe Accidental)
-bar r x s = (p,a)
-    where
-        (p, a) = notatePitch c . (subtract t) $ naturalHarmonicPitch r s x
-        c  = standardClef r
-        t  = transposition r
-
-baz :: Part -> Str -> (HalfSpaces, Maybe Accidental)
-baz r s = (p,a)
-    where
-        (p, a) = notatePitch c . (subtract t) $ openStringPitch r s
-        c  = standardClef r
-        t  = transposition r
-
-
+pitchPosition :: Part -> Technique -> HalfSpaces
+pitchPosition r (Single _ (OpenString s))        = fst $ notateOpenStringPitch r s
+pitchPosition r (Single _ (NaturalHarmonic x s)) = fst $ notateNaturalHarmonicPitch r s x
+pitchPosition r (Single _ (StoppedString x s))   = fst $ notateStoppedStringPitch r x
+pitchPosition r _                                = 0
 
 
 
 -- TODO trem, gliss
 notateLeftHand :: Part -> NoteValue -> LeftHand Pitch Str -> Chord
 notateLeftHand r nv ( OpenString           s )   =  notateOpenString r nv s
-notateLeftHand r nv ( NaturalHarmonic      x s ) =  notateNaturalHarmonic r nv x s
-notateLeftHand r nv ( StoppedString        x s ) =  notateStoppedString r nv x s
+notateLeftHand r nv ( NaturalHarmonic      x s ) =  notateNaturalHarmonic r nv s x
+notateLeftHand r nv ( StoppedString        x s ) =  notateStoppedString r nv s x
 
 -- TODO pizz, jete
 notateRightHand :: Part -> Technique -> [(Spaces, Chord)]
 notateRightHand r ( Single _ x )   =  [(0, notateLeftHand r 1 x)]
-notateRightHand r ( Phrase _ xs )  =  snd $ List.mapAccumL (\t (d, x) -> (t + t2s d, (t, notateLeftHand r (d/2) x))) 0 xs
-    where
-        t2s = timeToSpace
+notateRightHand r ( Phrase _ xs )  =  snd $ List.mapAccumL (\t (d, x) -> (t + timeToSpace d, (t, notateLeftHand r (d/2) x))) 0 xs
 
-pitchPosition :: Part -> Technique -> HalfSpaces
-pitchPosition r (Single _ (NaturalHarmonic x s)) = p
-    where
-        (p, a) = notatePitch c . (subtract t) $ naturalHarmonicPitch r s x
-        c  = standardClef r
-        t  = transposition r
-pitchPosition r (Single _ (OpenString s)) = p
-    where
-        (p, a) = notatePitch c . (subtract t) $ openStringPitch r s
-        c  = standardClef r
-        t  = transposition r
-pitchPosition r (Single _ (StoppedString x s)) = p
-    where
-        (p, a) = notatePitch c . (subtract t) $ x
-        c  = standardClef r
-        t  = transposition r
-pitchPosition r _                                = 0
 
 
 kNoteHeadOffset :: Spaces
@@ -1400,12 +1391,14 @@ Notating parts
 notatePart :: Score Dur Cue -> Staff
 notatePart score = removeRedundantMarks $ notatePart' (prependStaffHead clef) score
     where
-        clef = maybe trebleClef (standardClef . cuePart) . firstEvent $ score
+        clef = maybe kDefaultClef (standardClef . cuePart) . firstEvent $ score
 
         notatePart' :: ([Staff] -> [Staff]) -> Score Dur Cue -> Staff
         notatePart' f score = mconcat . f . fmap notateCueEvent . toEvents $ score
             where
                 notateCueEvent (Event t d x) = moveObjectsRight (timeToSpace t) $ notateCue x
+
+kDefaultClef = trebleClef
 \end{code}
 
 
@@ -1414,8 +1407,8 @@ Basic paging
 --------
 \begin{code}
 
-page :: Spaces -> Staff -> [Staff]
-page t = justifyStaves . List.unfoldr f
+divideStaff :: Spaces -> Staff -> [Staff]
+divideStaff t = justifyStaves . List.unfoldr f
     where
         f s | isStaffEmpty s = Nothing
             | otherwise      = Just $ splitStaff' t s
@@ -1423,17 +1416,48 @@ page t = justifyStaves . List.unfoldr f
 isStaffEmpty :: Staff -> Bool
 isStaffEmpty (Staff o s ns) = null s
 
--- | Split a staff at the given position.
+
+move t     = map (\(p, x) -> (p + t, x)) -- compare moveObjectsLeft, moveObjectsRight
+
+-- | Split a staff at the given position.                         
+--
+--   This is the primitive splitting function, which does not perform any cutting, so
+--   objects may be left dangling to the right of the first staff.
+--
 splitStaff' :: Spaces -> Staff -> (Staff, Staff)
 splitStaff' t (Staff o s ns) = ((Staff ox sx nsx), (Staff oy sy' nsy))
     where
-        (ox, oy)   = (o, o)
-        (sx, sy)   = List.span (\(p,_) -> p < t) s
-        sy'        = move t sy
-        (nsx, nsy) = List.span (\(i,_) -> head i < length sx) ns'
-        ns'        = List.sortBy (comparing fst) ns
-                   
-        move t     = map (\(p, x) -> (p - t, x)) -- compare moveObjectsLeft, moveObjectsRight
+        (ox, oy)   = splitStaffOptions o
+        (sx, sy)   = splitSpacedStaffObjects t s
+        (nsx, nsy) = splitNonSpacedStaffObjects (length sx) ns
+        sy'        = move (negate t) sy
+
+
+splitStaffOptions :: StaffOptions -> (StaffOptions, StaffOptions)
+splitStaffOptions o = (o, o)
+
+splitSpacedStaffObjects :: Spaces -> [(Spaces, SpacedObject)] -> ([(Spaces, SpacedObject)], [(Spaces, SpacedObject)])
+splitSpacedStaffObjects t = 
+    List.span (\(p, _) -> p < t)
+
+splitNonSpacedStaffObjects :: Int -> [([Index [SpacedObject]], NonSpacedObject)] -> ([([Index [SpacedObject]], NonSpacedObject)], [([Index [SpacedObject]], NonSpacedObject)])
+splitNonSpacedStaffObjects n = 
+    List.span (\(i, _) -> head i < n) . List.sortBy (comparing fst)
+
+
+
+-- Prepare a staff for splitting by cutting its objects, i.e. divide slurs, ties, sustain lines
+cutStaffObjects :: Spaces -> Staff -> Staff
+cutStaffObjects t (Staff o s ns) = Staff o s ns
+
+cutSpacedStaffObject :: Spaces -> SpacedObject -> (SpacedObject, Maybe SpacedObject)
+cutSpacedStaffObject t (StaffSustainLine (p, w)) = (StaffSustainLine (p, w - t), Just $ StaffSustainLine (p, t))
+cutSpacedStaffObject t obj                       = (obj, Nothing)
+
+cutNonSpacedStaffObject :: Spaces -> NonSpacedObject -> (NonSpacedObject, Maybe NonSpacedObject)
+cutNonSpacedStaffObject t obj = (obj, Nothing)
+
+
 
 
 \end{code}
@@ -1452,17 +1476,17 @@ extractParts parts score = map (flip extractPart $ score) parts
 
 
 engravePanorama :: [Score Dur Cue] -> [Engraving]
-engravePanorama = 
+engravePanorama =
     fmap ((<> spaceY 4) . engraveStaff . addSpaceAtEnd 50)
     . justifyStaves . fmap notatePart
 
 
-kPageWidth = 160 :: Spaces                         
-kSystemsPerPage = 14                                             
+kPageWidth = 160 :: Spaces
+kSystemsPerPage = 14
 kSpaceBetweenSystems = 8
 
 engravePartLines :: Score Dur Cue -> [Engraving]
-engravePartLines = fmap engraveStaff . page kPageWidth . notatePart
+engravePartLines = fmap engraveStaff . divideStaff kPageWidth . notatePart
 
 engravePartPages :: Score Dur Cue -> [Engraving]
 engravePartPages = map catDown . map addSpaceBetween . List.divide kSystemsPerPage . engravePartLines
@@ -1471,32 +1495,21 @@ engravePartPages = map catDown . map addSpaceBetween . List.divide kSystemsPerPa
 
 
 
-data PartBook = 
+data PartBook =
     PartBook
-    {        
+    {
         partBookPart :: Part,
         partBookScore :: Score Dur Cue
     }
 partBookFilePath :: PartBook -> FilePath
 partBookFilePath (PartBook p s) = toLowerCase . filter isAlphaNum $ show p
-    
-engravePartBook :: PartBook -> [Engraving] 
+
+engravePartBook :: PartBook -> [Engraving]
 engravePartBook = engravePartPages . partBookScore
 
--- | All parts, generated from 'score'.
-parts :: [Score Dur Cue]
-parts = extractParts ensemble (calculateTempo score)
-
-partBooks :: [PartBook]
-partBooks = fmap (\(p,s) -> PartBook p s) $ zip ensemble parts
-
-
-writePartBooks :: IO ()
-writePartBooks = sequence_ $ map (writePartBook "parts/") partBooks
-
 writePartBook :: FilePath -> PartBook -> IO ()
-writePartBook path book = 
-    let (files, action) = writePartBookPages path book in 
+writePartBook path book =
+    let (files, action) = writePartBookPages path book in
         do  action
             joinPdfs files (path ++ partBookFilePath book ++ ".pdf")
             threadDelay 3000000
@@ -1504,25 +1517,48 @@ writePartBook path book =
 
 writePartBookPages :: FilePath -> PartBook -> ([FilePath], IO ())
 writePartBookPages path book = (take (length pages) names, writeMultipleGraphics (zip names pages))
-    where                           
-        name  = path ++ partBookFilePath book                   
+    where
+        name  = path ++ partBookFilePath book
         names = map (\i -> name ++ "_p" ++ show i ++ ".pdf") [1..]
         pages = map Graphic $ engravePartBook book
 
 
-removeFiles :: [FilePath] -> IO ()
-removeFiles fs = execute "rm" fs
+\end{code}
 
-joinPdfs :: [FilePath] -> FilePath -> IO ()    
-joinPdfs ins out = 
+As the Cairo backend insists on outputting one file for each page, we add these utility functions to
+join the generated "page" files into a single "book" file, as well as removing the intermediate page
+files. These depend on Posix functions and the PDF toolkit being installed.
+
+\begin{code}
+joinPdfs :: [FilePath] -> FilePath -> IO ()
+joinPdfs ins out =
     execute "pdftk" args
     where
         args = ins ++ ["cat", "output", out]
-    
-    
+
+removeFiles :: [FilePath] -> IO ()
+removeFiles fs = execute "rm" fs
+\end{code}
+
+
+
+Stuff depending on `score`:
+
+\begin{code}
+-- | All parts, generated from 'score'.
+parts :: [Score Dur Cue]
+parts = extractParts ensemble (calculateTempo score)
+
+partBooks :: [PartBook]
+partBooks = fmap (\(p,s) -> PartBook p s) $ zip ensemble parts
 
 -- scoreBook :: [Engraving]
 
+writePartBooks :: IO ()
+writePartBooks = sequence_ $ map (writePartBook "parts/") partBooks
+
+writeScoreBook :: IO ()
+writeScoreBook = undefined
 
 -- | Notations of each part in panorama form.
 partNotations :: [Engraving]
@@ -1842,9 +1878,9 @@ finalCanon = setDynamics f . compress 1.1 $ instant
     ||| (stretch 3.1  . fifthUp  . tonality . setPart (Viola 2)  $ patternSequenceFrom 1 $ [1,2,1,2,0,1])
 
 finalCanonBass = setDynamics f . compress 1.1 $ instant
-    -- ||| (concatSeq $ map (\x -> stretch 20 . setPart (Cello 1)  $ stoppedString x) $ take 3 [57,55,54,52,50])
-    -- ||| (concatSeq $ map (\x -> stretch 30 . setPart (Cello 2)  $ stoppedString x) $ take 2 [54,52,50,49,48])
-    -- ||| (concatSeq $ map (\x -> stretch 40 . setPart DoubleBass $ openString x)    $ [IV{-,III-}])
+    --  ||| (concatSeq $ map (\x -> stretch 20 . setPart (Cello 1)  $ stoppedString x) $ take 3 [57,55,54,52,50])
+    --  ||| (concatSeq $ map (\x -> stretch 30 . setPart (Cello 2)  $ stoppedString x) $ take 2 [54,52,50,49,48])
+    --  ||| (concatSeq $ map (\x -> stretch 40 . setPart DoubleBass $ openString x)    $ [IV{-,III-}])
 
 
 -- Harmonics
@@ -1984,19 +2020,19 @@ score' = harmScore ||| mainScore
 
 
 harmScore = instant
-    -- ||| (delay 45 . before 45) harms1
-    -- ||| delay 90 harms2
-    -- ||| delay 100 (reverse harms1)
-    -- ||| delay 250 harms5
-    -- ||| delay 280 harms6
+    --  ||| (delay 45 . before 45) harms1
+    --  ||| delay 90 harms2
+    --  ||| delay 100 (reverse harms1)
+    --  ||| delay 250 harms5
+    --  ||| delay 280 harms6
 
     ||| (delay 180 . stretch 4) db4
     ||| (delay 210 . stretch 4) db4
     ||| (delay 240 . stretch 4) db4
-    -- ||| (delay 310 . stretch 4) dbG
-    -- ||| (delay 335 . stretch 4) dbA
-    -- ||| (delay 360 . stretch 4) dbG
-    -- ||| (delay 375 . stretch 4) dbA
+    --  ||| (delay 310 . stretch 4) dbG
+    --  ||| (delay 335 . stretch 4) dbA
+    --  ||| (delay 360 . stretch 4) dbG
+    --  ||| (delay 375 . stretch 4) dbA
 
 
 mainScore = stretch 1{-0.8-} $ instant
