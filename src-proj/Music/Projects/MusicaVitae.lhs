@@ -1465,7 +1465,7 @@ engravePartLines :: Score Dur Cue -> [Engraving]
 engravePartLines = fmap engraveStaff . page kPageWidth . notatePart
 
 engravePartPages :: Score Dur Cue -> [Engraving]
-engravePartPages = map catDown . map addSpaceBetween . splitInto kSystemsPerPage . engravePartLines
+engravePartPages = map catDown . map addSpaceBetween . List.divide kSystemsPerPage . engravePartLines
     where
         addSpaceBetween = map (<> spaceY (kSpaceBetweenSystems / 2))
 
@@ -2083,15 +2083,14 @@ equals f x = (== x) . f
 removeEquals :: Eq a => [a] -> [a]
 removeEquals = List.remove2 (==)
 
-splitInto :: Int -> [a] -> [[a]]
-splitInto _ [] = []
-splitInto i x = f : splitInto i rest
-    where (f,rest) = splitAt i x
 
-
+compose :: [b -> c] -> [a -> b] -> [a -> c]
 compose = zipWith (.)
 
+onlyWhen :: (a -> a) -> Bool -> a -> a
 onlyWhen x y    = x `onlyIf` (const y)
+
+onlyWhenNot :: (a -> a) -> Bool -> a -> a
 onlyWhenNot x y = x `onlyIfNot` (const y)
 
 
