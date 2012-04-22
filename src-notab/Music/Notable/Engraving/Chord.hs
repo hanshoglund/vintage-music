@@ -150,35 +150,30 @@ import Music.Notable.Core.Diagrams
 --
 
 -- | Thickness of stems.
-kStemWeight :: Double
-kStemWeight = convert $ Spaces 0.12
-
+kStemWeight        :: Double
 -- | Amount of space to move stems inward by.
-kStemInset :: Double
-kStemInset = convert $ Spaces 0.032
-
+kStemInset         :: Double
 -- | Amount of space to shorten stem by at the outer note.
-kStemCap :: Double
-kStemCap = convert $ Spaces 0.1
-
-
+kStemCap           :: Double
 -- | Thickness of ledger lines.
-kLedgerLineWeight :: Double
-kLedgerLineWeight = convert $ Spaces 0.14
+kLedgerLineWeight  :: Double
 
+kStemWeight        = convert $ Spaces 0.12
+kStemInset         = convert $ Spaces 0.032
+kStemCap           = convert $ Spaces 0.1
+kLedgerLineWeight  = convert $ Spaces 0.14
 
 
 -- | Amount of space of space to add to the right of vertical lines.
 kVerticalLineSpace :: Double
-kVerticalLineSpace = convert $ Spaces 0
-
 -- | Amount of space to add to the right of accidentals.
-kAccidentalSpace :: Double
-kAccidentalSpace = convert $ Spaces 0.3
-
+kAccidentalSpace   :: Double
 -- | Amount of space to add to the left of dots.
-kDotSpace :: Double
-kDotSpace = convert $ Spaces 0.3
+kDotSpace          :: Double
+
+kVerticalLineSpace = convert $ Spaces 0
+kAccidentalSpace   = convert $ Spaces 0.3
+kDotSpace          = convert $ Spaces 0.3
 
 
 
@@ -352,6 +347,7 @@ engraveRestOrNoteHeads :: Rest -> Direction -> [(NoteHeadPosition, NoteHead)] ->
 engraveRestOrNoteHeads rest stemDir noteHeads
     | null noteHeads = engraveRest rest
     | otherwise      = engraveNoteHeads stemDir noteHeads
+
 
 
 --
@@ -629,6 +625,7 @@ engraveAccidentals :: [(AccidentalPosition, Accidental)] -> Engraving
 engraveAccidentals = catLeft . fmap engraveAccidentalColumn . separateAccidentals
 
 
+
 --
 -- Articulation
 --
@@ -699,6 +696,7 @@ engraveArticulations :: Direction -> NoteHeadPosition -> Bool -> Bool -> [Articu
 engraveArticulations stemDir outerNote tied slurred articulations = mempty -- TODO
 
 
+
 --
 -- Vertical lines
 --
@@ -712,6 +710,8 @@ data VerticalLine
 --   The local origin will be in the middle, at position zero.
 engraveVerticalLines :: (NoteHeadPosition, NoteHeadPosition) -> [VerticalLine] -> Engraving
 engraveVerticalLines notes lines = mempty -- TODO
+
+
 
 --
 -- Ledger lines
@@ -929,6 +929,7 @@ engraveChord chord =
         bottomNoteN   =  minimum positionsN
         outerNoteN    =  if isUp directionN then topNoteN else bottomNoteN
                                                                                   
+
                                                                                   
 -- --
 -- -- Positioning

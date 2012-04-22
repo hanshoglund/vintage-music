@@ -22,6 +22,7 @@ module Music.Util
     inRange,
     equals,
     compose,
+    composeAll,
 
 -- * Boolean
     ifThenElse,
@@ -85,6 +86,10 @@ equals f x = (== x) . f
 
 compose :: [b -> c] -> [a -> b] -> [a -> c]
 compose = zipWith (.)
+
+composeAll :: [a -> a] -> a -> a
+composeAll = Prelude.foldr (.) id
+
 
 
 --

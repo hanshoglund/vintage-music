@@ -65,7 +65,6 @@ module Music.Notable.Engraving.Staff
     cesura,
 
 
-
 -- * Non-spaced objects
 
 -- ** Beams and tremolo beams
@@ -147,6 +146,7 @@ import Music.Notable.Core.Symbols
 import Music.Notable.Core.Diagrams
 import Music.Notable.Engraving.Chord
 
+
 --
 -- Constants
 --
@@ -185,6 +185,7 @@ kExpressionScale     = 0.5
 kDynamicScale        = 0.6
 
 
+
 --
 -- Note lines
 --
@@ -199,13 +200,12 @@ noteLines = noteLines' 5
 --
 --   Note lines engraved at length one. To obtain other lengths, use 'stretchX' or 'stretchTo'.
 noteLines' :: StaffLines -> Engraving
-noteLines' num =
-    -- TODO use cat' instead of foldr?
-    placement $ foldr above mempty (replicate num noteLine)
-        where
-            placement = moveSpacesUp $ (fromIntegral num - 1) / 2
-            noteLine  =  style $ hrule 1 <> {-spaceRect rect 1 space-} strutY (convert space)
-                where { style = lineWidth kNoteLineWeight }
+noteLines' num = position $ foldr above mempty (replicate num noteLineE)
+    where
+        noteLineE  =  s $ hrule 1 <> strutY (convert space) where { s = lineWidth kNoteLineWeight }
+        position   =  moveSpacesUp $ (fromIntegral num - 1) / 2
+
+
 
 --
 -- Bar lines
@@ -217,7 +217,6 @@ noteLines' num =
 --   lengths, use 'stretchY' or 'stretchTo'.
 singleBarLine :: Engraving
 singleBarLine = barLine 1 4
-
 
 -- | A double bar line.
 --
@@ -251,6 +250,7 @@ barLine thickness height = lineE <> spaceE
             where { style = lineWidth (thickness * kBarLineWeight) }
 
 
+
 --
 -- Sustain lines
 --
@@ -269,6 +269,7 @@ engraveSustainLine (pos, len) = p . s $ rect (convert len) (convert $ (2/5) * sp
     where
         p = moveHalfSpacesUp pos . alignL
         s = lineWidth 0 . fillColor black
+
 
 
 --
@@ -321,7 +322,6 @@ subBassClef       = (FClef, 4)
 
 
 
-
 --
 -- Key signatures
 --
@@ -359,15 +359,18 @@ bMajor      = 5
 fSharpMajor = 6
 
 
+
 --
 -- Time signatures
 --
 
--- TODO c, alla breve, pulse group time sig etc.
+-- TODO c, alla breve, compound time
 type TimeSignature = (Int, Int)
 
 engraveTimeSignature :: TimeSignature -> Engraving
 engraveTimeSignature = undefined
+
+
 
 --
 -- Cesuras
@@ -378,6 +381,8 @@ apostrophe = undefined
 
 cesura :: Engraving
 cesura = undefined
+
+
 
 --
 -- Beams
@@ -390,6 +395,7 @@ engraveBeams :: Beams -> R2 -> R2 -> Engraving
 engraveBeams = undefined
 
 
+
 --
 -- Tremolo beams
 --
@@ -400,12 +406,14 @@ engraveTremoloBeams :: TremoloBeams -> R2 -> R2 -> Engraving
 engraveTremoloBeams = undefined
 
 
+
 --
 -- Ties
 --
 
 engraveTie :: Direction -> R2 -> R2 -> Engraving
 engraveTie = undefined
+
 
 
 --
@@ -416,12 +424,14 @@ engraveSlur :: Direction -> R2 -> R2 -> Engraving
 engraveSlur = undefined
 
 
+
 --
 -- Tuplets
 --
 
 engraveTuplet :: String -> Direction -> R2 -> R2 -> Engraving
 engraveTuplet = undefined
+
 
 
 --
@@ -435,6 +445,7 @@ engraveRehearsal str = p . s $ text str <> square (convert kRehearsalSquare)
     where
         s = font {-textFont-}"Arial" . bold
         p = moveSpacesUp kRehearsalOffset . scale kRehearsalScale
+
 
 
 --
@@ -458,13 +469,14 @@ toMetronomeScale x
 --   The mark will be positioned slightly above the staff aligned to the left. Use @centerX@ or @alignR@ if
 --   another alignment is required.
 engraveMetronomeMark :: NoteValue -> BeatsPerMinute -> Engraving
-engraveMetronomeMark nv tempo = t $ mempty
+engraveMetronomeMark nv tempo = p $ mempty
     <> (engraveNote up 0 nh `leftTo` engraveText text)
     <> (translate (r2 (-0.8, 0.4)) . alignL $ spaceRect 4.2 1.5)
     where
-        nh = noteHeadFromNoteValue nv
-        text = " = " ++ show tempo
-        t = moveSpacesUp kMetronomeMarkOffset . scale kMetronomeMarkScale
+        nh    =  noteHeadFromNoteValue nv
+        text  =  " = " ++ show tempo
+        p     =  moveSpacesUp kMetronomeMarkOffset . scale kMetronomeMarkScale
+
 
 
 --
@@ -523,7 +535,6 @@ engraveDynamic d = t $ mempty
 --
 
 type Instruction = String
-type Expression = String
 
 engraveInstruction :: Instruction -> Engraving
 engraveInstruction txt = t $ mempty
@@ -533,12 +544,16 @@ engraveInstruction txt = t $ mempty
         t = moveSpacesUp kInstructionOffset . scale kInstructionScale
 
 
+type Expression = String
+
 engraveExpression :: Expression -> Engraving
 engraveExpression txt = t $ mempty
     <> (italic $ engraveText txt)
     <> (translate (r2 (-0.2, 0.2)) . alignL $ spaceRect (0.2 + 0.65 * fromIntegral $ length txt) 1.5)
     where
         t = moveSpacesDown (0.6 + kExpressionOffset) . scale kExpressionScale
+
+
 
 
 --
@@ -548,9 +563,6 @@ engraveExpression txt = t $ mempty
 -- | Spaced staff objects, associated with a horizontal position.
 data SpacedObject
     = StaffNothing
-    | StaffClef Clef
-    | StaffKeySignature KeySignature
-    | StaffTimeSignature TimeSignature
     | StaffBarLine
     | StaffDoubleBarLine
     | StaffThickBarLine
@@ -558,6 +570,9 @@ data SpacedObject
     | StaffTickBarLine
     | StaffFinalBarLine
     | StaffSustainLine SustainLine
+    | StaffClef Clef
+    | StaffKeySignature KeySignature
+    | StaffTimeSignature TimeSignature
     | StaffCesura
     | StaffChord Chord
     deriving (Eq, Show)
@@ -612,6 +627,22 @@ instance Monoid Staff where
             inc n = fmap (inc' n)
             inc' n (is, x) = (map (+ n) is, x)
 
+
+-- | Whether a staff has any objects or not.
+isStaffEmpty :: Staff -> Bool
+isStaffEmpty (Staff o s ns) = null s
+
+
+
+insertSpacedObject :: Spaces -> SpacedObject -> Staff -> Staff
+insertSpacedObject t x (Staff o s ns) = (Staff o s' ns')
+    where
+        n   = insertIndexBy (comparing fst) (t, x) s
+        s'  = insertBy      (comparing fst) (t, x) s
+        ns' = map (\(is,x) -> (map (\i -> if i < n then i else i + 1) is, x)) ns
+
+
+
 -- | The width of the staff, defined as the position of its rightmost elements
 --   plus any extra space before and after.
 staffWidth :: Staff -> Spaces
@@ -619,24 +650,6 @@ staffWidth (Staff o s _) = a + w
     where
         w = maximumWith 0 . fmap fst $ s
         a = spaceBefore o + spaceAfter o
-
--- | The width of a spaced object. This is used to detect objects spanning line breaks.
-spacedObjectWidth :: SpacedObject -> Spaces
-spacedObjectWidth (StaffSustainLine (p, w)) = w
-spacedObjectWidth _ = 0
-
--- | The width of a non-spaced object. This is used to detect objects spanning line breaks.
-nonSpacedObjectWidth :: NonSpacedObject -> Spaces
-nonSpacedObjectWidth _ = 0
-
-
--- | Move objects on the staff to the right.
-moveObjectsRight :: Spaces -> Staff -> Staff
-moveObjectsRight n (Staff o s ns) = Staff o (map (\(p, x) -> (p + n, x)) s) ns
-
--- | Move objects on the staff to the left.
-moveObjectsLeft :: Spaces -> Staff -> Staff
-moveObjectsLeft n = moveObjectsRight (negate n)
 
 -- | Add extra space to the start of the staff.
 addSpaceAtStart :: Spaces -> Staff -> Staff
@@ -665,30 +678,42 @@ scaleStaffTo x staff@(Staff o s ns) = scaleStaff x' staff
 
 -- | Assure staves have the same width by adding space at end.
 justifyStaves :: [Staff] -> [Staff]
-justifyStaves ss = map (\s -> addSpaceAtEnd (((m - staffWidth s) / 2) `max` 0) s) $ ss
+justifyStaves ss = map (\s -> addSpaceAtEnd ((m - staffWidth s) `max` 0) s) $ ss
     where
         m = maximum . map staffWidth $ ss
 
--- | Split a staff right before the first spaced object that satisfies the predicate.
-splitStaffWhen :: (Spaces -> SpacedObject -> Bool) -> (Staff, Staff)
-splitStaffWhen = undefined
+
+
+-- | The width of a spaced object. This is used to detect objects spanning line breaks.
+spacedObjectWidth :: SpacedObject -> Spaces
+spacedObjectWidth (StaffSustainLine (p, w)) = w
+spacedObjectWidth _ = 0
+
+-- | The width of a non-spaced object. This is used to detect objects spanning line breaks.
+nonSpacedObjectWidth :: NonSpacedObject -> Spaces
+nonSpacedObjectWidth _ = 0
+
+-- | Move objects on the staff to the right.
+moveObjectsRight :: Spaces -> Staff -> Staff
+moveObjectsRight t (Staff o s ns) = Staff o (map (\(p, x) -> (p + t, x)) s) ns
+
+-- | Move objects on the staff to the left.
+moveObjectsLeft :: Spaces -> Staff -> Staff
+moveObjectsLeft n = moveObjectsRight (negate n)
+
+move t = map (\(p, x) -> (p + t, x)) -- compare moveObjectsLeft, moveObjectsRight
 
 
 
--- Splitting
 
-move t     = map (\(p, x) -> (p + t, x)) -- compare moveObjectsLeft, moveObjectsRight
-
-insertSpacedObject :: Spaces -> SpacedObject -> Staff -> Staff
-insertSpacedObject t x (Staff o s ns) = (Staff o s' ns')
-    where
-        n   = insertIndexBy (comparing fst) (t, x) s
-        s'  = insertBy      (comparing fst) (t, x) s
-        ns' = map (\(is,x) -> (map (\i -> if i < n then i else i + 1) is, x)) ns
 
 -- | Split a staff at the given position.
 splitStaff :: Spaces -> Staff -> (Staff, Staff)
 splitStaff t = splitStaff' t . cutStaffObjects t
+
+-- | Split a staff right before the first spaced object that satisfies the predicate.
+splitStaffWhen :: (Spaces -> SpacedObject -> Bool) -> (Staff, Staff)
+splitStaffWhen = undefined
 
 -- | Split a staff at the given position.
 --
@@ -709,11 +734,11 @@ splitStaffOptions o = (o, o)
 
 splitSpacedStaffObjects :: Spaces -> [(Spaces, SpacedObject)] -> ([(Spaces, SpacedObject)], [(Spaces, SpacedObject)])
 splitSpacedStaffObjects t =
-    partition (\(p, _) -> p < t)
+    span (\(p, _) -> p < t)
 
 splitNonSpacedStaffObjects :: Int -> [([Index [SpacedObject]], NonSpacedObject)] -> ([([Index [SpacedObject]], NonSpacedObject)], [([Index [SpacedObject]], NonSpacedObject)])
 splitNonSpacedStaffObjects n =
-    partition (\(i, _) -> head i < n)
+    span (\(i, _) -> head i < n)
 
 
 -- Prepare a staff for splitting by cutting its objects, i.e. divide slurs, ties, sustain lines
@@ -725,8 +750,6 @@ cutStaffObjects t (Staff o s ns) = insertSpacedObjects ins $ Staff o short ns
 
 insertSpacedObjects :: [(Spaces, SpacedObject)] -> Staff -> Staff
 insertSpacedObjects = composeAll . map (uncurry insertSpacedObject)
-
-composeAll = foldr (.) id
 
 cutStaffObject :: Spaces -> (Spaces, SpacedObject) -> ((Spaces, SpacedObject), Maybe (Spaces, SpacedObject))
 cutStaffObject t (p, x)
@@ -746,10 +769,6 @@ cut :: Spaces -> SpacedObject -> (SpacedObject, SpacedObject)
 cut t (StaffSustainLine (p, w)) = (StaffSustainLine (p, t), StaffSustainLine (p, w - t))
 cut t x = error "cutSpacedStaffObject: Not able to cut this object"
 
--- | Whether a staff has any objects or not.
-isStaffEmpty :: Staff -> Bool
-isStaffEmpty (Staff o s ns) = null s
-
 -- | Divide a staff into staves of the given length.
 divideStaff :: Spaces -> Staff -> [Staff]
 divideStaff t = justifyStaves . unfoldr f
@@ -766,8 +785,6 @@ divideStaff t = justifyStaves . unfoldr f
 
 engraveSpacedObject :: SpacedObject -> Engraving
 engraveSpacedObject StaffNothing         =  mempty
-engraveSpacedObject (StaffClef x)        =  engraveClef x
-engraveSpacedObject (StaffChord x)       =  engraveChord x
 engraveSpacedObject StaffBarLine         =  singleBarLine
 engraveSpacedObject StaffDoubleBarLine   =  doubleBarLine
 engraveSpacedObject StaffThickBarLine    =  thickBarLine
@@ -775,6 +792,8 @@ engraveSpacedObject StaffShortBarLine    =  shortBarLine
 engraveSpacedObject StaffTickBarLine     =  tickBarLine
 engraveSpacedObject StaffFinalBarLine    =  finalBarLine
 engraveSpacedObject (StaffSustainLine x) =  engraveSustainLine x
+engraveSpacedObject (StaffClef x)        =  engraveClef x
+engraveSpacedObject (StaffChord x)       =  engraveChord x
 
 engraveNonSpacedObject :: NonSpacedObject -> Engraving
 engraveNonSpacedObject (StaffRehearsal x)          =  engraveRehearsal x
@@ -788,10 +807,13 @@ engraveNonSpacedObject (StaffExpression x)         =  engraveExpression x
 engraveStaff :: Staff -> Engraving
 engraveStaff staff@(Staff opt sN nsN) = mempty
     <> (translateX spb $ sE <> nsE)
-    <> (alignL . scaleX ({-width (sE <> nsE)-}(convert . staffWidth) staff + spb + spa) $ noteLines)
+    <> (alignL . scaleX w $ noteLines)
     where
-        spb = convert $ spaceBefore opt
-        spa = convert $ spaceAfter opt
-        sE  = mconcat $ fmap (\(p, x) -> moveSpacesRight p $ engraveSpacedObject x) sN
-        nsE = mconcat $ fmap (\(i:is, x) -> moveSpacesRight (fst $ index i sN) $ engraveNonSpacedObject x) nsN
+        spb  =  convert $ spaceBefore opt
+--        spa = convert $ spaceAfter opt
+        -- w = width (sE <> nsE) + spb + spa
+        w    =  convert . staffWidth $ staff
+
+        sE   =  mconcat $ fmap (\(p, x) -> moveSpacesRight p $ engraveSpacedObject x) sN
+        nsE  =  mconcat $ fmap (\(i:is, x) -> moveSpacesRight (fst $ index i sN) $ engraveNonSpacedObject x) nsN
 
