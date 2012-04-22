@@ -116,6 +116,9 @@ module Music.Notable.Engraving.Staff
     justifyStaves,
     splitStaff,
     splitStaffWhen,
+    divideStaff,
+    isStaffEmpty,
+    
     engraveStaff,
 )
 
@@ -123,6 +126,7 @@ where
 
 import Data.Convert
 import Data.Index
+import Data.Ord
 import Data.Trivial
 
 import Music.Util
@@ -640,13 +644,98 @@ justifyStaves ss = map (\s -> addSpaceAtEnd (((m - staffWidth s) / 2) `max` 0) s
     where
         m = maximum . map staffWidth $ ss
 
--- | Split a staff at the given position.
-splitStaff :: Spaces -> Staff -> (Staff, Staff)
-splitStaff x (Staff o s ns) = undefined 
-
 -- | Split a staff right before the first spaced object that satisfies the predicate.
 splitStaffWhen :: (Spaces -> SpacedObject -> Bool) -> (Staff, Staff)
 splitStaffWhen = undefined
+
+
+
+-- Splitting
+
+move t     = map (\(p, x) -> (p + t, x)) -- compare moveObjectsLeft, moveObjectsRight
+
+insertSpacedObject :: Spaces -> SpacedObject -> Staff -> Staff
+insertSpacedObject t x (Staff o s ns) = (Staff o s' ns')
+    where
+        n   = insertIndexBy (comparing fst) (t, x) s
+        s'  = insertBy      (comparing fst) (t, x) s
+        ns' = map (\(is,x) -> (map (\i -> if i < n then i else i + 1) is, x)) ns 
+
+-- | Split a staff at the given position.
+splitStaff :: Spaces -> Staff -> (Staff, Staff)
+splitStaff t = splitStaff' t . cutStaffObjects t
+        
+-- | Split a staff at the given position.                         
+--
+--   This is the primitive splitting function, which does not perform any cutting, so
+--   objects may be left dangling to the right of the first staff.
+--
+splitStaff' :: Spaces -> Staff -> (Staff, Staff)
+splitStaff' t (Staff o s ns) = ((Staff ox sx nsx), (Staff oy sy' nsy'))
+    where
+        (ox, oy)   = splitStaffOptions o
+        (sx, sy)   = splitSpacedStaffObjects t s
+        (nsx, nsy) = splitNonSpacedStaffObjects (length sx) ns
+        sy'        = move (negate t) sy
+        nsy'       = map (\(is, x) -> (fmap (subtract (length sx)) is, x)) nsy
+
+splitStaffOptions :: StaffOptions -> (StaffOptions, StaffOptions)
+splitStaffOptions o = (o, o)
+
+splitSpacedStaffObjects :: Spaces -> [(Spaces, SpacedObject)] -> ([(Spaces, SpacedObject)], [(Spaces, SpacedObject)])
+splitSpacedStaffObjects t = 
+    partition (\(p, _) -> p < t)
+
+splitNonSpacedStaffObjects :: Int -> [([Index [SpacedObject]], NonSpacedObject)] -> ([([Index [SpacedObject]], NonSpacedObject)], [([Index [SpacedObject]], NonSpacedObject)])
+splitNonSpacedStaffObjects n = 
+    partition (\(i, _) -> head i < n)
+
+
+-- Prepare a staff for splitting by cutting its objects, i.e. divide slurs, ties, sustain lines
+-- Precond: assumes s and ns sorted
+cutStaffObjects :: Spaces -> Staff -> Staff
+cutStaffObjects t (Staff o s ns) = insertSpacedObjects ins $ Staff o short ns
+    where
+        (short, ins) = mapCollect (cutStaffObject t) s
+
+insertSpacedObjects :: [(Spaces, SpacedObject)] -> Staff -> Staff
+insertSpacedObjects = composeAll . map (uncurry insertSpacedObject)
+
+composeAll = foldr (.) id
+
+cutStaffObject :: Spaces -> (Spaces, SpacedObject) -> ((Spaces, SpacedObject), Maybe (Spaces, SpacedObject))
+cutStaffObject t (p, x)
+    | spans t (p, x) && cuttable x =
+        let t'     = t - p           
+            (a, b) = cut t' x  in   ((p, a), Just (t, b))
+    | otherwise                   = ((p, x), Nothing)
+
+spans :: Spaces -> (Spaces, SpacedObject) -> Bool
+spans t (p, x) = inRange (p, p + spacedObjectWidth x) t
+
+cuttable :: SpacedObject -> Bool
+cuttable (StaffSustainLine _) = True
+cuttabel _                    = False
+
+cut :: Spaces -> SpacedObject -> (SpacedObject, SpacedObject)
+cut t (StaffSustainLine (p, w)) = (StaffSustainLine (p, t), StaffSustainLine (p, w - t))
+cut t x = error "cutSpacedStaffObject: Not able to cut this object"
+
+isStaffEmpty :: Staff -> Bool
+isStaffEmpty (Staff o s ns) = null s
+
+divideStaff :: Spaces -> Staff -> [Staff]
+divideStaff t = justifyStaves . unfoldr f
+    where
+        f s | isStaffEmpty s = Nothing
+            | otherwise      = Just $ splitStaff t s
+
+                                                                      
+
+
+--
+-- Engraving
+--
 
 engraveSpacedObject :: SpacedObject -> Engraving
 engraveSpacedObject StaffNothing         =  mempty

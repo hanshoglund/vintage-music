@@ -1410,111 +1410,6 @@ kDefaultClef = trebleClef
 
 
 
-Basic paging
---------
-\begin{code}
-
-divideStaff :: Spaces -> Staff -> [Staff]
-divideStaff t = justifyStaves . List.unfoldr f
-    where
-        f s | isStaffEmpty s = Nothing
-            | otherwise      = Just $ splitStaff2 t s
-
-isStaffEmpty :: Staff -> Bool
-isStaffEmpty (Staff o s ns) = null s
-
-
-move t     = map (\(p, x) -> (p + t, x)) -- compare moveObjectsLeft, moveObjectsRight
-
-insertSpacedObject :: Spaces -> SpacedObject -> Staff -> Staff
-insertSpacedObject t x (Staff o s ns) = (Staff o s' ns')
-    where
-        n   =      insertIndexBy (comparing fst) (t, x) s
-        s'  = List.insertBy      (comparing fst) (t, x) s
-        ns' = map (\(is,x) -> (map (\i -> if i < n then i else i + 1) is, x)) ns 
-
-splitStaff2 :: Spaces -> Staff -> (Staff, Staff)
-splitStaff2 t = splitStaff2' t . cutStaffObjects t
-        
--- | Split a staff at the given position.                         
---
---   This is the primitive splitting function, which does not perform any cutting, so
---   objects may be left dangling to the right of the first staff.
---
-splitStaff2' :: Spaces -> Staff -> (Staff, Staff)
-splitStaff2' t (Staff o s ns) = ((Staff ox sx nsx), (Staff oy sy' nsy'))
-    where
-        (ox, oy)   = splitStaffOptions o
-        (sx, sy)   = splitSpacedStaffObjects t s
-        (nsx, nsy) = splitNonSpacedStaffObjects (length sx) ns
-        sy'        = move (negate t) sy
-        nsy'       = map (\(is, x) -> (fmap (subtract (length sx)) is, x)) nsy
-
-splitStaffOptions :: StaffOptions -> (StaffOptions, StaffOptions)
-splitStaffOptions o = (o, o)
-
-splitSpacedStaffObjects :: Spaces -> [(Spaces, SpacedObject)] -> ([(Spaces, SpacedObject)], [(Spaces, SpacedObject)])
-splitSpacedStaffObjects t = 
-    List.partition (\(p, _) -> p < t)
-
-splitNonSpacedStaffObjects :: Int -> [([Index [SpacedObject]], NonSpacedObject)] -> ([([Index [SpacedObject]], NonSpacedObject)], [([Index [SpacedObject]], NonSpacedObject)])
-splitNonSpacedStaffObjects n = 
-    List.partition (\(i, _) -> head i < n)
-
-
--- Prepare a staff for splitting by cutting its objects, i.e. divide slurs, ties, sustain lines
--- Precond: assumes s and ns sorted
-cutStaffObjects :: Spaces -> Staff -> Staff
-cutStaffObjects t (Staff o s ns) = insertSpacedObjects ins $ Staff o short ns
-    where
-        (short, ins) = mapCollect (cutStaffObject t) s
-
-insertSpacedObjects :: [(Spaces, SpacedObject)] -> Staff -> Staff
-insertSpacedObjects = composeAll . map (uncurry insertSpacedObject)
-
-composeAll = foldr (.) id
-
-cutStaffObject :: Spaces -> (Spaces, SpacedObject) -> ((Spaces, SpacedObject), Maybe (Spaces, SpacedObject))
-cutStaffObject t (p, x)
-    | spans t (p, x) && cuttable x =
-        let t'     = t - p           
-            (a, b) = cut t' x  in   ((p, a), Just (t, b))
-    | otherwise                   = ((p, x), Nothing)
-
-spans :: Spaces -> (Spaces, SpacedObject) -> Bool
-spans t (p, x) = inRange (p, p + spacedObjectWidth x) t
-
-cuttable :: SpacedObject -> Bool
-cuttable (StaffSustainLine _) = True
-cuttabel _                    = False
-
-cut :: Spaces -> SpacedObject -> (SpacedObject, SpacedObject)
-cut t (StaffSustainLine (p, w)) = (StaffSustainLine (p, t), StaffSustainLine (p, w - t))
-cut t x = error "cutSpacedStaffObject: Not able to cut this object"
-
-
-
-
-firstLefts  :: [(a, Either b c)] -> [(a, b)]
-firstLefts = concatMap f
-    where
-        f (x, Left y) = [(x, y)]
-        f _           = []
-
-firstRights :: [(a, Either b c)] -> [(a, c)]
-firstRights = concatMap f
-    where
-        f (x, Right y) = [(x, y)]
-        f _            = []
-
-inRange :: Ord a => (a, a) -> a -> Bool
-inRange (a, b) x  =  a < x && x < b
-
-
-
-
-\end{code}
-
 Assembling the score and parts
 --------
 
@@ -1556,8 +1451,11 @@ engravePartPages = map fitIntoPage . map catDown . map (map addSpaceBetween) . L
 fitIntoPage :: Engraving -> Engraving
 fitIntoPage = (<> page) . alignTL . scale kPageScaling . freeze
     where
-        page = st . moveOriginBy kPageMarigins . alignTL $ rect (getX kPageDimensions) (getY kPageDimensions)
-        st   = fillColor lightyellow
+        page = st . moveOriginBy kPageMarigins . alignTL $ r (getX kPageDimensions) (getY kPageDimensions)
+        r    = spaceRect   
+        st   = id
+        -- r    = rect
+        -- st   = fillColor lightyellow
 
 data PartBook =
     PartBook
@@ -2083,7 +1981,7 @@ harms9 = setDynamics pp . stretch 3 $ instant
 score :: Score Dur Cue
 score = score'
 
-score' = harmScore ||| mainScore
+score' = stretch 0.8{-0.8-} $ harmScore ||| mainScore
 
 
 harmScore = instant
@@ -2102,7 +2000,7 @@ harmScore = instant
     --  ||| (delay 375 . stretch 4) dbA
 
 
-mainScore = stretch 1{-0.8-} $ instant
+mainScore = instant
     >>> intro1
 
     >>> rest 10
@@ -2179,53 +2077,6 @@ Miscellaneous
 ----------
 
 \begin{code}
-
-equals :: Eq b => (a -> b) -> b -> a -> Bool
-equals f x = (== x) . f
-
-removeEquals :: Eq a => [a] -> [a]
-removeEquals = List.remove2 (==)
-
-insertIndex :: Ord a => a -> [a] -> Int
-insertIndex = insertIndexBy compare
-
-insertIndexBy :: (a -> a -> Ordering) -> a -> [a] -> Int
-insertIndexBy = ix 0
-    where
-        ix n _   _ [] = n
-        ix n cmp x (y:ys)
-            | x `cmp` y == GT  =  ix (n + 1) cmp x ys
-            | otherwise        =  n
-
-mapCollect :: (a -> (b, Maybe c)) -> [a] -> ([b], [c])
-mapCollect f xs = (bs, catMaybes cs)
-    where
-        (bs, cs) = unzip $ map f xs
-
-
-compose :: [b -> c] -> [a -> b] -> [a -> c]
-compose = zipWith (.)
-
-onlyWhen :: (a -> a) -> Bool -> a -> a
-onlyWhen x y    = x `onlyIf` (const y)
-
-onlyWhenNot :: (a -> a) -> Bool -> a -> a
-onlyWhenNot x y = x `onlyIfNot` (const y)
-
-
-emptyWhen :: Monoid m => m -> Bool -> m
-emptyWhen x p = x `emptyIf` (const p)
-
-nonEmptyWhen :: Monoid m => m -> Bool -> m
-nonEmptyWhen x p = x `nonEmptyIf` (const p)
-
-emptyIf :: Monoid m => m -> (m -> Bool) -> m
-emptyIf x p = x `nonEmptyIf` (not . p)
-
-nonEmptyIf :: Monoid m => m -> (m -> Bool) -> m
-nonEmptyIf x p = if p x then x else mempty
-
-
 splitted :: RandomGen r => r -> [r]
 splitted = List.unfoldr (Just . System.Random.split)
 

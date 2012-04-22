@@ -17,12 +17,23 @@
 -}
 
 module Music.Util
-(
+(    
+-- * Miscellaneous
+    inRange,
+    equals,
+    compose,
+
 -- * Boolean
     ifThenElse,
     ifThenElse',        
     onlyIf,
     onlyIfNot,
+    onlyWhen,
+    onlyWhenNot,
+    emptyIf,
+    nonEmptyIf, 
+    emptyWhen,
+    nonEmptyWhen,
 
 -- * Numbers
     negateIf,
@@ -55,10 +66,26 @@ module Music.Util
 where
 
 import Data.Char( toLower )
+import Data.Monoid
 import Data.Tuple ( swap )
 
 import Data.Foldable ( Foldable(..) )
 import qualified Data.Foldable
+
+
+--
+-- Misc
+--
+
+inRange :: Ord a => (a, a) -> a -> Bool
+inRange (a, b) x  =  a < x && x < b
+
+equals :: Eq b => (a -> b) -> b -> a -> Bool
+equals f x = (== x) . f
+
+compose :: [b -> c] -> [a -> b] -> [a -> c]
+compose = zipWith (.)
+
 
 --
 -- Booleans
@@ -90,6 +117,24 @@ onlyIfNot :: (a -> a) -> (a -> Bool) -> a -> a
 onlyIfNot f p = ifThenElse' p id f
 
 
+onlyWhen :: (a -> a) -> Bool -> a -> a
+onlyWhen x y    = x `onlyIf` (const y)
+
+onlyWhenNot :: (a -> a) -> Bool -> a -> a
+onlyWhenNot x y = x `onlyIfNot` (const y)
+
+emptyWhen :: Monoid m => m -> Bool -> m
+emptyWhen x p = x `emptyIf` (const p)
+
+nonEmptyWhen :: Monoid m => m -> Bool -> m
+nonEmptyWhen x p = x `nonEmptyIf` (const p)
+
+emptyIf :: Monoid m => m -> (m -> Bool) -> m
+emptyIf x p = x `nonEmptyIf` (not . p)
+
+nonEmptyIf :: Monoid m => m -> (m -> Bool) -> m
+nonEmptyIf x p = if p x then x else mempty
+                                            
 
 --
 -- Numbers
@@ -113,6 +158,7 @@ closerThan r x y = x `absoluteDifference` y < r
 -- | Mean of the given values.
 mean :: Fractional a => [a] -> a 
 mean xs = sum xs / fromIntegral (length xs)
+
 
 
 --

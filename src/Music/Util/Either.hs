@@ -21,10 +21,25 @@ module Music.Util.Either
     fmapEither,
     fmapLeft,
     fmapRight,
+    firstLefts,
+    firstRights,
 )
 where
 
 import Data.Either
+
+firstLefts  :: [(a, Either b c)] -> [(a, b)]
+firstLefts = concatMap f
+    where
+        f (x, Left y) = [(x, y)]
+        f _           = []
+
+firstRights :: [(a, Either b c)] -> [(a, c)]
+firstRights = concatMap f
+    where
+        f (x, Right y) = [(x, y)]
+        f _            = []
+                                             
 
 getLeft :: Either a b -> a
 getLeft (Left x)   = x

@@ -45,12 +45,17 @@ module Music.Util.List
     spin,
     palindrome,
     palindromeInclusive,
+    mapCollect,
     concatMapAccumL,
+    removeDuplicates,
+    removeEquals,
 
 -- * Indexing
     divide,
     update,
     adjust,
+    insertIndex,
+    insertIndexBy,
     nonEmpty,  
     ifNonEmpty,
     oneOf,
@@ -76,11 +81,14 @@ module Music.Util.List
 where
 
 import Data.List
-import Data.Maybe ( fromMaybe )
+import Data.Maybe ( fromMaybe, catMaybes )
 import Data.Tuple ( swap )
 import qualified Data.Set as Set
 
 import Music.Util ( mapFirst, mapSecond, uncurry3 )
+
+
+
 
 --
 -- Safe versions
@@ -263,14 +271,10 @@ palindrome (x : xs)  =  x : init xs ++ reverse xs
 palindromeInclusive :: [a] -> [a]
 palindromeInclusive xs = xs ++ reverse xs
 
--- | Return a list containing the same set of elements as the given list.
-removeDuplicates :: Ord a => [a] -> [a]
-removeDuplicates = Set.toList . Set.fromList
-
-
---
--- Misc
---
+mapCollect :: (a -> (b, Maybe c)) -> [a] -> ([b], [c])
+mapCollect f xs = (bs, catMaybes cs)
+    where
+        (bs, cs) = unzip $ map f xs
 
 -- | Combination of 'concatMap' and 'mapAccumL'.
 concatMapAccumL :: (acc -> x -> (acc, [y])) -> acc -> [x] -> (acc, [y])
@@ -278,8 +282,21 @@ concatMapAccumL _ s []     = (s,  [])
 concatMapAccumL f s (x:xs) = (s'', y ++ ys)
     where 
         (s',  y ) = f s x
-        (s'', ys) = concatMapAccumL f s' xs
+        (s'', ys) = concatMapAccumL f s' xs   
+        
 
+-- | Return a list containing the same set of elements as the given list.
+removeDuplicates :: Ord a => [a] -> [a]
+removeDuplicates = Set.toList . Set.fromList
+
+-- | Remove consequent equal pairs.
+removeEquals :: Eq a => [a] -> [a]
+removeEquals = remove2 (==)
+
+
+--
+-- Indexing
+--
 
 -- | Divide into smaller parts.
 divide :: Int -> [a] -> [[a]]
@@ -297,6 +314,21 @@ update :: Int -> a -> [a] -> [a]
 update i z []     = []
 update 0 z (_:xs) = z:xs
 update n z (x:xs) = x:(update (pred n) z xs)
+
+insertIndex :: Ord a => a -> [a] -> Int
+insertIndex = insertIndexBy compare
+
+insertIndexBy :: (a -> a -> Ordering) -> a -> [a] -> Int
+insertIndexBy = ix 0
+    where
+        ix n _   _ [] = n
+        ix n cmp x (y:ys)
+            | x `cmp` y == GT  =  ix (n + 1) cmp x ys
+            | otherwise        =  n         
+
+--
+-- Misc
+--
 
 -- | If the list is empty, return nothing, otherwise return the list.
 nonEmpty :: [a] -> Maybe [a]
