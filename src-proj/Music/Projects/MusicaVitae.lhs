@@ -1418,7 +1418,7 @@ divideStaff :: Spaces -> Staff -> [Staff]
 divideStaff t = justifyStaves . List.unfoldr f
     where
         f s | isStaffEmpty s = Nothing
-            | otherwise      = Just $ splitStaff' t s
+            | otherwise      = Just $ splitStaff2 t s
 
 isStaffEmpty :: Staff -> Bool
 isStaffEmpty (Staff o s ns) = null s
@@ -1432,15 +1432,17 @@ insertSpacedObject t x (Staff o s ns) = (Staff o s' ns')
         n   =      insertIndexBy (comparing fst) (t, x) s
         s'  = List.insertBy      (comparing fst) (t, x) s
         ns' = map (\(is,x) -> (map (\i -> if i < n then i else i + 1) is, x)) ns 
-        
+
+splitStaff2 :: Spaces -> Staff -> (Staff, Staff)
+splitStaff2 t = splitStaff2' t . cutStaffObjects t
         
 -- | Split a staff at the given position.                         
 --
 --   This is the primitive splitting function, which does not perform any cutting, so
 --   objects may be left dangling to the right of the first staff.
 --
-splitStaff' :: Spaces -> Staff -> (Staff, Staff)
-splitStaff' t (Staff o s ns) = ((Staff ox sx nsx), (Staff oy sy' nsy'))
+splitStaff2' :: Spaces -> Staff -> (Staff, Staff)
+splitStaff2' t (Staff o s ns) = ((Staff ox sx nsx), (Staff oy sy' nsy'))
     where
         (ox, oy)   = splitStaffOptions o
         (sx, sy)   = splitSpacedStaffObjects t s
@@ -1463,28 +1465,50 @@ splitNonSpacedStaffObjects n =
 -- Prepare a staff for splitting by cutting its objects, i.e. divide slurs, ties, sustain lines
 -- Precond: assumes s and ns sorted
 cutStaffObjects :: Spaces -> Staff -> Staff
-cutStaffObjects t (Staff o s ns) = Staff o s ns
-    -- where
-        -- possiblySpanningObjects = 
+cutStaffObjects t (Staff o s ns) = insertSpacedObjects ins $ Staff o short ns
+    where
+        (short, ins) = mapCollect (cutStaffObject t) s
+
+insertSpacedObjects :: [(Spaces, SpacedObject)] -> Staff -> Staff
+insertSpacedObjects = composeAll . map (uncurry insertSpacedObject)
+
+composeAll = foldr (.) id
+
+cutStaffObject :: Spaces -> (Spaces, SpacedObject) -> ((Spaces, SpacedObject), Maybe (Spaces, SpacedObject))
+cutStaffObject t (p, x)
+    | spans t (p, x) && cuttable x =
+        let t'     = t - p           
+            (a, b) = cut t' x  in   ((p, a), Just (t, b))
+    | otherwise                   = ((p, x), Nothing)
+
+spans :: Spaces -> (Spaces, SpacedObject) -> Bool
+spans t (p, x) = inRange (p, p + spacedObjectWidth x) t
+
+cuttable :: SpacedObject -> Bool
+cuttable (StaffSustainLine _) = True
+cuttabel _                    = False
+
+cut :: Spaces -> SpacedObject -> (SpacedObject, SpacedObject)
+cut t (StaffSustainLine (p, w)) = (StaffSustainLine (p, t), StaffSustainLine (p, w - t))
+cut t x = error "cutSpacedStaffObject: Not able to cut this object"
 
 
--- TODO    
 
--- st :: Staff
--- st = sp . i $ trivial { spacedObjects = [(0, StaffChord trivial), (10, StaffChord trivial)], 
---                         nonSpacedObjects = [([0], StaffInstruction "a"), ([1], StaffInstruction "b")] }
---     where   
---         i =   insertSpacedObject 5 (StaffChord $ trivial { Notable.rest = QuarterNoteRest })
---             . insertSpacedObject 6 (StaffChord $ trivial { Notable.rest = EightNoteRest })
---         sp = addSpace 1 1
--- 
 
-cutSpacedStaffObject :: Spaces -> SpacedObject -> (SpacedObject, Maybe SpacedObject)
-cutSpacedStaffObject t (StaffSustainLine (p, w)) = (StaffSustainLine (p, w - t), Just $ StaffSustainLine (p, t))
-cutSpacedStaffObject t obj                       = (obj, Nothing)
+firstLefts  :: [(a, Either b c)] -> [(a, b)]
+firstLefts = concatMap f
+    where
+        f (x, Left y) = [(x, y)]
+        f _           = []
 
-cutNonSpacedStaffObject :: Spaces -> NonSpacedObject -> (NonSpacedObject, Maybe NonSpacedObject)
-cutNonSpacedStaffObject t obj = (obj, Nothing)
+firstRights :: [(a, Either b c)] -> [(a, c)]
+firstRights = concatMap f
+    where
+        f (x, Right y) = [(x, y)]
+        f _            = []
+
+inRange :: Ord a => (a, a) -> a -> Bool
+inRange (a, b) x  =  a < x && x < b
 
 
 
@@ -1552,8 +1576,8 @@ writePartBook path book =
     let (files, action) = writePartBookPages path book in
         do  action
             joinPdfs files (path ++ partBookFilePath book ++ ".pdf")
---            threadDelay 3000000
---            removeFiles files
+            threadDelay 1500000
+            removeFiles files
 
 writePartBookPages :: FilePath -> PartBook -> ([FilePath], IO ())
 writePartBookPages path book = (take (length pages) names, writeMultipleGraphics (zip names pages))
@@ -1585,7 +1609,8 @@ removeFiles fs = execute "rm" fs
 Stuff depending on `score`:
 
 \begin{code}   
-ensemble' = [Violin 1]
+ensemble' = ensemble
+-- ensemble' = [Violin 1]
     
 -- | All parts, generated from 'score'.
 parts :: [Score Dur Cue]
@@ -2171,6 +2196,11 @@ insertIndexBy = ix 0
         ix n cmp x (y:ys)
             | x `cmp` y == GT  =  ix (n + 1) cmp x ys
             | otherwise        =  n
+
+mapCollect :: (a -> (b, Maybe c)) -> [a] -> ([b], [c])
+mapCollect f xs = (bs, catMaybes cs)
+    where
+        (bs, cs) = unzip $ map f xs
 
 
 compose :: [b -> c] -> [a -> b] -> [a -> c]
