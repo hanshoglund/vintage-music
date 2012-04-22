@@ -1249,6 +1249,14 @@ notatePitch c x = (HalfSpaces . fromIntegral $ p + d', a)
 \end{code}
 
 
+Rehearsal marks
+--------
+
+\begin{code}
+notateRehearsal :: String -> NonSpacedObject
+notateRehearsal = StaffRehearsal
+\end{code}
+
 Notating staves
 --------
 
@@ -1365,10 +1373,11 @@ notateCue cue = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
                 obj  =  StaffSustainLine (yPos, scale * kHorizontalSpace - (kNoteHeadOffset + 4.4))
 
 
-        nsN = tempoN ++ dynamicN
+        nsN = rehearsalN ++ tempoN ++ dynamicN
 
-        tempoN   = [([1], notateTempo . cueTempo $ cue)] `nonEmptyWhen` phr
-        dynamicN = [([1], notateDynamic . cueDynamics $ cue)]
+        rehearsalN = [([1], notateRehearsal $ "A")] `nonEmptyWhen` True
+        tempoN     = [([1], notateTempo . cueTempo $ cue)] `nonEmptyWhen` phr
+        dynamicN   = [([1], notateDynamic . cueDynamics $ cue)]
 
         scale = Spaces (60 / (cueTempo cue))
         phr = isPhrase $ cueTechnique cue
