@@ -1471,9 +1471,10 @@ extractParts parts score = map (flip extractPart $ score) parts
 engravePanorama :: Score Dur Cue -> [Score Dur Cue] -> [Engraving]
 engravePanorama global =
     fmap ((<> spaceY 4) . engraveStaff . addSpaceAtEnd 50)
-    . justifyStaves . fmap (`mappend` rehearsals) . fmap notatePart
+    . justifyStaves . fmap ((rehearsals `mappend`) . notatePart)
     where         
-        rehearsals = notateRehearsalMarks global
+        rehearsals = moveObjectsRight 5 $ notateRehearsalMarks global
+        -- FIXME offset related to staffHead
 
 kPageWidth           = 140 :: Spaces
 kSystemsPerPage      = 13
@@ -1800,23 +1801,23 @@ dbD = setPart DoubleBass . stretch 4 $ openString III
 dbG = setPart DoubleBass . stretch 4 $ openString IV
 
 
-intro1 = setDynamics pp $ instant
+intro1 =                     setDynamics pp $ instant
     ||| (           before 30 $ introHarm 1)
     ||| (delay 15 . before 30 $ introHarm 2) ||| (delay 25 . stretch 5 $ db)
     ||| (delay 35 . before 35 $ introHarm 1)
     ||| (delay 50 . before 35 $ introHarm 2) ||| (delay 60 . stretch 5 $ db2)
 
-midtro1 = setDynamics mf $ instant
+midtro1 = addRehearsalMark . setDynamics mf $ instant
     ||| (           before 30 $ midtroHarm1 1)
     ||| (delay 15 . before 30 $ midtroHarm1 2)
     ||| (delay 6  . stretch 3 $ dbA)
     ||| (delay 24 . stretch 3 $ dbA)
 
-midtro2 = setDynamics pp $ instant
+midtro2 = addRehearsalMark . setDynamics pp $ instant
     ||| (           before 40 $ midtroHarm2 1)
     ||| (delay 20 . before 40 $ midtroHarm2 2)
 
-outro1 = setDynamics p $ stretch 1.5 $ instant
+outro1 = addRehearsalMark . setDynamics p $ stretch 1.5 $ instant
     ||| (           before 40 $ outtroHarm 1 1)
     ||| (delay 15 . before 40 $ outtroHarm' 2 2)
     ||| (delay 35 . before 35 $ outtroHarm 3 1)
@@ -1829,31 +1830,31 @@ outro1 = setDynamics p $ stretch 1.5 $ instant
 middle1 = concatSeq . List.intersperse (rest 10) $ map middle' [0,1,2]
 
 
-middle' x = setDynamics pp . stretch 2.2 $ delay 5 a ||| b
+middle' x = addRehearsalMark . setDynamics pp . stretch 2.2 $ b ||| delay 5 a
     where
         a = (octaveUp . id          . tonality . setPart (Viola 1)  $ patternMelodyFrom x)
         b = (octaveUp . stretch 1.1 . tonality . setPart (Viola 2)  $ patternMelodyFrom x)
 
 
-middle2 = setDynamics pp . stretch 2.2 . setDynamics mf $ instant
+middle2 = addRehearsalMark . setDynamics pp . stretch 2.2 . setDynamics mf $ instant
     ||| (          stretch 1   . id . tonality . setPart (Cello 2) $ patternSequenceFrom 0 $ [0,1,0,1,0])
     ||| (delay 6 . stretch 1.3 . id . tonality . setPart (Cello 1) $ patternSequenceFrom 0 $ [1,0,1,0,1])
 
-middle3 = setDynamics p . stretch 1.6 . reverse $
+middle3 = addRehearsalMark . setDynamics p . stretch 1.6 . reverse $
     canon rand 8 0 (zip ps (ss `compose` ts))
     where
         ps = ([Violin 3, Violin 4, Viola 1, Viola 2])
         ss = map delay [0,3..] `compose` map stretch [1,1.16..]
         ts = map transposeUp [7,7,0,0]
 
-middle3high = setDynamics p . stretch 1.6 . reverse $
+middle3high = addRehearsalMark . setDynamics p . stretch 1.6 . reverse $
     canon rand 7 0 (zip ps (ss `compose` ts))
     where
         ps = ([Violin 1, Violin 2])
         ss = map delay [0,3..] `compose` map stretch [1,1.2..]
         ts = map transposeUp [12,12]
 
-midCanon = (reverse midCanon') >>> (addRehearsalMark $ stretch 0.8 midCanon')
+midCanon = (addRehearsalMark $ reverse midCanon') >>> (addRehearsalMark $ stretch 0.8 midCanon')
 
 -- midCanon' = setDynamics mf . compress 1.1 $
 --     canon rand 4 0 (zip ps ts)
@@ -1862,14 +1863,14 @@ midCanon = (reverse midCanon') >>> (addRehearsalMark $ stretch 0.8 midCanon')
 --         ts = map stretch [2.1,2.2,2.5,2.9,3.5,4.1] `compose` map transposeUp [12,12,7,7,0,0]
 
 midCanon' = setDynamics mf . compress 1.1 $ instant
+    ||| (stretch 4.1 . id       . tonality . setPart (Viola  2) . patternSequenceFrom 0 $ [1,2,1,0,0,2])
     ||| (stretch 2.1 . octaveUp . tonality . setPart (Violin 1) . patternSequenceFrom 0 $ [0,2,0,0,1,2])
     ||| (stretch 2.2 . octaveUp . tonality . setPart (Violin 2) . patternSequenceFrom 0 $ [1,2,0,0,1,2])
     ||| (stretch 2.5 . fifthUp  . tonality . setPart (Violin 3) . patternSequenceFrom 0 $ [2,0,0,1,0,2])
     ||| (stretch 2.9 . fifthUp  . tonality . setPart (Violin 4) . patternSequenceFrom 0 $ [0,2,1,1,1,2])
     ||| (stretch 3.5 . id       . tonality . setPart (Viola  1) . patternSequenceFrom 0 $ [2,2,1,2,1,0])
-    ||| (stretch 4.1 . id       . tonality . setPart (Viola  2) . patternSequenceFrom 0 $ [1,2,1,0,0,2])
 
-canon2upper = setDynamics pp . reverse $ instant
+canon2upper = addRehearsalMark . setDynamics pp . reverse $ instant
     ||| (delay 30  . stretch 2.4  . duodecUp . tonality . setPart (Violin 1) . invert . patternSequenceFrom 0 $ [2,0,0,1,1,2])
     ||| (delay 25  . stretch 2.3  . duodecUp . tonality . setPart (Violin 2) . invert . patternSequenceFrom 0 $ [0,0,1,1,2,2])
     ||| (delay 25  . stretch 2.2  . duodecUp . tonality . setPart (Violin 3) . invert . patternSequenceFrom 0 $ [0,1,1,0,2,1])
@@ -1877,11 +1878,11 @@ canon2upper = setDynamics pp . reverse $ instant
     ||| (delay 10  . stretch 2.0  . octaveUp . tonality . setPart (Viola  1) . invert . patternSequenceFrom 0 $ [1,2,1,2,0,1])
     ||| (delay 5   . stretch 1.8  . octaveUp . tonality . setPart (Viola  2) . invert . patternSequenceFrom 0 $ [0,1,1,2,2,0])
 
-canon2lower = setDynamics pp $ instant
+canon2lower = addRehearsalMark . setDynamics pp $ instant
     ||| (           stretch 2.4 . id  . tonality . setPart (Cello 1) . invert . patternSequenceFrom 1 $ [2,1,2,1,0])
     ||| (delay 13 . stretch 2.3 . id  . tonality . setPart (Cello 2) . invert . patternSequenceFrom 1 $ [2,1,2,2,1])
 
-finalCanon = setDynamics f . compress 1.1 $ instant
+finalCanon = addRehearsalMark . setDynamics f . compress 1.1 $ instant
     ||| (stretch 2    . duodecUp . tonality . setPart (Violin 1) $ patternSequenceFrom 1 $ [0,2,2,2,1,1])
     ||| (stretch 2.2  . duodecUp . tonality . setPart (Violin 2) $ patternSequenceFrom 1 $ [1,2,2,1,0,0])
     ||| (stretch 2.35 . octaveUp . tonality . setPart (Violin 3) $ patternSequenceFrom 1 $ [1,2,0,2,1,1])
