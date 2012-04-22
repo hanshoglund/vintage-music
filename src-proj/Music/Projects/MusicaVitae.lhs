@@ -189,6 +189,22 @@ lowCellos    =  filter isCello  (sectionParts Low)
 doubleBass   =  DoubleBass
 \end{code}
 
+Part names, for output:
+
+\begin{code}
+partName :: Part -> String
+
+partName ( Violin 1 ) = "Violin I.1"
+partName ( Violin 2 ) = "Violin I.2"
+partName ( Violin 3 ) = "Violin II.1"
+partName ( Violin 4 ) = "Violin II.2"
+partName ( Viola 1 )  = "Viola I"
+partName ( Viola 2 )  = "Viola II"
+partName ( Cello 1 )  = "Violoncell I"
+partName ( Cello 2 )  = "Violoncell II"
+partName DoubleBass   = "Kontrabas"
+
+\end{code}
 
 All parts may be doubled. If several parts are doubled but not all, the musicians should
 strive for a balance between the two main tuning sections (i.e. avoid doubling just the
@@ -1335,7 +1351,7 @@ notateCue cue = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
     where
         sN = barLineN ++ chordsN ++ sustainLineN
 
-        barLineN = if phr then [(0, StaffTickBarLine)]
+        barLineN = if phr then [(0, StaffBarLine)]
                           else [(0, StaffNothing)]
 
         chordsN   =  fmap (\(t,x) -> (t * scale + kNoteHeadOffset, StaffChord x)) chordsN'
@@ -1463,8 +1479,9 @@ data PartBook =
         partBookPart :: Part,
         partBookScore :: Score Dur Cue
     }
+
 partBookFilePath :: PartBook -> FilePath
-partBookFilePath (PartBook p s) = toLowerCase . filter isAlphaNum $ show p
+partBookFilePath (PartBook p s) = {-toLowerCase . filter isAlphaNum $-} partName p
 
 engravePartBook :: PartBook -> [Engraving]
 engravePartBook = engravePartPages . partBookScore
