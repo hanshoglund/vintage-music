@@ -609,7 +609,7 @@ intonation Solo t = case stopping t of
     Stopped        -> Individual
 
 cueIntonation :: Cue -> Intonation
-cueIntonation (Cue p d n e t) = intonation d t
+cueIntonation (Cue p d n e m t) = intonation d t
 
 raisedIntonation :: Cent
 raisedIntonation = 23 Cent
@@ -639,6 +639,9 @@ isPhrase :: Technique -> Bool
 isPhrase (Phrase _ _) = True
 isPhrase _            = False
 
+data Mark = RehearsalMark
+    deriving ( Eq, Show )
+
 data Cue
     = Cue
     {
@@ -646,23 +649,24 @@ data Cue
         cueDoubling  :: Doubling,
         cueDynamics  :: Dynamics,  -- time is 0 to 1 for the duration of the cue
         cueTempo     :: Tempo,
+        cueMarks     :: [Mark],
         cueTechnique :: Technique
     }
     deriving ( Eq, Show )
 
 instance PartFunctor Cue where
-    mapPart     f (Cue p d n e t) = Cue (f p) d n e t
-    mapDoubling f (Cue p d n e t) = Cue p (f d) n e t
+    mapPart     f (Cue p d n e m t) = Cue (f p) d n e m t
+    mapDoubling f (Cue p d n e m t) = Cue p (f d) n e m t
 
 instance LevelFunctor Cue where
-    mapLevel f    (Cue p d n e t) = Cue p d (mapLevel f n) e t
-    mapDynamics f (Cue p d n e t) = Cue p d (mapDynamics f n) e t
+    mapLevel f    (Cue p d n e m t) = Cue p d (mapLevel f n) e m t
+    mapDynamics f (Cue p d n e m t) = Cue p d (mapDynamics f n) e m t
 
 instance TempoFunctor Cue where
-    mapTempo     f (Cue p d n e t) = Cue p d n (f e) t
+    mapTempo     f (Cue p d n e m t) = Cue p d n (f e) m t
 
 instance PitchFunctor Cue where
-    mapPitch f (Cue p d n e t) = Cue p d n e (mapPitch f t)
+    mapPitch f (Cue p d n e m t) = Cue p d n e m (mapPitch f t)
 
 instance (Time t, PartFunctor a) => PartFunctor (Score t a) where
     mapPart f = fmap (mapPart f)
@@ -688,7 +692,7 @@ adding some higher-level constructors.
 The constructors all create *standard cues* with the following definitions:
 
 \begin{code}
-standardCue           =  note . Cue (Violin 1) Tutti mf 0
+standardCue           =  note . Cue (Violin 1) Tutti mf 0 []
 standardArticulation  =  Straight
 standardPhrasing      =  Phrasing
 \end{code}
@@ -846,7 +850,7 @@ and intontation.
 
 \begin{code}
 midiChannel :: Cue -> MidiChannel
-midiChannel (Cue part doubling dynamics tempo technique) =
+midiChannel (Cue part doubling dynamics tempo marks technique) =
     midiChannel' part section intonation'
     where
           section     = partSection part
@@ -887,7 +891,7 @@ program based on the doubling  attribute. I am not sure this is a good idea thou
 
 \begin{code}
 midiInstrument :: Cue -> MidiInstrument
-midiInstrument (Cue part doubling dynamics tempo technique) =
+midiInstrument (Cue part doubling dynamics tempo marks technique) =
     case technique of
         (Pizz _ _) -> Just 45
         _          -> midiInstrument' part
@@ -947,7 +951,7 @@ twelve-tone equal temperament. Unfortunately this does not work for harmonic tre
 
 \begin{code}
 midiBend :: Cue -> MidiBend
-midiBend (Cue part doubling dynamics tempo technique) =
+midiBend (Cue part doubling dynamics tempo marks technique) =
     midiBend' (intonation', cents') + just
     where
         intonation'  =  intonation doubling technique
@@ -1255,7 +1259,17 @@ Rehearsal marks
 \begin{code}
 notateRehearsal :: String -> NonSpacedObject
 notateRehearsal = StaffRehearsal
+
+extractRehearsalMarks :: Score Dur Cue -> [(Dur, Mark)]
+extractRehearsalMarks = List.nubBy (testing fst) . concatMap (\(Event t d xs) -> zip (repeat t) xs) . toEvents . fmap cueMarks
+
+addRehearsalMark :: Score Dur Cue -> Score Dur Cue
+addRehearsalMark = mapFirstEvent (\(Cue p d n e m t) -> Cue p d n e (m ++ [RehearsalMark]) t)
+
+testing f x y = f x == f y
 \end{code}
+
+
 
 Notating staves
 --------
@@ -1373,14 +1387,21 @@ notateCue cue = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
                 obj  =  StaffSustainLine (yPos, scale * kHorizontalSpace - (kNoteHeadOffset + 4.4))
 
 
-        nsN = rehearsalN ++ tempoN ++ dynamicN
+        nsN = {-rehearsalN ++ -}tempoN ++ dynamicN
 
-        rehearsalN = [([1], notateRehearsal $ "A")] `nonEmptyWhen` True
+        -- rehearsalN = [([1], notateRehearsal $ "A")] `nonEmptyWhen` True
         tempoN     = [([1], notateTempo . cueTempo $ cue)] `nonEmptyWhen` phr
         dynamicN   = [([1], notateDynamic . cueDynamics $ cue)]
 
         scale = Spaces (60 / (cueTempo cue))
         phr = isPhrase $ cueTechnique cue
+               
+
+notateRehearsalMarks :: Score Dur Cue -> Staff
+notateRehearsalMarks score = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
+    where
+        (sN, nsN) = unzip . concatMap (\((t, _), i) -> [((timeToSpace t, StaffNothing), ([i], notateRehearsal $ "A"))]) $ zip marks [0..]
+        marks = extractRehearsalMarks score
 
 
 \end{code}
@@ -1447,12 +1468,12 @@ extractParts :: [Part] -> Score Dur Cue -> [Score Dur Cue]
 extractParts parts score = map (flip extractPart $ score) parts
 
 
-
-engravePanorama :: [Score Dur Cue] -> [Engraving]
-engravePanorama =
+engravePanorama :: Score Dur Cue -> [Score Dur Cue] -> [Engraving]
+engravePanorama global =
     fmap ((<> spaceY 4) . engraveStaff . addSpaceAtEnd 50)
-    . justifyStaves . fmap notatePart
-
+    . justifyStaves . fmap (`mappend` rehearsals) . fmap notatePart
+    where         
+        rehearsals = notateRehearsalMarks global
 
 kPageWidth           = 140 :: Spaces
 kSystemsPerPage      = 13
@@ -1553,7 +1574,7 @@ writeScoreBook = undefined
 
 -- | Notations of each part in panorama form.
 partNotations :: [Engraving]
-partNotations = engravePanorama parts
+partNotations = engravePanorama score parts
 
 -- | A notation of the entire score in panorama form.
 scoreNotation :: Engraving
@@ -1832,7 +1853,7 @@ middle3high = setDynamics p . stretch 1.6 . reverse $
         ss = map delay [0,3..] `compose` map stretch [1,1.2..]
         ts = map transposeUp [12,12]
 
-midCanon = (reverse midCanon') >>> (stretch 0.8 midCanon')
+midCanon = (reverse midCanon') >>> (addRehearsalMark $ stretch 0.8 midCanon')
 
 -- midCanon' = setDynamics mf . compress 1.1 $
 --     canon rand 4 0 (zip ps ts)

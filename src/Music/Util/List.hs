@@ -48,7 +48,6 @@ module Music.Util.List
     mapCollect,
     concatMapAccumL,
     removeDuplicates,
-    removeEquals,
 
 -- * Indexing
     divide,
@@ -288,10 +287,6 @@ concatMapAccumL f s (x:xs) = (s'', y ++ ys)
 -- | Return a list containing the same set of elements as the given list.
 removeDuplicates :: Ord a => [a] -> [a]
 removeDuplicates = Set.toList . Set.fromList
-
--- | Remove consequent equal pairs.
-removeEquals :: Eq a => [a] -> [a]
-removeEquals = remove2 (==)
 
 
 --

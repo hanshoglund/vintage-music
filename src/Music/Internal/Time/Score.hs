@@ -219,6 +219,7 @@ arpeggio t xs = chordDelay (zip [0, t ..] xs)
 -- Folds
 --
 
+-- | Case expressions for score.
 foldScore :: Time t =>
     (t -> t -> b) ->
     (t -> t -> a -> b) ->
@@ -251,8 +252,7 @@ foldScore' r n p s t (SeqS x y)   =  (dx + dy, s t sx sy)
         (dx, sx) = foldScore' r n p s t x
         (dy, sy) = foldScore' r n p s (t + dx) y
 
-
-
+-- | Filter score, replacing discarded elements with 'instant'.
 filterScore' :: Time t =>
     (t -> t -> Bool) ->
     (t -> t -> a -> Bool) ->
@@ -266,30 +266,35 @@ filterScore' r n p s = foldScore ( \t d   -> if (r t d)   then RestS d   else in
                                  ( \t x y -> if (p t)     then ParS x y  else instant )
                                  ( \t x y -> if (s t)     then SeqS x y  else instant )
 
+-- | Apply an arbitrary fold to the offsets in the score.
 foldOffset :: (Time t, Monoid m) => (t -> m) -> Score t a -> m
 foldOffset f = foldScore ( \t d   -> f t )
                          ( \t d x -> f t )
                          ( \t x y -> x `mappend` y )
                          ( \t x y -> x `mappend` y )
 
+-- | Apply an arbitrary fold to the durations in the score.
 foldDuration :: (Time t, Monoid m) => (t -> m) -> Score t a -> m
 foldDuration f = foldScore ( \t d   -> f d )
                            ( \t d x -> f d )
                            ( \t x y -> x `mappend` y )
                            ( \t x y -> x `mappend` y )
 
-
+-- | Filter notes in the score, replacing discarded elements with a rest of equal duration.
 filterEvents :: Time t => (a -> Bool) -> Score t a -> Score t a
 filterEvents f = foldScore ( \t d   -> RestS d )
                            ( \t d x -> if (f x) then NoteS d x else RestS d )
                            ( \t x y -> ParS x y )
                            ( \t x y -> SeqS x y )
 
+-- | Remove notes in the score, replacing discarded elements with a rest of equal duration.
 removeEvents :: Time t => (a -> Bool) -> Score t a -> Score t a
 removeEvents f = filterEvents (not . f)
 
+-- | Partition notes in the score, replacing discarded elements with a rest of equal duration.
 partitionEvents :: Time t => (a -> Bool) -> Score t a -> (Score t a, Score t a)
 partitionEvents f x = (filterEvents f x, removeEvents f x)
+
 
 
 -- | First event in score.
@@ -308,6 +313,22 @@ lastEvent = getLast .
               ( \t x y -> x `mappend` y )
               ( \t x y -> x `mappend` y )
 
+
+mapAccumScore :: (s -> a -> (s, b)) -> s -> Score t a -> (s, Score t b)
+mapAccumScore f s (RestS d)   =  (s, RestS d)
+mapAccumScore f s (NoteS d x) =  (s', NoteS d x') 
+    where (s', x') = f s x
+mapAccumScore f s (ParS x y)  =  (s'', ParS x' y') 
+    where (s',  x') = mapAccumScore f s x
+          (s'', y') = mapAccumScore f s' y
+mapAccumScore f s (SeqS x y)  =  (s'', SeqS x' y')
+    where (s',  x') = mapAccumScore f s x
+          (s'', y') = mapAccumScore f s' y
+
+
+mapFirstEvent :: Time t => (a -> a) -> Score t a -> Score t a
+mapFirstEvent f = snd . mapAccumScore (\g x -> (id, g x)) f
+    
 -- | The number of events in the score.
 numberOfEvents :: Time t => Score t a -> Int
 numberOfEvents = foldScore (\t d -> 0) (\t d x -> 1) (const (+)) (const (+))
@@ -320,19 +341,26 @@ meanDuration score = (getSum . foldDuration Sum) score / fromIntegral (numberOfE
 normalizeDuration :: Time t => Score t a -> Score t a
 normalizeDuration score = stretch (1 / meanDuration score) score
 
+-- | Convert an 'EventList' to a score.
+fromEventList :: Time t => EventList t a -> Score t a
+fromEventList = unrenderScore
+
+-- | Convert a score to an 'EventList'.
 toEventList :: Time t => Score t a -> EventList t a
 toEventList = renderScore
 
+-- | Convert a score to a list of events.
 toEvents :: Time t => Score t a -> [Event t a]
 toEvents = eventListEvents . renderScore
 
+-- | Convert a score to a list.
 toList :: Time t => Score t a -> [a]
 toList = fmap eventValue . eventListEvents . toEventList
 
---
--- Internals
---
 
+--
+-- Internal
+--
 
 assureEqualDur :: Time t => Score t a -> Score t a -> (Score t a, Score t a)
 assureEqualDur x y 
