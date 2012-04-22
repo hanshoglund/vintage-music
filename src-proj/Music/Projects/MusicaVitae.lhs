@@ -1280,12 +1280,12 @@ staffHead clef = trivial { spacedObjects = s }
     where
         s = [(0.5, StaffClef clef)]
 
-prependStaffHead2 :: Clef -> Staff -> Staff
-prependStaffHead2 clef staff = staffHead clef `mappend` moveObjectsRight 0 staff
--- FIXME move more without screwing up staff width
-
-prependStaffHead :: Clef -> [Staff] -> [Staff]
-prependStaffHead clef xs = staffHead clef : fmap (moveObjectsRight 5) xs
+-- prependStaffHead2 :: Clef -> Staff -> Staff
+-- prependStaffHead2 clef staff = staffHead clef `mappend` moveObjectsRight 0 staff
+-- -- FIXME move more without screwing up staff width
+-- 
+-- prependStaffHead :: Clef -> [Staff] -> [Staff]
+-- prependStaffHead clef xs = staffHead clef : fmap (moveObjectsRight 5) xs
 
 
 
@@ -1465,8 +1465,8 @@ extractParts parts score = map (flip extractPart $ score) parts
 
 engravePanorama :: Score Dur Cue -> [Score Dur Cue] -> [Engraving]
 engravePanorama global =
-    fmap ((<> spaceY 4) . engraveStaff . addSpaceAtEnd 100)
-    . justifyStaves . addRehearsals . fmap notatePart
+    fmap ((<> spaceY 4) . engraveStaff {-. addSpaceAtEnd 100-})
+    {-. justifyStaves-} . addRehearsals . fmap notatePart
     where                             
         addRehearsals (x:xs) = (rehearsals `mappend` x):xs
         rehearsals = notateRehearsalMarks global
@@ -1488,9 +1488,9 @@ engravePartLines = fmap engraveStaff . divideStaff kPageWidth . addRehearsal . n
 
 
 engravePartPages :: Score Dur Cue -> [Engraving]
-engravePartPages = map fitIntoPage . map catDown . map (map addSpaceBetween) . List.divide kSystemsPerPage . engravePartLines
+engravePartPages = map fitIntoPage . map catDown . map (map addSystemSpacer) . List.divide kSystemsPerPage . engravePartLines
     where      
-        addSpaceBetween   = (<> spaceY (kSpaceBetweenSystems / 2))
+        addSystemSpacer   = (<> spaceY (kSpaceBetweenSystems / 2))
 
 fitIntoPage :: Engraving -> Engraving
 fitIntoPage = (<> page) . alignTL . scale kPageScaling . freeze
@@ -1519,7 +1519,7 @@ writePartBook path book =
     let (files, action) = writePartBookPages path book in
         do  action
             joinPdfs files (path ++ partBookFilePath book ++ ".pdf")
-            threadDelay 1500000
+            threadDelay 2000000
             removeFiles files
 
 writePartBookPages :: FilePath -> PartBook -> ([FilePath], IO ())

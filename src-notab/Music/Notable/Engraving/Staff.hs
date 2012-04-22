@@ -104,26 +104,27 @@ module Music.Notable.Engraving.Staff
     NonSpacedObject(..),
     Staff(..),
 
--- ** Predicates
-    isStaffEmpty,
+-- ** Options
+    mapMinWidth,
+    setMinWidth,
+    mapStaffOptions,
+    setStaffOptions,
 
--- ** Spacing
+-- ** Properties
+    isStaffEmpty,
     staffWidth,
-    addSpaceAtStart,
-    addSpaceAtEnd,
-    addSpace,
-    scaleStaff,
-    scaleStaffTo,
-    justifyStaves,
 
 -- ** Objects
     spacedObjectWidth,
     nonSpacedObjectWidth,
     moveObjectsRight,
     moveObjectsLeft,
+    insertSpacedObject,
+    insertSpacedObjects,
 
 -- ** Splitting
     splitStaff,
+    splitStaff',
     splitStaffWhen,
     divideStaff,
 
@@ -441,7 +442,7 @@ engraveTuplet = undefined
 type Rehearsal = String
 
 engraveRehearsal :: Rehearsal -> Engraving
-engraveRehearsal str = p . s $ text str <> square (convert kRehearsalSquare)
+engraveRehearsal str = p . s $ text str <> square (convert kRehearsalSquare)
     where
         s = font {-textFont-}"Arial" . bold
         p = moveSpacesUp kRehearsalOffset . scale kRehearsalScale
@@ -524,7 +525,7 @@ ppp  =  dynamic "ppp"
 engraveDynamic :: Dynamic -> Engraving
 engraveDynamic d = t $ mempty
     <> engraveSpecialText (fromDynamic d)
-    <> (translate (r2 (-0.2, 0.2)) . alignL $ spaceRect (0.2 + 0.65 * fromIntegral $ length d) 1.5)
+    <> (translate (r2 (-0.2, 0.2)) . alignL $ spaceRect (0.2 + 0.65 * fromIntegral $ length d) 1.5)
     where
         t = moveSpacesDown (0.6 + kDynamicOffset) . scale kDynamicScale
 
@@ -539,7 +540,7 @@ type Instruction = String
 engraveInstruction :: Instruction -> Engraving
 engraveInstruction txt = t $ mempty
     <> engraveText txt
-    <> (translate (r2 (-0.2, 0.2)) . alignL $ spaceRect (0.2 + 0.65 * fromIntegral $ length txt) 1.5)
+    <> (translate (r2 (-0.2, 0.2)) . alignL $ spaceRect (0.2 + 0.65 * fromIntegral $ length txt) 1.5)
     where
         t = moveSpacesUp kInstructionOffset . scale kInstructionScale
 
@@ -549,7 +550,7 @@ type Expression = String
 engraveExpression :: Expression -> Engraving
 engraveExpression txt = t $ mempty
     <> (italic $ engraveText txt)
-    <> (translate (r2 (-0.2, 0.2)) . alignL $ spaceRect (0.2 + 0.65 * fromIntegral $ length txt) 1.5)
+    <> (translate (r2 (-0.2, 0.2)) . alignL $ spaceRect (0.2 + 0.65 * fromIntegral $ length txt) 1.5)
     where
         t = moveSpacesDown (0.6 + kExpressionOffset) . scale kExpressionScale
 
@@ -592,17 +593,18 @@ data NonSpacedObject
     deriving (Eq, Show)
 
 data StaffOptions =
-    StaffOptions { spaceBefore :: Spaces,
-                   spaceAfter  :: Spaces,
-                   staffLines  :: StaffLines }
+    StaffOptions { staffMinWidth :: Spaces,
+                   staffLines    :: StaffLines }
     deriving (Eq, Show)
 
 instance Trivial StaffOptions where
-    trivial = StaffOptions 0 0 5
+    trivial = StaffOptions 0 5
 
 instance Monoid StaffOptions where
     mempty = trivial
-    x `mappend` y = StaffOptions (spaceBefore x) (spaceAfter y) (staffLines x `max` staffLines y)
+    StaffOptions mx lx `mappend` StaffOptions my ly
+        | lx /= ly   =  error "Staff.mappend: unequal offset"
+        | otherwise  =  StaffOptions (mx `max` my) lx
 
 data Staff =
     Staff { staffOptions     :: StaffOptions,
@@ -610,30 +612,54 @@ data Staff =
             nonSpacedObjects :: [([Index [SpacedObject]], NonSpacedObject)] }
     deriving (Eq, Show)
 
--- | The trivial instance for staff has no objects and no extra space.
+-- | The trivial instance for staff has no objects and no extra space. It is equivalent to 'mempty'
 instance Trivial Staff where
     trivial = Staff trivial [] []
 
--- | The empty element is the 'trivial' staff.
+-- | The empty staff has no objects and no extra space. It is equivalent to 'trivial'.
 --
---   The binary operation suporimposes the objects on two staves. The position of spaced objects are
---   not affected (in particular, they are not stacked horizontally), but the indices for non-spaced
---   objects are adjusted to refer to the same objects.
+--   The 'mappend' function superimposes the objects of two staves upon another, but does not otherwise
+--   move or adjust the objects. This is corresponds to the 'mappend' function for engravings, so that:
+--
+--   > engraveStaff (x <> y) = engraveStaff x <> engraveStaff y
+--
 instance Monoid Staff where
     mempty = trivial
     Staff ox xs xns `mappend` Staff oy ys yns =
-        Staff (ox `mappend` oy) (xs ++ ys) (xns ++ inc (length xs) yns)
+        Staff (ox `mappend` oy) (xs ++ ys) (xns ++ updateIndices yns)
         where
-            inc n = fmap (inc' n)
-            inc' n (is, x) = (map (+ n) is, x)
+            updateIndices = map (mapFirst (map (+ (length xs))))
 
 
 -- | Whether a staff has any objects or not.
 isStaffEmpty :: Staff -> Bool
 isStaffEmpty (Staff o s ns) = null s
 
+-- | Map over staff options.
+mapStaffOptions :: (StaffOptions -> StaffOptions) -> Staff -> Staff
+mapStaffOptions f (Staff o s ns) = Staff (f o) s ns
 
+-- | Update staff options.
+setStaffOptions :: StaffOptions -> Staff -> Staff
+setStaffOptions x = mapStaffOptions (const x)
 
+-- | Map over minimum width.
+mapMinWidth :: (Spaces -> Spaces) -> Staff -> Staff
+mapMinWidth f = mapStaffOptions (\(StaffOptions m l) -> StaffOptions (f m) l)
+
+-- | Set minimum width.
+setMinWidth :: Spaces -> Staff -> Staff
+setMinWidth x = mapMinWidth (const x)
+
+-- | The width of the staff, defined as the position of its rightmost element, but no less than the 
+--   minumum width (as defined by 'staffMinWidth').
+staffWidth :: Staff -> Spaces
+staffWidth (Staff o s _) = w `max` m
+    where
+        w = maximumWith 0 . fmap fst $ s
+        m = staffMinWidth o
+        
+-- | Safely insert the given object in a given staff.
 insertSpacedObject :: Spaces -> SpacedObject -> Staff -> Staff
 insertSpacedObject t x (Staff o s ns) = (Staff o s' ns')
     where
@@ -641,46 +667,9 @@ insertSpacedObject t x (Staff o s ns) = (Staff o s' ns')
         s'  = insertBy      (comparing fst) (t, x) s
         ns' = map (\(is,x) -> (map (\i -> if i < n then i else i + 1) is, x)) ns
 
-
-
--- | The width of the staff, defined as the position of its rightmost elements
---   plus any extra space before and after.
-staffWidth :: Staff -> Spaces
-staffWidth (Staff o s _) = a + w
-    where
-        w = maximumWith 0 . fmap fst $ s
-        a = spaceBefore o + spaceAfter o
-
--- | Add extra space to the start of the staff.
-addSpaceAtStart :: Spaces -> Staff -> Staff
-addSpaceAtStart x = addSpace x 0
-
--- | Add extra space to the end of the staff.
-addSpaceAtEnd :: Spaces -> Staff -> Staff
-addSpaceAtEnd x = addSpace 0 x
-
--- | Add extra space to the start and end of the staff.
-addSpace :: Spaces -> Spaces -> Staff -> Staff
-addSpace x y (Staff o s ns) = Staff (f o) s ns
-    where
-        f (StaffOptions b a l) = StaffOptions (b + x) (a + y) l
-
--- | Scale a staff by stretching its objects.
-scaleStaff :: Spaces -> Staff -> Staff
-scaleStaff x (Staff o s ns) = Staff o (fmap (mapFirst (* x)) s) ns
-
--- | Scale a staff to the given width by stretching its objects.
-scaleStaffTo :: Spaces -> Staff -> Staff
-scaleStaffTo x staff@(Staff o s ns) = scaleStaff x' staff
-    where
-       x' =  ((x - a) / (staffWidth staff - a))
-       a  =  spaceBefore o + spaceAfter o
-
--- | Assure staves have the same width by adding space at end.
-justifyStaves :: [Staff] -> [Staff]
-justifyStaves ss = map (\s -> addSpaceAtEnd ((m - staffWidth s) `max` 0) s) $ ss
-    where
-        m = maximum . map staffWidth $ ss
+-- | Safely insert the given object in a staff.
+insertSpacedObjects :: [(Spaces, SpacedObject)] -> Staff -> Staff
+insertSpacedObjects = composeAll . map (uncurry insertSpacedObject)
 
 
 
@@ -695,15 +684,17 @@ nonSpacedObjectWidth _ = 0
 
 -- | Move objects on the staff to the right.
 moveObjectsRight :: Spaces -> Staff -> Staff
-moveObjectsRight t (Staff o s ns) = Staff o (map (\(p, x) -> (p + t, x)) s) ns
+moveObjectsRight t (Staff o s ns) = Staff o (moveObjectsRight' t s) ns
 
 -- | Move objects on the staff to the left.
 moveObjectsLeft :: Spaces -> Staff -> Staff
-moveObjectsLeft n = moveObjectsRight (negate n)
+moveObjectsLeft t = moveObjectsRight (negate t)
 
-move t = map (\(p, x) -> (p + t, x)) -- compare moveObjectsLeft, moveObjectsRight
+moveObjectsRight' :: Spaces -> [(Spaces, SpacedObject)] -> [(Spaces, SpacedObject)]
+moveObjectsRight' t = map (\(p, x) -> (p + t, x))
 
-
+moveObjectsLeft' :: Spaces -> [(Spaces, SpacedObject)] -> [(Spaces, SpacedObject)]
+moveObjectsLeft' t = moveObjectsRight' (negate t)
 
 
 
@@ -714,6 +705,17 @@ splitStaff t = splitStaff' t . cutStaffObjects t
 -- | Split a staff right before the first spaced object that satisfies the predicate.
 splitStaffWhen :: (Spaces -> SpacedObject -> Bool) -> (Staff, Staff)
 splitStaffWhen = undefined
+
+-- | Divide a staff into staves of the given length.
+divideStaff :: Spaces -> Staff -> [Staff]
+divideStaff t = map (setMinWidth t) . divideStaff' t
+
+divideStaff' :: Spaces -> Staff -> [Staff]
+divideStaff' t = unfoldr f
+    where
+        f s | isStaffEmpty s = Nothing
+            | otherwise      = Just $ splitStaff t s
+
 
 -- | Split a staff at the given position.
 --
@@ -726,7 +728,7 @@ splitStaff' t (Staff o s ns) = ((Staff ox sx nsx), (Staff oy sy' nsy'))
         (ox, oy)   = splitStaffOptions o
         (sx, sy)   = splitSpacedStaffObjects t s
         (nsx, nsy) = splitNonSpacedStaffObjects (length sx) ns
-        sy'        = move (negate t) sy
+        sy'        = moveObjectsLeft' t sy
         nsy'       = map (\(is, x) -> (fmap (subtract (length sx)) is, x)) nsy
 
 splitStaffOptions :: StaffOptions -> (StaffOptions, StaffOptions)
@@ -748,9 +750,6 @@ cutStaffObjects t (Staff o s ns) = insertSpacedObjects ins $ Staff o short ns
     where
         (short, ins) = mapCollect (cutStaffObject t) s
 
-insertSpacedObjects :: [(Spaces, SpacedObject)] -> Staff -> Staff
-insertSpacedObjects = composeAll . map (uncurry insertSpacedObject)
-
 cutStaffObject :: Spaces -> (Spaces, SpacedObject) -> ((Spaces, SpacedObject), Maybe (Spaces, SpacedObject))
 cutStaffObject t (p, x)
     | spans t (p, x) && cuttable x =
@@ -761,21 +760,16 @@ cutStaffObject t (p, x)
 spans :: Spaces -> (Spaces, SpacedObject) -> Bool
 spans t (p, x) = inRange (p, p + spacedObjectWidth x) t
 
+
+-- | Whether the given object may be safely passed to 'cut'.
 cuttable :: SpacedObject -> Bool
 cuttable (StaffSustainLine _) = True
 cuttabel _                    = False
 
+-- | Cut a spaced object in two. This function is partial, use 'cuttable' before 'cut'.
 cut :: Spaces -> SpacedObject -> (SpacedObject, SpacedObject)
 cut t (StaffSustainLine (p, w)) = (StaffSustainLine (p, t), StaffSustainLine (p, w - t))
 cut t x = error "cutSpacedStaffObject: Not able to cut this object"
-
--- | Divide a staff into staves of the given length.
-divideStaff :: Spaces -> Staff -> [Staff]
-divideStaff t = justifyStaves . unfoldr f
-    where
-        f s | isStaffEmpty s = Nothing
-            | otherwise      = Just $ splitStaff t s
-
 
 
 
@@ -806,14 +800,11 @@ engraveNonSpacedObject (StaffExpression x)         =  engraveExpression x
 --   The origin will be at the left edge on the middle line or space.
 engraveStaff :: Staff -> Engraving
 engraveStaff staff@(Staff opt sN nsN) = mempty
-    <> (translateX spb $ sE <> nsE)
+    <> (sE <> nsE)
     <> (alignL . scaleX w $ noteLines)
     where
-        spb  =  convert $ spaceBefore opt
---        spa = convert $ spaceAfter opt
-        -- w = width (sE <> nsE) + spb + spa
         w    =  convert . staffWidth $ staff
 
-        sE   =  mconcat $ fmap (\(p, x) -> moveSpacesRight p $ engraveSpacedObject x) sN
+        sE   =  mconcat $ fmap (\(p, x) -> moveSpacesRight p $ engraveSpacedObject x) sN
         nsE  =  mconcat $ fmap (\(i:is, x) -> moveSpacesRight (fst $ index i sN) $ engraveNonSpacedObject x) nsN
 
