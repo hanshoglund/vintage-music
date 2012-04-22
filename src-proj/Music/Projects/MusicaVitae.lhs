@@ -1442,14 +1442,9 @@ Notating parts
 
 \begin{code}
 notatePart :: Score Dur Cue -> Staff
-notatePart score = removeRedundantMarks $ notatePart' (prependStaffHead clef) score
+notatePart score = removeRedundantMarks . mconcat . fmap notateCueEvent . toEvents $ score
     where
-        clef = maybe kDefaultClef (standardClef . cuePart) . firstEvent $ score
-
-        notatePart' :: ([Staff] -> [Staff]) -> Score Dur Cue -> Staff
-        notatePart' f score = mconcat . f . fmap notateCueEvent . toEvents $ score
-            where
-                notateCueEvent (Event t d x) = moveObjectsRight (timeToSpace t) $ notateCue x
+        notateCueEvent (Event t d x) = moveObjectsRight (timeToSpace t) $ notateCue x
 
 kDefaultClef = trebleClef
 \end{code}
@@ -1474,8 +1469,7 @@ engravePanorama global =
     . justifyStaves . addRehearsals . fmap notatePart
     where                             
         addRehearsals (x:xs) = (rehearsals `mappend` x):xs
-        rehearsals = moveObjectsRight 5 $ notateRehearsalMarks global
-        -- FIXME offset related to staffHead
+        rehearsals = notateRehearsalMarks global
 
 kPageWidth           = 140 :: Spaces
 kSystemsPerPage      = 13
@@ -1486,12 +1480,10 @@ kPageMarigins   = r2 (15, -20)
 kPageScaling    = 4.8
 
 engravePartLines :: Score Dur Cue -> [Engraving]
-engravePartLines = fmap engraveStaff . h . divideStaff kPageWidth . addRehearsal . notatePart
+engravePartLines = fmap engraveStaff . divideStaff kPageWidth . addRehearsal . notatePart
     where                                        
-        -- h = id
-        h = fmap (prependStaffHead2 kDefaultClef) -- FIXME
-        addRehearsal x = x {-`mappend` rehearsals-}
-        rehearsals = moveObjectsRight 5 $ notateRehearsalMarks score -- FIXME
+        addRehearsal x = x {-`mappend` rehearsals-} -- FIXME
+        rehearsals = notateRehearsalMarks score
 
 
 
