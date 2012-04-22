@@ -1243,8 +1243,8 @@ staffHead clef = trivial { spacedObjects = s }
         s = [(0.5, StaffClef clef)]
 
 prependStaffHead2 :: Clef -> Staff -> Staff
-prependStaffHead2 clef staff = staffHead clef `mappend` {-moveObjectsRight 5 -}staff
-
+prependStaffHead2 clef staff = staffHead clef `mappend` moveObjectsRight 0 staff
+-- FIXME move more without screwing up staff width
 
 prependStaffHead :: Clef -> [Staff] -> [Staff]
 prependStaffHead clef xs = staffHead clef : fmap (moveObjectsRight 5) xs
@@ -1426,6 +1426,14 @@ isStaffEmpty (Staff o s ns) = null s
 
 move t     = map (\(p, x) -> (p + t, x)) -- compare moveObjectsLeft, moveObjectsRight
 
+insertSpacedObject :: Spaces -> SpacedObject -> Staff -> Staff
+insertSpacedObject t x (Staff o s ns) = (Staff o s' ns')
+    where
+        n   =      insertIndexBy (comparing fst) (t, x) s
+        s'  = List.insertBy      (comparing fst) (t, x) s
+        ns' = map (\(is,x) -> (map (\i -> if i < n then i else i + 1) is, x)) ns 
+        
+        
 -- | Split a staff at the given position.                         
 --
 --   This is the primitive splitting function, which does not perform any cutting, so
@@ -1458,6 +1466,18 @@ cutStaffObjects :: Spaces -> Staff -> Staff
 cutStaffObjects t (Staff o s ns) = Staff o s ns
     -- where
         -- possiblySpanningObjects = 
+
+
+-- TODO    
+
+-- st :: Staff
+-- st = sp . i $ trivial { spacedObjects = [(0, StaffChord trivial), (10, StaffChord trivial)], 
+--                         nonSpacedObjects = [([0], StaffInstruction "a"), ([1], StaffInstruction "b")] }
+--     where   
+--         i =   insertSpacedObject 5 (StaffChord $ trivial { Notable.rest = QuarterNoteRest })
+--             . insertSpacedObject 6 (StaffChord $ trivial { Notable.rest = EightNoteRest })
+--         sp = addSpace 1 1
+-- 
 
 cutSpacedStaffObject :: Spaces -> SpacedObject -> (SpacedObject, Maybe SpacedObject)
 cutSpacedStaffObject t (StaffSustainLine (p, w)) = (StaffSustainLine (p, w - t), Just $ StaffSustainLine (p, t))
@@ -2140,6 +2160,17 @@ equals f x = (== x) . f
 
 removeEquals :: Eq a => [a] -> [a]
 removeEquals = List.remove2 (==)
+
+insertIndex :: Ord a => a -> [a] -> Int
+insertIndex = insertIndexBy compare
+
+insertIndexBy :: (a -> a -> Ordering) -> a -> [a] -> Int
+insertIndexBy = ix 0
+    where
+        ix n _   _ [] = n
+        ix n cmp x (y:ys)
+            | x `cmp` y == GT  =  ix (n + 1) cmp x ys
+            | otherwise        =  n
 
 
 compose :: [b -> c] -> [a -> b] -> [a -> c]
