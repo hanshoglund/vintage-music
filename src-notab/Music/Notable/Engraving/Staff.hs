@@ -433,7 +433,7 @@ type Rehearsal = String
 engraveRehearsal :: Rehearsal -> Engraving
 engraveRehearsal str = p . s $ text str <> square (convert kRehearsalSquare)
     where
-        s = font textFont . bold
+        s = font {-textFont-}"Arial" . bold
         p = moveSpacesUp kRehearsalOffset . scale kRehearsalScale
 
 
