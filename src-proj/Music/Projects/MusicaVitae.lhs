@@ -1293,18 +1293,7 @@ prependStaffHead clef staff = staffHead clef `mappend` moveObjectsRight kStaffHe
 
 kStaffHeadWidth       = 5   :: Spaces              
 kStaffSpaceBeforeClef = 0.5 :: Spaces
-
--- prependStaffHead2 :: Clef -> Staff -> Staff
--- prependStaffHead2 clef staff = staffHead clef `mappend` moveObjectsRight 0 staff
--- -- FIXME move more without screwing up staff width
--- 
--- prependStaffHead :: Clef -> [Staff] -> [Staff]
--- prependStaffHead clef xs = staffHead clef : fmap (moveObjectsRight 5) xs
-
-
-
-
-
+kStaffHeadExtraSpace  = kStaffHeadWidth + kStaffSpaceBeforeClef
 
 
 notateOpenStringPitch :: Part -> Str -> (HalfSpaces, Maybe Accidental)
@@ -1467,6 +1456,10 @@ kDefaultClef = trebleClef
 -- guess which clef to use
 scoreClef :: Time t => Score t Cue -> Clef
 scoreClef = maybe kDefaultClef (standardClef . cuePart) . firstEvent
+
+scorePartName :: Time t => Score t Cue -> String
+scorePartName = maybe "" (partName . cuePart) . firstEvent
+
 \end{code}
 
 
@@ -1519,11 +1512,31 @@ engravePartLines' clef = fmap engraveStaff . fmap addStaffHead . divideStaff kPa
         addRehearsals :: Staff -> Staff    
         addRehearsals = (notateRehearsalMarks score `mappend`)
 
-
 engravePartPages :: Score Dur Cue -> [Engraving]
-engravePartPages = map fitIntoPage . map catDown . map (map addSystemSpacer) . List.divide kSystemsPerPage . engravePartLines
-    where      
-        addSystemSpacer   = (<> spaceY (kSpaceBetweenSystems / 2))
+engravePartPages score = engravePartPages' name score
+    where
+        name = scorePartName score
+
+engravePartPages' :: String -> Score Dur Cue -> [Engraving]
+engravePartPages' partName = addPageHeaders . map fitIntoPage . map catDown . map (map addSystemSpacer) . List.divide kSystemsPerPage . engravePartLines
+    where              
+        addSystemSpacer :: Engraving -> Engraving
+        addSystemSpacer   = (<> spaceY (kSpaceBetweenSystems / 2))  
+        
+        addPageHeaders :: [Engraving] -> [Engraving]
+        addPageHeaders xs = map (uncurry $ addPageHeader "Passager" partName) $ zip [1..] xs
+
+        addPageHeader :: String -> String -> Int -> Engraving -> Engraving
+        addPageHeader name partName pageNum = (pageHeader name partName pageNum <>)
+
+        pageHeader :: String -> String -> Int -> Engraving
+        pageHeader name partName pageNum = moveSpacesUp 5 $ mempty
+            <> (                        alignR  . scale 4 $ engraveText partName)
+            <> (moveSpacesRight w     . alignL  . scale 4 $ engraveText name)
+            <> (moveSpacesRight (w/2) . centerX . scale 3 $ engraveText (show pageNum))
+            where
+                w = kPageWidth * kPageScaling
+        
 
 fitIntoPage :: Engraving -> Engraving
 fitIntoPage = (<> page) . alignTL . scale kPageScaling . freeze

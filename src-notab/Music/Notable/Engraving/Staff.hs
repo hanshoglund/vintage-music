@@ -715,7 +715,9 @@ splitStaff t = splitStaff' t . cutStaffObjects t
 splitStaffWhen :: (Spaces -> SpacedObject -> Bool) -> (Staff, Staff)
 splitStaffWhen = undefined
 
-kAddToDividedStaff = 2 :: Spaces
+
+--FIXME supposed to be >= kStaffHeadExtraSpace
+kAddToDividedStaff = 7 :: Spaces
 
 -- | Divide a staff into staves of the given length.
 divideStaff :: Spaces -> Staff -> [Staff]
