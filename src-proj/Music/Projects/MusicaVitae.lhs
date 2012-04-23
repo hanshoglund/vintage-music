@@ -896,11 +896,11 @@ midiInstrument (Cue part doubling dynamics tempo marks technique) =
         (Pizz _ _) -> Just 45
         _          -> midiInstrument' part
 
-midiInstrument' _             =  Just 49
--- midiInstrument' ( Violin _ )  =  Just 40
--- midiInstrument' ( Viola _ )   =  Just 41
--- midiInstrument' ( Cello _ )   =  Just 42
--- midiInstrument' DoubleBass    =  Just 43
+-- midiInstrument' _             =  Just 49
+midiInstrument' ( Violin _ )  =  Just 40
+midiInstrument' ( Viola _ )   =  Just 41
+midiInstrument' ( Cello _ )   =  Just 42
+midiInstrument' DoubleBass    =  Just 43
 
 \end{code}
 
@@ -936,6 +936,14 @@ naturalHarmonicPitch part str tone =
     where
         fundamental = openStringPitch part str
         overtone = scaleFromSteps [0,12,7,5,4,3,3,2,2,2] `step` tone
+
+naturalHarmonicWrittenPitch :: Part -> Str -> Pitch -> Pitch
+naturalHarmonicWrittenPitch part str tone =
+    fundamental + position
+    where
+        fundamental = openStringPitch part str
+        position = [0,12,7,5,4,3] !! tone
+
 \end{code}
 
 
@@ -1278,7 +1286,13 @@ Notating staves
 staffHead :: Clef -> Staff
 staffHead clef = trivial { spacedObjects = s }
     where
-        s = [(0.5, StaffClef clef)]
+        s = [(kStaffSpaceBeforeClef, StaffClef clef)]
+
+prependStaffHead :: Clef -> Staff -> Staff
+prependStaffHead clef staff = staffHead clef `mappend` moveObjectsRight kStaffHeadWidth staff
+
+kStaffHeadWidth       = 5   :: Spaces              
+kStaffSpaceBeforeClef = 0.5 :: Spaces
 
 -- prependStaffHead2 :: Clef -> Staff -> Staff
 -- prependStaffHead2 clef staff = staffHead clef `mappend` moveObjectsRight 0 staff
@@ -1303,7 +1317,7 @@ notateOpenStringPitch r s = (p,a)
 notateNaturalHarmonicPitch :: Part -> Str -> Int -> (HalfSpaces, Maybe Accidental)
 notateNaturalHarmonicPitch r s x = (p,a)
     where
-        (p, a) = notatePitch c . (subtract t) $ naturalHarmonicPitch r s x
+        (p, a) = notatePitch c . (subtract t) $ naturalHarmonicWrittenPitch r s x
         c  = standardClef r
         t  = transposition r
 
@@ -1447,7 +1461,12 @@ notatePart score = removeRedundantMarks . mconcat . fmap notateCueEvent . toEven
     where
         notateCueEvent (Event t d x) = moveObjectsRight (timeToSpace t) $ notateCue x
 
+
 kDefaultClef = trebleClef
+
+-- guess which clef to use
+scoreClef :: Time t => Score t Cue -> Clef
+scoreClef = maybe kDefaultClef (standardClef . cuePart) . firstEvent
 \end{code}
 
 
@@ -1486,11 +1505,20 @@ kPageDimensions = r2 (210, 297)
 kPageMarigins   = r2 (15, -20)
 kPageScaling    = 4.8
 
+
 engravePartLines :: Score Dur Cue -> [Engraving]
-engravePartLines = fmap engraveStaff . divideStaff kPageWidth . addRehearsal . notatePart
-    where                                        
-        addRehearsal x = rehearsals `mappend` x
-        rehearsals = notateRehearsalMarks score
+engravePartLines score = engravePartLines' clef score
+    where
+        clef = scoreClef score
+        
+engravePartLines' :: Clef -> Score Dur Cue -> [Engraving]
+engravePartLines' clef = fmap engraveStaff . fmap addStaffHead . divideStaff kPageWidth . addRehearsals . notatePart
+    where   
+        addStaffHead x = prependStaffHead clef x
+                                         
+        addRehearsals :: Staff -> Staff    
+        addRehearsals = (notateRehearsalMarks score `mappend`)
+
 
 engravePartPages :: Score Dur Cue -> [Engraving]
 engravePartPages = map fitIntoPage . map catDown . map (map addSystemSpacer) . List.divide kSystemsPerPage . engravePartLines
