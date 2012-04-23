@@ -1472,11 +1472,10 @@ The simplest way to engrave a score is in panorama form.
 \begin{code}
 engravePanorama :: Score Dur Cue -> [Score Dur Cue] -> [Engraving]
 engravePanorama global =
-    fmap ((<> spaceY 4) . engraveStaff {-. addSpaceAtEnd 100-})
-    {-. justifyStaves-} . addRehearsals . fmap notatePart
-    where                             
-        addRehearsals (x:xs) = (rehearsals `mappend` x):xs
-        rehearsals = notateRehearsalMarks global
+    fmap (addVerticalSpace . engraveStaff) . addRehearsals . fmap notatePart
+    where                 
+        addVerticalSpace     = (<> spaceY 4)            
+        addRehearsals (x:xs) = (notateRehearsalMarks global `mappend` x):xs
 \end{code}
 
 
@@ -1572,6 +1571,99 @@ writePartBookPages path book = (take (length pages) names, writeMultipleGraphics
 
 
 
+Engraving of the score book.
+
+\begin{code}
+
+kScorePageWidth           = 340 :: Spaces
+kScoreSpaceBetweenSystems = 10
+
+kScorePageDimensions = r2 (420, 297)             
+kScorePageMarigins   = r2 (10, -50)
+kScorePageScaling    = 4.5
+
+equalizeStaffWidth :: [Staff] -> [Staff]
+equalizeStaffWidth xs = map (setMinWidth m) xs
+    where
+        m = List.maximumWith 0 . map staffWidth $ xs
+
+engraveLeftLine :: Int -> Engraving
+engraveLeftLine numParts = p $ vrule (kScoreSpaceBetweenSystems * fromIntegral (numParts - 1) / 2 + (convert $ Spaces 4))
+    where
+        p = translateY (convert $ Spaces 2) . alignT
+
+engraveScorePages :: [Part] -> Score Dur Cue -> [Engraving]
+engraveScorePages parts score = 
+          map scorePage
+        . map (<> leftLineE)
+        . map catDown 
+        . map (map addSystemSpacer) 
+        . map (map engraveStaff) 
+        . List.transpose 
+        . div            
+        . addRehearsals 
+        . equalizeStaffWidth
+        $ partsN
+    where      
+        leftLineE = engraveLeftLine (length parts)
+        
+        div = fmap (divideStaff kScorePageWidth) 
+                             
+        addSystemSpacer :: Engraving -> Engraving
+        addSystemSpacer   = (<> spaceY (kScoreSpaceBetweenSystems / 2))  
+             
+        partsN :: [Staff]
+        partsN       =  fmap notatePart $ extractParts parts score
+        
+        rehearsalsN :: Staff
+        rehearsalsN  =  notateRehearsalMarks score 
+
+        addStaffHead :: [[Staff]] -> [[Staff]]
+        addStaffHead = id                                  
+                
+        addRehearsals :: [Staff] -> [Staff]
+        addRehearsals (x:xs) = (rehearsalsN `mappend` x):xs
+
+
+        
+scorePage :: Engraving -> Engraving
+scorePage = (<> page) . alignTL . scale kScorePageScaling . freeze
+    where
+        page = st . moveOriginBy kScorePageMarigins . alignTL $ r (getX kScorePageDimensions) (getY kScorePageDimensions)
+        r    = spaceRect   
+        st   = fillColor lightblue
+
+data ScoreBook =
+    ScoreBook
+    {                        
+        scoreBookParts :: [Part],
+        scoreBookScore :: Score Dur Cue
+    }
+
+scoreBookFilePath :: ScoreBook -> FilePath
+scoreBookFilePath (ScoreBook p s) = "Partitur"
+
+engraveScoreBook :: ScoreBook -> [Engraving]
+engraveScoreBook book = engraveScorePages (scoreBookParts book) (scoreBookScore book)
+
+writeScoreBook' :: FilePath -> ScoreBook -> IO ()
+writeScoreBook' path book =
+    let (files, action) = writeScoreBookPages path book in
+        do  action
+            joinPdfs files (path ++ scoreBookFilePath book ++ ".pdf")
+            threadDelay 2000000
+            removeFiles files
+
+writeScoreBookPages :: FilePath -> ScoreBook -> ([FilePath], IO ())
+writeScoreBookPages path book = (take (length pages) names, writeMultipleGraphics' (getY kScorePageDimensions) (zip names pages))
+    where
+        name  = path ++ scoreBookFilePath book
+        names = map (\i -> name ++ "_p" ++ show i ++ ".pdf") [1..]
+        pages = map Graphic $ engraveScoreBook book
+\end{code}           
+                    
+
+
 These functions extracts parts from a score, based on the `cuePart` attribute:
 
 \begin{code}
@@ -1590,7 +1682,7 @@ Finally, we define the panorama, score book and part book engravings, based on t
 
 \begin{code}   
 ensemble' = ensemble
--- ensemble' = [Violin 1, Cello 1]
+-- ensemble' = (take 2 violins) ++ cellos
     
 -- | All parts, generated from 'score'.
 parts :: [Score Dur Cue]
@@ -1599,7 +1691,8 @@ parts = extractParts ensemble' (calculateTempo score)
 partBooks :: [PartBook]
 partBooks = fmap (\(p,s) -> PartBook p s) $ zip ensemble' parts
 
--- scoreBook :: [Engraving]
+scoreBook :: ScoreBook
+scoreBook = ScoreBook ensemble' (calculateTempo score)
 
 panoramaParts :: [Engraving]
 panoramaParts = engravePanorama score parts
@@ -1617,7 +1710,12 @@ writePartBooks :: IO ()
 writePartBooks = sequence_ $ map (writePartBook "parts/") partBooks
 
 writeScoreBook :: IO ()
-writeScoreBook = undefined
+writeScoreBook = writeScoreBook' "parts/" scoreBook
+
+writeAll :: IO ()
+writeAll = do
+    writeScoreBook
+    writePartBooks
 \end{code}
 
 

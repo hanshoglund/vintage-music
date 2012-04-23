@@ -16,6 +16,8 @@ module Music.Render.Graphics
     Graphic(..),
     writeGraphics,
     writeMultipleGraphics,
+    writeGraphics',
+    writeMultipleGraphics',
 )
 where
 
@@ -43,15 +45,23 @@ newtype Graphic = Graphic (Diagram Cairo R2)
 
 -- | Writes the given graphic representation to a file.
 writeGraphics :: FilePath -> Graphic -> IO ()
-writeGraphics file (Graphic diagram) = do
-    fst $ renderDia Cairo (CairoOptions file (Height 450) PDF) diagram
+writeGraphics = writeGraphics' 450
+
+writeMultipleGraphics :: [(FilePath, Graphic)] -> IO ()
+writeMultipleGraphics = writeMultipleGraphics' 450 
+
+
+-- | Writes the given graphic representation to a file.
+writeGraphics' :: Double -> FilePath -> Graphic -> IO ()
+writeGraphics' h file (Graphic diagram) = do
+    fst $ renderDia Cairo (CairoOptions file (Height h) PDF) diagram
     -- fst $ renderDia Cairo (CairoOptions "test.ps" (Width 250) PS) diagram
     -- fst $ renderDia Cairo (CairoOptions "test.svg" (Width 250) SVG) diagram
     -- fst $ renderDia Cairo (CairoOptions "test.png" (Width 250) PNG) diagram
     return ()
 
-writeMultipleGraphics :: [(FilePath, Graphic)] -> IO ()
-writeMultipleGraphics gs = mapM (uncurry writeGraphics) gs >> return ()
+writeMultipleGraphics' :: Double -> [(FilePath, Graphic)] -> IO ()
+writeMultipleGraphics' h gs = mapM (uncurry $ writeGraphics' h) gs >> return ()
 
 
 --
