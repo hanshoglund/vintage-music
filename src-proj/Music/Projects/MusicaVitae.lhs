@@ -896,11 +896,11 @@ midiInstrument (Cue part doubling dynamics tempo marks technique) =
         (Pizz _ _) -> Just 45
         _          -> midiInstrument' part
 
--- midiInstrument' _             =  Just 49
-midiInstrument' ( Violin _ )  =  Just 40
-midiInstrument' ( Viola _ )   =  Just 41
-midiInstrument' ( Cello _ )   =  Just 42
-midiInstrument' DoubleBass    =  Just 43
+midiInstrument' _             =  Just 49
+-- midiInstrument' ( Violin _ )  =  Just 40
+-- midiInstrument' ( Viola _ )   =  Just 41
+-- midiInstrument' ( Cello _ )   =  Just 42
+-- midiInstrument' DoubleBass    =  Just 43
 
 \end{code}
 
@@ -2059,19 +2059,19 @@ harmPatterns = harmPatterns' 3
               take (x + 2) harmPattern ] ++ harmPatterns' (x + 2)
 
 harmDurations :: [Dur]
-harmDurations = cycle [1.4, 2.2, 2.8]
+harmDurations = cycle [3,3,5]
 
 -- works with the first 6 harmPatterns
 playHarm :: Part -> Int -> Score Dur Cue
-playHarm (Violin _) (-1) = setPart (Violin 1) $ openString IV
-playHarm (Violin _)   0  = setPart (Violin 1) $ naturalHarmonic III 1
-playHarm (Violin _)   1  = setPart (Violin 1) $ naturalHarmonic III 2
-playHarm (Violin _)   2  = setPart (Violin 1) $ naturalHarmonic III 3
-playHarm (Viola _)  (-1) = setPart (Viola  1) $ openString IV
+playHarm (Violin _) (-1) = setPart (Violin 1) $ naturalHarmonic I 4
+playHarm (Violin _)   0  = setPart (Violin 1) $ naturalHarmonic II 1
+playHarm (Violin _)   1  = setPart (Violin 1) $ naturalHarmonic II 2
+playHarm (Violin _)   2  = setPart (Violin 1) $ naturalHarmonic II 3
+playHarm (Viola _)  (-1) = setPart (Viola  1) $ naturalHarmonic II 1
 playHarm (Viola _)    0  = setPart (Viola  1) $ naturalHarmonic III 1
 playHarm (Viola _)    1  = setPart (Viola  1) $ naturalHarmonic III 2
 playHarm (Viola _)    2  = setPart (Viola  1) $ naturalHarmonic III 3
-playHarm (Cello _)  (-1) = setPart (Cello  1) $ naturalHarmonic IV 0
+playHarm (Cello _)  (-1) = setPart (Cello  1) $ naturalHarmonic III 1
 playHarm (Cello _)    0  = setPart (Cello  1) $ naturalHarmonic IV 1
 playHarm (Cello _)    1  = setPart (Cello  1) $ naturalHarmonic IV 2
 playHarm (Cello _)    2  = setPart (Cello  1) $ naturalHarmonic IV 3
@@ -2093,7 +2093,7 @@ playOpen (Cello _)    2  = setPart (Cello  1) $ openString IV
 
 harms :: Int -> Part -> Score Dur Cue
 harms n part =
-    concatSeq (List.intersperse (rest 0.2) notes)
+    concatSeq (List.intersperse (rest 5) notes)
     where
         notes = map (\(t, p) -> stretch t $ playHarm part p) (zip harmDurations patterns)
         patterns :: [Int]
@@ -2101,58 +2101,52 @@ harms n part =
 
 opens :: Int -> Part -> Score Dur Cue
 opens n part =
-    concatSeq (List.intersperse (rest 0.2) notes)
+    concatSeq (List.intersperse (rest 5) notes)
     where
         notes = map (\(t, p) -> stretch t $ playOpen part p) (zip harmDurations patterns)
         patterns :: [Int]
         patterns = harmPatterns !! (n `mod` 6)
 
 
-harms1 = setDynamics pp . stretch 4 $ instant
-    ||| (delay 0  . stretch 1  . setPart (Violin 4) $ harms 0 (Violin 1))
-    ||| (delay 3  . stretch 1  . setPart (Violin 3) $ harms 1 (Violin 1))
-    ||| (delay 6  . stretch 1  . setPart (Violin 2) $ harms 1 (Violin 1))
-    ||| (delay 9  . stretch 1  . setPart (Violin 1) $ harms 2 (Violin 1))
+harms1 = setDynamics pp . stretch 1.8 $ instant
+    ||| (delay 0  . stretch 1.4  . setPart (Violin 4) $ harms 0 (Violin 1))
+    ||| (delay 3  . stretch 1.3  . setPart (Violin 3) $ harms 1 (Violin 1))
+    ||| (delay 6  . stretch 1.2  . setPart (Violin 2) $ harms 1 (Violin 1))
+    ||| (delay 9  . stretch 1.1  . setPart (Violin 1) $ harms 2 (Violin 1))
 
-harms2 = setDynamics pp . stretch 4 . reverse $ instant
+harms2 = setDynamics pp . stretch 1 . reverse $ instant
     ||| (delay 0  . stretch 1    . setPart (Viola 2)  $ harms 0 (Viola 1))
     ||| (delay 1 . stretch 1.2  . setPart (Viola 1)  $ harms  0 (Viola 1))
 
-harms3 = setDynamics pp . stretch 3 . reverse $ instant
+harms3 = setDynamics pp . stretch 1 . reverse $ instant
     ||| (delay 7  . stretch 1    . setPart (Cello 2)  $ harms 3 (Cello 1))
     ||| (delay 11 . stretch 1.2  . setPart (Cello 1)  $ harms 3 (Cello 1))
 
 
-harms5 = setDynamics mf . stretch 3 $ instant
+harms5 = setDynamics mf . stretch 1 $ instant
     ||| (delay 0  . stretch 1    . setPart (Viola 2)  $ harms 0 (Viola 1))
     ||| (delay 3 . stretch 1.2  . setPart (Viola 1)  $ harms 0 (Viola 1))
 
-harms6 = setDynamics mf . stretch 3 $ instant
+harms6 = setDynamics mf . stretch 1 $ instant
     ||| (delay 0  . stretch 1   . setPart (Violin 3)  $ harms 0 (Violin 1))
     ||| (delay 3 . stretch 1.2  . setPart (Violin 4)  $ harms 0 (Violin 1))
 
 
-opens5 = setDynamics mf . stretch 3 $ instant
+opens5 = setDynamics mf . stretch 1 $ instant
     ||| (delay 0  . stretch 1    . setPart (Viola 2)  $ opens 0 (Viola 1))
     ||| (delay 3 . stretch 1.2  . setPart (Viola 1)  $ opens 0 (Viola 1))
 
-opens6 = setDynamics mf . stretch 3 $ instant
+opens6 = setDynamics mf . stretch 1 $ instant
     ||| (delay 0  . stretch 1   . setPart (Violin 3)  $ opens 0 (Violin 1))
     ||| (delay 3 . stretch 1.2  . setPart (Violin 4)  $ opens 0 (Violin 1))
 
-opens7 = setDynamics mf . stretch 3 $ instant
+opens7 = setDynamics mf . stretch 1 $ instant
     ||| (delay 0  . stretch 1    . setPart (Cello 2)  $ opens 0 (Cello 1))
     ||| (delay 11 . stretch 1.2  . setPart (Cello 1)  $ opens 0 (Cello 1))
 
-opens8 = setDynamics mf . stretch 3 $ instant
+opens8 = setDynamics mf . stretch 1 $ instant
     ||| (delay 0  . stretch 1    . setPart (Cello 2)  $ opens 4 (Cello 1))
     ||| (delay 11 . stretch 1.2  . setPart (Cello 1)  $ opens 5 (Cello 1))
-
-harms9 = setDynamics pp . stretch 3 $ instant
-    ||| (delay 0 . stretch 1   . setPart (Violin 4) $ harms 0 (Violin 1))
-    ||| (delay 4 . stretch 1.2 . setPart (Violin 3) $ harms 1 (Violin 1))
-    ||| (delay 7 . stretch 1.3 . setPart (Violin 2) $ harms 1 (Violin 1))
-    ||| (delay 9 . stretch 1.4 . setPart (Violin 1) $ harms 2 (Violin 1))
 
 
 
@@ -2165,11 +2159,9 @@ score' = stretch 0.8{-0.8-} $ harmScore ||| mainScore
 
 
 harmScore = instant
-    --  ||| (delay 45 . before 45) harms1
-    --  ||| delay 90 harms2
-    --  ||| delay 100 (reverse harms1)
-    --  ||| delay 250 harms5
-    --  ||| delay 280 harms6
+    ||| (delay 80    . before 50) harms1
+    ||| (delay 143.4 . stretch 4) db2
+    ||| (delay 150   . reverse . before 50) harms1
 
     ||| (delay 180 . stretch 4) db3
     ||| (delay 210 . stretch 4) db3
