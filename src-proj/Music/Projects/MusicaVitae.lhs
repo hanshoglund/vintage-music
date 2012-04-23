@@ -1464,21 +1464,12 @@ scorePartName = maybe "" (partName . cuePart) . firstEvent
 
 
 
-Assembling the score and parts
+Score and parts
 --------
 
+The simplest way to engrave a score is in panorama form.
+
 \begin{code}
-
-extractPart :: Part -> Score Dur Cue -> Score Dur Cue
-extractPart part = filterEvents (cuePart `equals` part)
-
-extractParts :: [Part] -> Score Dur Cue -> [Score Dur Cue]
-extractParts parts score = map (flip extractPart $ score) parts
-
-
-
--- Panorama version
-
 engravePanorama :: Score Dur Cue -> [Score Dur Cue] -> [Engraving]
 engravePanorama global =
     fmap ((<> spaceY 4) . engraveStaff {-. addSpaceAtEnd 100-})
@@ -1486,18 +1477,21 @@ engravePanorama global =
     where                             
         addRehearsals (x:xs) = (rehearsals `mappend` x):xs
         rehearsals = notateRehearsalMarks global
+\end{code}
 
 
--- Book version
 
-kPageWidth           = 140 :: Spaces
-kSystemsPerPage      = 13
-kSpaceBetweenSystems = 8
+Engraving of part books.
 
-kPageDimensions = r2 (210, 297)             
-kPageMarigins   = r2 (15, -20)
-kPageScaling    = 4.8
+\begin{code}
 
+kPartPageWidth           = 140 :: Spaces
+kPartSystemsPerPage      = 13
+kPartSpaceBetweenSystems = 8
+
+kPartPageDimensions = r2 (210, 297)             
+kPartPageMarigins   = r2 (15, -20)
+kPartPageScaling    = 4.8
 
 engravePartLines :: Score Dur Cue -> [Engraving]
 engravePartLines score = engravePartLines' clef score
@@ -1505,7 +1499,7 @@ engravePartLines score = engravePartLines' clef score
         clef = scoreClef score
         
 engravePartLines' :: Clef -> Score Dur Cue -> [Engraving]
-engravePartLines' clef = fmap engraveStaff . fmap addStaffHead . divideStaff kPageWidth . addRehearsals . notatePart
+engravePartLines' clef = fmap engraveStaff . fmap addStaffHead . divideStaff kPartPageWidth . addRehearsals . notatePart
     where   
         addStaffHead x = prependStaffHead clef x
                                          
@@ -1518,10 +1512,10 @@ engravePartPages score = engravePartPages' name score
         name = scorePartName score
 
 engravePartPages' :: String -> Score Dur Cue -> [Engraving]
-engravePartPages' partName = addPageHeaders . map fitIntoPage . map catDown . map (map addSystemSpacer) . List.divide kSystemsPerPage . engravePartLines
+engravePartPages' partName = addPageHeaders . map partPage . map catDown . map (map addSystemSpacer) . List.divide kPartSystemsPerPage . engravePartLines
     where              
         addSystemSpacer :: Engraving -> Engraving
-        addSystemSpacer   = (<> spaceY (kSpaceBetweenSystems / 2))  
+        addSystemSpacer   = (<> spaceY (kPartSpaceBetweenSystems / 2))  
         
         addPageHeaders :: [Engraving] -> [Engraving]
         addPageHeaders xs = map (uncurry $ addPageHeader "Passager" partName) $ zip [1..] xs
@@ -1535,13 +1529,12 @@ engravePartPages' partName = addPageHeaders . map fitIntoPage . map catDown . ma
             <> (moveSpacesRight w     . alignL  . scale 4 $ engraveText name)
             <> (moveSpacesRight (w/2) . centerX . scale 3 $ engraveText (show pageNum))
             where
-                w = kPageWidth * kPageScaling
+                w = kPartPageWidth * kPartPageScaling
         
-
-fitIntoPage :: Engraving -> Engraving
-fitIntoPage = (<> page) . alignTL . scale kPageScaling . freeze
+partPage :: Engraving -> Engraving
+partPage = (<> page) . alignTL . scale kPartPageScaling . freeze
     where
-        page = st . moveOriginBy kPageMarigins . alignTL $ r (getX kPageDimensions) (getY kPageDimensions)
+        page = st . moveOriginBy kPartPageMarigins . alignTL $ r (getX kPartPageDimensions) (getY kPartPageDimensions)
         r    = spaceRect   
         st   = id
         -- r    = rect
@@ -1574,28 +1567,26 @@ writePartBookPages path book = (take (length pages) names, writeMultipleGraphics
         name  = path ++ partBookFilePath book
         names = map (\i -> name ++ "_p" ++ show i ++ ".pdf") [1..]
         pages = map Graphic $ engravePartBook book
-
-
 \end{code}
 
-As the Cairo backend insists on outputting one file for each page, we add these utility functions to
-join the generated "page" files into a single "book" file, as well as removing the intermediate page
-files. These depend on Posix functions and the PDF toolkit being installed.
+
+
+
+These functions extracts parts from a score, based on the `cuePart` attribute:
 
 \begin{code}
-joinPdfs :: [FilePath] -> FilePath -> IO ()
-joinPdfs ins out =
-    execute "pdftk" args
-    where
-        args = ins ++ ["cat", "output", out]
+extractPart :: Part -> Score Dur Cue -> Score Dur Cue
+extractPart part = filterEvents (cuePart `equals` part)
 
-removeFiles :: [FilePath] -> IO ()
-removeFiles fs = execute "rm" fs
+extractParts :: [Part] -> Score Dur Cue -> [Score Dur Cue]
+extractParts parts score = map (flip extractPart $ score) parts
 \end{code}
 
 
 
-Stuff depending on `score`:
+
+
+Finally, we define the panorama, score book and part book engravings, based on the `score` and `ensemble` variables.
 
 \begin{code}   
 ensemble' = ensemble
@@ -1610,23 +1601,23 @@ partBooks = fmap (\(p,s) -> PartBook p s) $ zip ensemble' parts
 
 -- scoreBook :: [Engraving]
 
+panoramaParts :: [Engraving]
+panoramaParts = engravePanorama score parts
+
+panoramaScore :: Engraving
+panoramaScore = m <> sp
+    where
+        m  = foldr above mempty $ panoramaParts
+        sp = moveOriginBy (r2(0,-7)) . alignTL $ spaceY 45
+
+showPanoramaScore :: IO ()
+showPanoramaScore = draw panoramaScore
+
 writePartBooks :: IO ()
 writePartBooks = sequence_ $ map (writePartBook "parts/") partBooks
 
 writeScoreBook :: IO ()
 writeScoreBook = undefined
-
--- | Notations of each part in panorama form.
-partNotations :: [Engraving]
-partNotations = engravePanorama score parts
-
--- | A notation of the entire score in panorama form.
-scoreNotation :: Engraving
-scoreNotation = m <> sp
-    where
-        m  = foldr above mempty $ partNotations
-        sp = moveOriginBy (r2(0,-7)) . alignTL $ spaceY 45
-
 \end{code}
 
 
@@ -2183,12 +2174,22 @@ showPitch x = sp p' ++ maybe "" ((" " ++) . show) a ++ " " ++ show (o - 4)
         sp 4 = "G"
         sp 5 = "A"
         sp 6 = "B"
-
-
-
-
-
 \end{code}
+
+As the Cairo backend insists on outputting one file for each page, we add these utility functions to
+join the generated "page" files into a single "book" file, as well as removing the intermediate page
+files. These depend on Posix functions and the PDF toolkit being installed.
+
+\begin{code}
+joinPdfs :: [FilePath] -> FilePath -> IO ()
+joinPdfs ins out =
+    execute "pdftk" args
+    where
+        args = ins ++ ["cat", "output", out]
+
+removeFiles :: [FilePath] -> IO ()
+removeFiles fs = execute "rm" fs
+\end{code}   
 
 Useful to fix the type of a score.
 
