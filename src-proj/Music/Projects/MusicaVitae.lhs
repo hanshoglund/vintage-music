@@ -1318,50 +1318,49 @@ notateStoppedStringPitch r x = (p,a)
         t  = transposition r
 
 
-
-notateOpenString :: Part -> NoteValue -> Str -> Chord
-notateOpenString r nv s =
-    trivial { dots = dotsFromNoteValue nv,
-              notes = [Note p nh a] }
-    where
-        nh = noteHeadFromNoteValue nv
-        (p,a) = notateOpenStringPitch r s
-
-notateNaturalHarmonic :: Part -> NoteValue -> Str -> Pitch -> Chord
-notateNaturalHarmonic r nv s x =
-    trivial { dots = dotsFromNoteValue nv,
-              notes = [Note p DiamondNoteHead a] }
-    where
-        nh = noteHeadFromNoteValue nv
-        (p,a) = notateNaturalHarmonicPitch r s x
-
-notateStoppedString :: Part -> NoteValue -> Str -> Pitch -> Chord
-notateStoppedString r nv s x =
-    trivial { dots = dotsFromNoteValue nv,
-              notes = [Note p nh a] }
-    where
-        nh = noteHeadFromNoteValue nv
-        (p,a) = notateStoppedStringPitch r x
-
-
 pitchPosition :: Part -> Technique -> HalfSpaces
 pitchPosition r (Single _ (OpenString s))        = fst $ notateOpenStringPitch r s
 pitchPosition r (Single _ (NaturalHarmonic x s)) = fst $ notateNaturalHarmonicPitch r s x
 pitchPosition r (Single _ (StoppedString x s))   = fst $ notateStoppedStringPitch r x
 pitchPosition r _                                = 0
 
+notateOpenString :: Part -> NoteValue -> Str -> (Chord, Maybe NonSpacedObject)
+notateOpenString r nv s = (ch, Nothing)
+    where
+        ch = trivial { dots = dotsFromNoteValue nv,
+                       notes = [Note p nh a] }
+        nh = noteHeadFromNoteValue nv
+        (p,a) = notateOpenStringPitch r s
 
+notateNaturalHarmonic :: Part -> NoteValue -> Str -> Pitch -> (Chord, Maybe NonSpacedObject)
+notateNaturalHarmonic r nv s x = (ch, Nothing{-Just strText-})
+    where
+        ch = trivial { dots = dotsFromNoteValue nv,
+                       notes = [Note p DiamondNoteHead a] }
+        nh = noteHeadFromNoteValue nv
+        (p,a) = notateNaturalHarmonicPitch r s x  
+        -- strText = StaffInstruction $ show s
+
+notateStoppedString :: Part -> NoteValue -> Str -> Pitch -> (Chord, Maybe NonSpacedObject)
+notateStoppedString r nv s x = (ch, Nothing)
+    where
+        ch = trivial { dots = dotsFromNoteValue nv,
+                  notes = [Note p nh a] }
+        nh = noteHeadFromNoteValue nv
+        (p,a) = notateStoppedStringPitch r x
 
 -- TODO trem, gliss
-notateLeftHand :: Part -> NoteValue -> LeftHand Pitch Str -> Chord
+notateLeftHand :: Part -> NoteValue -> LeftHand Pitch Str -> (Chord, Maybe NonSpacedObject)
 notateLeftHand r nv ( OpenString           s )   =  notateOpenString r nv s
 notateLeftHand r nv ( NaturalHarmonic      x s ) =  notateNaturalHarmonic r nv s x
 notateLeftHand r nv ( StoppedString        x s ) =  notateStoppedString r nv s x
 
 -- TODO pizz, jete
-notateRightHand :: Part -> Technique -> [(Spaces, Chord)]
-notateRightHand r ( Single _ x )   =  [(0, notateLeftHand r 1 x)]
-notateRightHand r ( Phrase _ xs )  =  snd $ List.mapAccumL (\t (d, x) -> (t + timeToSpace d, (t, notateLeftHand r (d/2) x))) 0 xs
+notateRightHand :: Part -> Technique -> ([(Spaces, Chord)], [NonSpacedObject])
+notateRightHand r ( Single _ x )   =  ([(0, ch)], maybeToList nsp) where (ch, nsp) = notateLeftHand r 1 x
+notateRightHand r ( Phrase _ xs )  =  moveMaybe . snd $ List.mapAccumL (\t (d, x) -> (t + timeToSpace d, (t, notateLeftHand r (d/2) x))) 0 xs
+
+
 
 
 
@@ -1379,8 +1378,8 @@ notateCue cue = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
         barLineN = if phr then [(0, StaffBarLine)]
                           else [(0, StaffNothing)]
 
-        chordsN   =  fmap (\(t,x) -> (t * scale + kNoteHeadOffset, StaffChord x)) chordsN'
-        chordsN'  =  notateRightHand (cuePart cue) (cueTechnique cue)
+        chordsN            =  fmap (\(t,x) -> (t * scale + kNoteHeadOffset, StaffChord x)) chordsN'
+        (chordsN', nspN )  =  notateRightHand (cuePart cue) (cueTechnique cue)
 
         sustainLineN  =  x `emptyWhen` phr
             where
@@ -1390,7 +1389,7 @@ notateCue cue = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
                 obj  =  StaffSustainLine (yPos, scale * kHorizontalSpace - (kNoteHeadOffset + 4.4))
 
 
-        nsN = {-rehearsalN ++ -}tempoN ++ dynamicN
+        nsN = {-rehearsalN ++ -}tempoN ++ dynamicN ++ map (\x -> ([0], x)) nspN
 
         -- rehearsalN = [([1], notateRehearsal $ "A")] `nonEmptyWhen` True
         tempoN     = [([1], notateTempo . cueTempo $ cue)] `nonEmptyWhen` phr
@@ -1472,7 +1471,7 @@ The simplest way to engrave a score is in panorama form.
 \begin{code}
 engravePanorama :: Score Dur Cue -> [Score Dur Cue] -> [Engraving]
 engravePanorama global =
-    fmap (addVerticalSpace . engraveStaff) . addRehearsals . fmap notatePart
+    fmap (addVerticalSpace . engraveStaff) . equalizeStaffWidth . addRehearsals . fmap notatePart
     where                 
         addVerticalSpace     = (<> spaceY 4)            
         addRehearsals (x:xs) = (notateRehearsalMarks global `mappend` x):xs
@@ -1583,8 +1582,9 @@ kScorePageMarigins   = r2 (10, -50)
 kScorePageScaling    = 4.5
 
 equalizeStaffWidth :: [Staff] -> [Staff]
-equalizeStaffWidth xs = map (setMinWidth m) xs
-    where
+equalizeStaffWidth xs = map (f . setMinWidth m) xs
+    where                     
+        f = insertSpacedObject m StaffNothing
         m = List.maximumWith 0 . map staffWidth $ xs
 
 engraveLeftLine :: Int -> Engraving
@@ -1600,15 +1600,13 @@ engraveScorePages parts score =
         . map (map addSystemSpacer) 
         . map (map engraveStaff) 
         . List.transpose 
-        . div            
+        . fmap (divideStaff kScorePageWidth)            
         . addRehearsals 
         . equalizeStaffWidth
         $ partsN
     where      
         leftLineE = engraveLeftLine (length parts)
-        
-        div = fmap (divideStaff kScorePageWidth) 
-                             
+
         addSystemSpacer :: Engraving -> Engraving
         addSystemSpacer   = (<> spaceY (kScoreSpaceBetweenSystems / 2))  
              
@@ -1925,7 +1923,7 @@ outtroHarm' vs cs = stretch 2.4 $ loop x
 
 db  = setPart DoubleBass . setDynamics pp . stretch 4 $ naturalHarmonic III 4
 db2 = setPart DoubleBass . setDynamics pp . stretch 4 $ naturalHarmonic IV 4
-db3 = setPart DoubleBass . setDynamics p . stretch 4 $ naturalHarmonic III 3
+db3 = setPart DoubleBass . setDynamics p . stretch 4 $ naturalHarmonic II 3
 db4 = setPart DoubleBass . setDynamics p . stretch 4 $ naturalHarmonic III 3
 
 dbA = setPart DoubleBass . stretch 4 $ openString II
@@ -1942,8 +1940,8 @@ intro1 =                     setDynamics pp $ instant
 midtro1 = addRehearsalMark . setDynamics mf $ instant
     ||| (           before 30 $ midtroHarm1 1)
     ||| (delay 15 . before 30 $ midtroHarm1 2)
-    ||| (delay 6  . stretch 3 $ dbA)
-    ||| (delay 24 . stretch 3 $ dbA)
+    ||| (delay 6  . stretch 3 $ db3)
+    ||| (delay 24 . stretch 3 $ db4)
 
 midtro2 = addRehearsalMark . setDynamics pp $ instant
     ||| (           before 40 $ midtroHarm2 1)
@@ -1959,13 +1957,15 @@ outro1 = addRehearsalMark . setDynamics p $ stretch 1.5 $ instant
 
 -- Middle section and canons
 
-middle1 = addRehearsalMark . concatSeq . List.intersperse (rest 10) $ map middle' [0,1,2]
+middle1 = addRehearsalMark $ instant
+    ||| (          concatSeq . List.intersperse (rest 10) . map octaveUp $ map (middle' Viola) [0,1,2])
+    ||| (delay 15 . concatSeq . List.intersperse (rest 10) . map id       $ map (middle' Cello) [0,1])
 
 
-middle' x = setDynamics pp . stretch 2.2 $ b ||| delay 5 a
+middle' instr pattern = setDynamics pp . stretch 2.2 $ b ||| delay 5 a
     where
-        a = (octaveUp . id          . tonality . setPart (Viola 1)  $ patternMelodyFrom x)
-        b = (octaveUp . stretch 1.1 . tonality . setPart (Viola 2)  $ patternMelodyFrom x)
+        a = (id          . tonality . setPart (instr 1)  $ patternMelodyFrom pattern)
+        b = (stretch 1.1 . tonality . setPart (instr 2)  $ patternMelodyFrom pattern)
 
 
 middle2 = addRehearsalMark . setDynamics pp . stretch 2.2 . setDynamics mf $ instant
@@ -2003,12 +2003,12 @@ midCanon' = setDynamics mf . compress 1.1 $ instant
     ||| (stretch 3.5 . id       . tonality . setPart (Viola  1) . patternSequenceFrom 0 $ [2,2,1,2,1,0])
 
 canon2upper = addRehearsalMark . setDynamics pp . reverse $ instant
-    ||| (delay 30  . stretch 2.4  . duodecUp . tonality . setPart (Violin 1) . invert . patternSequenceFrom 0 $ [2,0,0,1,1,2])
-    ||| (delay 25  . stretch 2.3  . duodecUp . tonality . setPart (Violin 2) . invert . patternSequenceFrom 0 $ [0,0,1,1,2,2])
-    ||| (delay 25  . stretch 2.2  . duodecUp . tonality . setPart (Violin 3) . invert . patternSequenceFrom 0 $ [0,1,1,0,2,1])
-    ||| (delay 10  . stretch 2.1  . duodecUp . tonality . setPart (Violin 4) . invert . patternSequenceFrom 0 $ [1,0,2,0,1,0])
-    ||| (delay 10  . stretch 2.0  . octaveUp . tonality . setPart (Viola  1) . invert . patternSequenceFrom 0 $ [1,2,1,2,0,1])
-    ||| (delay 5   . stretch 1.8  . octaveUp . tonality . setPart (Viola  2) . invert . patternSequenceFrom 0 $ [0,1,1,2,2,0])
+    ||| (delay 25  . stretch 2.4  . duodecUp . tonality . setPart (Violin 1) . invert . patternSequenceFrom 0 $ [2,0,0,1,1,2])
+    ||| (delay 20  . stretch 2.3  . duodecUp . tonality . setPart (Violin 2) . invert . patternSequenceFrom 0 $ [0,0,1,1,2,2])
+    ||| (delay 15  . stretch 2.2  . duodecUp . tonality . setPart (Violin 3) . invert . patternSequenceFrom 0 $ [0,1,1,0,2,1])
+    ||| (delay 10  . stretch 2.1  . duodecUp . tonality . setPart (Violin 4) . invert . patternSequenceFrom 0 $ [1,0,2,2,1,0])
+    ||| (delay 5   . stretch 2.0  . octaveUp . tonality . setPart (Viola  1) . invert . patternSequenceFrom 0 $ [1,2,1,1,0,1])
+    ||| (delay 0   . stretch 1.8  . octaveUp . tonality . setPart (Viola  2) . invert . patternSequenceFrom 0 $ [0,1,1,2,2,0])
 
 canon2lower = addRehearsalMark . setDynamics pp $ instant
     ||| (           stretch 2.4 . id  . tonality . setPart (Cello 1) . invert . patternSequenceFrom 1 $ [2,1,2,1,0])
@@ -2112,7 +2112,7 @@ harms1 = setDynamics pp . stretch 4 $ instant
     ||| (delay 0  . stretch 1  . setPart (Violin 4) $ harms 0 (Violin 1))
     ||| (delay 3  . stretch 1  . setPart (Violin 3) $ harms 1 (Violin 1))
     ||| (delay 6  . stretch 1  . setPart (Violin 2) $ harms 1 (Violin 1))
-    ||| (delay 9 . stretch 1  . setPart (Violin 1) $ harms 2 (Violin 1))
+    ||| (delay 9  . stretch 1  . setPart (Violin 1) $ harms 2 (Violin 1))
 
 harms2 = setDynamics pp . stretch 4 . reverse $ instant
     ||| (delay 0  . stretch 1    . setPart (Viola 2)  $ harms 0 (Viola 1))
@@ -2171,9 +2171,9 @@ harmScore = instant
     --  ||| delay 250 harms5
     --  ||| delay 280 harms6
 
-    ||| (delay 180 . stretch 4) db4
-    ||| (delay 210 . stretch 4) db4
-    ||| (delay 240 . stretch 4) db4
+    ||| (delay 180 . stretch 4) db3
+    ||| (delay 210 . stretch 4) db3
+    ||| (delay 240 . stretch 4) db2
     --  ||| (delay 310 . stretch 4) dbG
     --  ||| (delay 335 . stretch 4) dbA
     --  ||| (delay 360 . stretch 4) dbG
@@ -2272,6 +2272,15 @@ showPitch x = sp p' ++ maybe "" ((" " ++) . show) a ++ " " ++ show (o - 4)
         sp 4 = "G"
         sp 5 = "A"
         sp 6 = "B"
+
+assoc :: (a, (b, c)) -> ((a, b), c)
+assoc (x, (y, z)) = ((x, y), z)
+
+moveMaybe :: [(a, (b, Maybe c))] -> ([(a, b)], [c])
+moveMaybe xs = (ys, catMaybes zs)
+    where 
+        (ys, zs) = unzip $ map assoc xs
+
 \end{code}
 
 As the Cairo backend insists on outputting one file for each page, we add these utility functions to
