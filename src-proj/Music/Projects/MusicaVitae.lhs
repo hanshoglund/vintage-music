@@ -1400,8 +1400,9 @@ notateCue cue = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
 notateRehearsalMarks :: Score Dur Cue -> Staff
 notateRehearsalMarks score = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
     where
-        (sN, nsN) = unzip . concatMap (\((t, _), i) -> [((timeToSpace t, StaffNothing), ([i], notateRehearsal $ "A"))]) $ zip marks [0..]
+        (sN, nsN) = unzip . concatMap (\((t, _), i) -> [((timeToSpace t, StaffNothing), ([i], notateRehearsal $ mark i))]) $ zip marks [0..]
         marks = extractRehearsalMarks score
+        mark i = [chr (i + 65)]
 
 
 \end{code}
@@ -1556,8 +1557,8 @@ removeFiles fs = execute "rm" fs
 Stuff depending on `score`:
 
 \begin{code}   
--- ensemble' = ensemble
-ensemble' = [Violin 1, Cello 1]
+ensemble' = ensemble
+-- ensemble' = [Violin 1, Cello 1]
     
 -- | All parts, generated from 'score'.
 parts :: [Score Dur Cue]
