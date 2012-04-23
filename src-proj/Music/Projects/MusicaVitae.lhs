@@ -1463,6 +1463,9 @@ extractParts :: [Part] -> Score Dur Cue -> [Score Dur Cue]
 extractParts parts score = map (flip extractPart $ score) parts
 
 
+
+-- Panorama version
+
 engravePanorama :: Score Dur Cue -> [Score Dur Cue] -> [Engraving]
 engravePanorama global =
     fmap ((<> spaceY 4) . engraveStaff {-. addSpaceAtEnd 100-})
@@ -1470,6 +1473,9 @@ engravePanorama global =
     where                             
         addRehearsals (x:xs) = (rehearsals `mappend` x):xs
         rehearsals = notateRehearsalMarks global
+
+
+-- Book version
 
 kPageWidth           = 140 :: Spaces
 kSystemsPerPage      = 13
@@ -1482,10 +1488,8 @@ kPageScaling    = 4.8
 engravePartLines :: Score Dur Cue -> [Engraving]
 engravePartLines = fmap engraveStaff . divideStaff kPageWidth . addRehearsal . notatePart
     where                                        
-        addRehearsal x = x {-`mappend` rehearsals-} -- FIXME
+        addRehearsal x = rehearsals `mappend` x
         rehearsals = notateRehearsalMarks score
-
-
 
 engravePartPages :: Score Dur Cue -> [Engraving]
 engravePartPages = map fitIntoPage . map catDown . map (map addSystemSpacer) . List.divide kSystemsPerPage . engravePartLines
@@ -1552,8 +1556,8 @@ removeFiles fs = execute "rm" fs
 Stuff depending on `score`:
 
 \begin{code}   
-ensemble' = ensemble
--- ensemble' = [Violin 1, Cello 1]
+-- ensemble' = ensemble
+ensemble' = [Violin 1, Cello 1]
     
 -- | All parts, generated from 'score'.
 parts :: [Score Dur Cue]
@@ -2137,6 +2141,10 @@ showPitch x = sp p' ++ maybe "" ((" " ++) . show) a ++ " " ++ show (o - 4)
         sp 4 = "G"
         sp 5 = "A"
         sp 6 = "B"
+
+
+
+
 
 \end{code}
 

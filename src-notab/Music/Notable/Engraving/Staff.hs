@@ -138,6 +138,7 @@ import Data.Convert
 import Data.Index
 import Data.Ord
 import Data.Trivial
+import Data.Maybe
 
 import Music.Util
 import Music.Util.List
@@ -626,9 +627,17 @@ instance Trivial Staff where
 instance Monoid Staff where
     mempty = trivial
     Staff ox xs xns `mappend` Staff oy ys yns =
-        Staff (ox `mappend` oy) (xs ++ ys) (xns ++ updateIndices yns)
+        normalizeStaff $ Staff (ox `mappend` oy) (xs ++ ys) (xns ++ updateIndices yns)
         where
             updateIndices = map (mapFirst (map (+ (length xs))))
+
+
+normalizeStaff :: Staff -> Staff
+normalizeStaff (Staff o s ns) = Staff o s' ns'
+    where
+        (s', f) = sortWithIndexBy (comparing fst) s
+        -- f = Just
+        ns'     = sortBy (comparing fst) $ map (mapFirst (map (fromJust . f))) ns
 
 
 -- | Whether a staff has any objects or not.
@@ -715,13 +724,14 @@ divideStaff' t = unfoldr f
     where
         f s | isStaffEmpty s = Nothing
             | otherwise      = Just $ splitStaff t s
-
+            
 
 -- | Split a staff at the given position.
 --
 --   This is the primitive splitting function, which does not perform any cutting, so
 --   objects may be left dangling to the right of the first staff.
---
+--               
+--   FIXME PRECOND assumes sorted s and ns
 splitStaff' :: Spaces -> Staff -> (Staff, Staff)
 splitStaff' t (Staff o s ns) = ((Staff ox sx nsx), (Staff oy sy' nsy'))
     where
@@ -731,25 +741,22 @@ splitStaff' t (Staff o s ns) = ((Staff ox sx nsx), (Staff oy sy' nsy'))
         sy'        = moveObjectsLeft' t sy
         nsy'       = map (\(is, x) -> (fmap (subtract (length sx)) is, x)) nsy
 
-splitStaffOptions :: StaffOptions -> (StaffOptions, StaffOptions)
-splitStaffOptions o = (o, o)
-
-splitSpacedStaffObjects :: Spaces -> [(Spaces, SpacedObject)] -> ([(Spaces, SpacedObject)], [(Spaces, SpacedObject)])
-splitSpacedStaffObjects t =
-    span (\(p, _) -> p < t)
-
-splitNonSpacedStaffObjects :: Int -> [([Index [SpacedObject]], NonSpacedObject)] -> ([([Index [SpacedObject]], NonSpacedObject)], [([Index [SpacedObject]], NonSpacedObject)])
-splitNonSpacedStaffObjects n =
-    span (\(i, _) -> head i < n)
+        splitStaffOptions o           =  (o, o)
+        splitSpacedStaffObjects t     =  span (\(p, _) -> p < t)
+        splitNonSpacedStaffObjects n  =  span (\(i, _) -> head i < n)
 
 
--- Prepare a staff for splitting by cutting its objects, i.e. divide slurs, ties, sustain lines
--- Precond: assumes s and ns sorted
+-- | Prepare a staff for splitting by cutting its objects.
 cutStaffObjects :: Spaces -> Staff -> Staff
 cutStaffObjects t (Staff o s ns) = insertSpacedObjects ins $ Staff o short ns
     where
         (short, ins) = mapCollect (cutStaffObject t) s
 
+-- | Possibly cut an object at a given position.
+--
+--   The first element of the returned pair is the first chunk of the object if it was cut, or the original
+--   object otherwise. The second element is the second chunk of the object if it was cut.                 
+--
 cutStaffObject :: Spaces -> (Spaces, SpacedObject) -> ((Spaces, SpacedObject), Maybe (Spaces, SpacedObject))
 cutStaffObject t (p, x)
     | spans t (p, x) && cuttable x =
@@ -757,9 +764,9 @@ cutStaffObject t (p, x)
             (a, b) = cut t' x  in   ((p, a), Just (t, b))
     | otherwise                   = ((p, x), Nothing)
 
+-- | Whether an object spans a particular position.
 spans :: Spaces -> (Spaces, SpacedObject) -> Bool
 spans t (p, x) = inRange (p, p + spacedObjectWidth x) t
-
 
 -- | Whether the given object may be safely passed to 'cut'.
 cuttable :: SpacedObject -> Bool
@@ -770,6 +777,7 @@ cuttabel _                    = False
 cut :: Spaces -> SpacedObject -> (SpacedObject, SpacedObject)
 cut t (StaffSustainLine (p, w)) = (StaffSustainLine (p, t), StaffSustainLine (p, w - t))
 cut t x = error "cutSpacedStaffObject: Not able to cut this object"
+
 
 
 

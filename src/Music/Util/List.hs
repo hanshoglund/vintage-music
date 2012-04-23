@@ -69,7 +69,11 @@ module Music.Util.List
 -- ** Descending lists
     invertOrdering,
     reverseSort,
-    reverseSortBy,
+    reverseSortBy, 
+    
+-- ** Indexed sorting
+    sortWithIndex,
+    sortWithIndexBy,
 
 -- ** Merging
     merge,
@@ -354,6 +358,19 @@ reverseSort = reverseSortBy compare
 -- | Equivalent to @reverse . sortBy comp@, but more efficient.
 reverseSortBy :: (a -> a -> Ordering) -> [a] -> [a]
 reverseSortBy comp = sortBy (\x y -> invertOrdering $ x `comp` y)
+
+-- | Sort a list, returning the sorted list and a function that maps indices 
+--   in the old list to indices in the new list.
+sortWithIndex :: Ord a => [a] -> ([a], Int -> Maybe Int)
+sortWithIndex = sortWithIndexBy compare
+
+-- | Generic version of 'sortWithIndex'.
+sortWithIndexBy :: (a -> a -> Ordering) -> [a] -> ([a], Int -> Maybe Int)
+sortWithIndexBy comp xs = (map snd xs3, f)
+    where                     
+        xs2 = zip [0..] xs
+        xs3 = sortBy (\x y -> snd x `comp` snd y) xs2
+        f x = lookup x (zip (map fst xs3) [0..])
 
 
 
