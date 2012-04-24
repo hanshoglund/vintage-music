@@ -1944,18 +1944,25 @@ midtroHarm2 sect = stretch 3 $ loop x
         g  = setPart (Violin $ sect)     $ naturalHarmonic I 3
 
 outtroHarm :: Int -> Int -> Score Dur Cue
-outtroHarm vs cs = stretch 2.4 $ loop x
+outtroHarm vs cs = stretch 2 $ loop x
     where
-        x  =  stretch 2.2 a >>> stretch 3.4 g >>> stretch 2.8 a >>> rest 1
-        a  =  setPart (Violin vs) $ openString I
-        g  =  setPart (Cello cs)  $ openString IV
+        x  =  stretch 2.2 g >>> stretch 3.4 a >>> stretch 2.8 g >>> rest 1
+        g  =  setPart (Violin vs) $ openString I
+        a  =  setPart (Cello cs)  $ openString IV
 
 outtroHarm' :: Int -> Int -> Score Dur Cue
-outtroHarm' vs cs = stretch 2.4 $ loop x
+outtroHarm' vs cs = stretch 2 $ loop x
     where
         x  =  stretch 2.2 a >>> stretch 3.4 g >>> stretch 2.8 a >>> rest 1
-        a  =  setPart (Violin vs) $ openString II
-        g  =  setPart (Viola cs)  $ openString III
+        a  =  setPart (Violin vs) $ openString III
+        g  =  setPart (Viola cs)  $ openString II
+
+outtroHarm'' :: Int -> Int -> Score Dur Cue
+outtroHarm'' vs cs = stretch 2 $ loop x
+    where
+        x  =  stretch 2.2 a >>> stretch 3.4 g >>> stretch 2.8 a >>> rest 1
+        g  =  setPart (Viola cs)  $ openString II
+        a  =  setPart (Cello cs)  $ openString IV
 
 
 intro1 =                     setDynamics pp $ instant
@@ -1971,16 +1978,21 @@ midtro1 = addRehearsalMark . setDynamics mf $ instant
     ||| (delay 24 . stretch 3 $ dbA'')
 
 midtro2 = addRehearsalMark . setDynamics pp $ instant
-    ||| (           before 40 $ midtroHarm2 1)
-    ||| (delay 20 . before 40 $ midtroHarm2 2)
+    ||| (          before 40 $ midtroHarm2 1)
+    ||| (delay 0 . before 40 $ midtroHarm2 2)
 
-outro1 = addRehearsalMark . setDynamics p $ stretch 1.5 $ instant
-    ||| (          before 40 $ outtroHarm  1 1)
-    ||| (delay 0 . before 35 $ outtroHarm  3 2)
-    ||| (delay 0 . before 40 $ outtroHarm' 2 1)
-    ||| (delay 0 . before 35 $ outtroHarm' 4 2)
+outro1 = outro1' `prolong` outro1bass
 
+outro1' = addRehearsalMark . setDynamics p $ stretch 1.5 $ instant
+    ||| (           stretch 1   . before 40 $ outtroHarm  1 1)
+    ||| (delay 2  . stretch 1.2 . before 40 $ outtroHarm  2 2)
+    ||| (delay 10 . stretch 1.3 . before 30 $ outtroHarm' 3 1)
+    ||| (delay 12 . stretch 1.4 . before 50 $ outtroHarm' 4 2)
+    ||| (delay 50 . stretch 1.4 . before 50 $ outtroHarm'' 1 1)
+    ||| (delay 50 . stretch 1.4 . before 50 $ outtroHarm'' 2 2)
 
+outro1bass = setDynamics p . loop $
+    rest 20 >>> stretch 3 dbA'' >>> rest 10 >>> stretch 3 dbG'
 
 -- Presentation and canons
 
@@ -2176,6 +2188,7 @@ bassHarmMid = stretch 0.82 $ instant
 
 score :: Score Dur Cue
 score = score'
+-- score = outro1
 
 score' = stretch 0.8 (harmScore ||| mainScore)
 
