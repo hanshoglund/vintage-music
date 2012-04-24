@@ -1995,6 +1995,7 @@ outro1' = addRehearsalMark . setDynamics p $ stretch 1.5 $ instant
 outro1bass = setDynamics p . loop $
     rest 20 >>> stretch 3 dbA'' >>> rest 10 >>> stretch 3 dbG'
 
+
 -- Presentation and canons
 
 present1 = addRehearsalMark $ instant
@@ -2028,12 +2029,6 @@ present3high = addRehearsalMark . setDynamics p . stretch 1.6 . reverse $
 
 midCanon = (addRehearsalMark $ reverse midCanon') >>> (addRehearsalMark $ stretch 0.8 midCanon')
 
--- midCanon' = setDynamics mf . compress 1.1 $
---     canon rand 4 0 (zip ps ts)
---     where
---         ps = violins ++ violas
---         ts = map stretch [2.1,2.2,2.5,2.9,3.5,4.1] `compose` map transposeUp [12,12,7,7,0,0]
-
 midCanon' = setDynamics mf . compress 1.1 $ instant
     ||| (stretch 4.1 . id       . tonality . setPart (Viola  2) . patternSequenceFrom 0 $ [1,2,1,0,0,2])
     ||| (stretch 2.1 . octaveUp . tonality . setPart (Violin 1) . patternSequenceFrom 0 $ [0,2,0,0,1,2])
@@ -2045,6 +2040,8 @@ midCanon' = setDynamics mf . compress 1.1 $ instant
 midCanonCellos = setDynamics mf $ instant
     ||| (delay 0  . stretch 12 . tonality  . setPart (Cello 1) . concatSeq . List.intersperse (rest 0.3) $ map stoppedString [0,4,4,0,4,0,0,4,0,4,0,4])
     ||| (delay 10 . stretch 14 . tonality . setPart (Cello 2) . concatSeq . List.intersperse (rest 0.3) $ map stoppedString [-3,0,0,-3,0,-3,-3,0,-3,0])
+
+
 
 canon2upper = addRehearsalMark . setDynamics ppp . reverse $ instant
     ||| (delay 25  . stretch 2.4  . twoOctUp . tonality . setPart (Violin 1) . invert . patternSequenceFrom 0 $ [2,0,0,1,1,2])
@@ -2058,6 +2055,10 @@ canon2lower = addRehearsalMark . setDynamics ppp $ instant
     ||| (           stretch 2.4 . id  . tonality . setPart (Cello 1) . invert . patternSequenceFrom 1 $ [2,1,2,1,0])
     ||| (delay 13 . stretch 2.3 . id  . tonality . setPart (Cello 2) . invert . patternSequenceFrom 1 $ [2,1,2,2,1])
 
+
+
+upDownSequence x ps = patternSequenceFrom 1 ps >>> (mapPitch (+ 3) $ patternSequenceFrom (-1) ps)
+
 finalCanon = addRehearsalMark . setDynamics f . compress 1.1 $ instant
     ||| (stretch 2    . duodecUp . tonality . setPart (Violin 1) $ upDownSequence 1 $ [0,2,2,2,1])
     ||| (stretch 2.2  . duodecUp . tonality . setPart (Violin 2) $ upDownSequence 1 $ [1,2,2,1,0])
@@ -2066,12 +2067,15 @@ finalCanon = addRehearsalMark . setDynamics f . compress 1.1 $ instant
     ||| (stretch 2.7  . fifthUp  . tonality . setPart (Viola 1)  $ upDownSequence 1 $ [2,1,2,1,0])
     ||| (stretch 3.1  . fifthUp  . tonality . setPart (Viola 2)  $ upDownSequence 1 $ [1,2,1,2,0])
 
-upDownSequence x ps = patternSequenceFrom 1 ps >>> (mapPitch (+ 3) $ patternSequenceFrom (-1) ps)
-
-finalCanonBass = setDynamics f . compress 1.1 $ instant
-    --  ||| (concatSeq $ map (\x -> stretch 20 . setPart (Cello 1)  $ stoppedString x) $ take 3 [57,55,54,52,50])
-    --  ||| (concatSeq $ map (\x -> stretch 30 . setPart (Cello 2)  $ stoppedString x) $ take 2 [54,52,50,49,48])
-    ||| (concatSeq $ map (\x -> stretch 40 . setPart DoubleBass $ openString x)    $ [IV{-,III-}])
+finalCanonCellos = setDynamics f $ instant
+    ||| (delay 0  . stretch 12 . tonality  . setPart (Cello 1) . concatSeq . List.intersperse (rest 0.3) $ map stoppedString s1)
+    ||| (delay 10 . stretch 14 . tonality . setPart (Cello 2) . concatSeq . List.intersperse (rest 0.3) $ map stoppedString s2)
+    where
+        s1 = [-1, 3,-1, 3, 4, 0, 0]                                                                                                
+        s2 = [-4,-1,-1,-3, 0,-3, 0]
+        
+finalCanonBass = setDynamics f $ instant
+    >>> stretch 10 dbG >>> rest 10 >>> stretch 10 dbA'
 
 
 -- Harmonics
@@ -2206,7 +2210,7 @@ harmScore = instant
 
     ||| delay 450 bassHarmMid
 
-    ||| (delay 733.9 . stretch 5 . setDynamics pp) dbE
+    ||| (delay 733.9 . stretch 5 . setDynamics pp) dbE''
 
 mainScore = instant
     >>> intro1
@@ -2219,11 +2223,12 @@ mainScore = instant
 
     >>> midtro1
     >>> (midCanon ||| midCanonCellos)
+    >>> rest 5
     >>> midtro2
 
     >>> rest 5
     >>> anticipate 40 canon2upper canon2lower
-    >>> anticipate 15 (finalCanon ||| finalCanonBass) outro1
+    >>> anticipate 15 (finalCanon ||| finalCanonCellos ||| finalCanonBass) outro1
 
 \end{code}
 
