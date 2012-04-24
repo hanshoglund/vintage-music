@@ -1900,6 +1900,29 @@ Score
 -- sustain prolong anticipate
 
 
+-- Misc notes
+
+dbFs  = setPart DoubleBass . stretch 4 $ naturalHarmonic III 4
+dbB   = setPart DoubleBass . stretch 4 $ naturalHarmonic IV 4
+
+dbE   = setPart DoubleBass . stretch 4 $ openString I
+dbA   = setPart DoubleBass . stretch 4 $ openString II
+dbD   = setPart DoubleBass . stretch 4 $ openString III
+dbG   = setPart DoubleBass . stretch 4 $ openString IV
+
+dbE'  = setPart DoubleBass . stretch 4 $ naturalHarmonic I  1
+dbA'  = setPart DoubleBass . stretch 4 $ naturalHarmonic II 1
+dbD'  = setPart DoubleBass . stretch 4 $ naturalHarmonic III 1
+dbG'  = setPart DoubleBass . stretch 4 $ naturalHarmonic IV 1
+
+dbE'' = setPart DoubleBass . stretch 4 $ naturalHarmonic I  3
+dbA'' = setPart DoubleBass . stretch 4 $ naturalHarmonic II 3
+dbD'' = setPart DoubleBass . stretch 4 $ naturalHarmonic III 3
+dbG'' = setPart DoubleBass . stretch 4 $ naturalHarmonic IV 3
+
+
+-- Intro/midtro/outro
+
 introHarm :: Int -> Score Dur Cue
 introHarm sect = stretch 3 $ loop x
     where
@@ -1925,34 +1948,14 @@ outtroHarm vs cs = stretch 2.4 $ loop x
     where
         x  =  stretch 2.2 a >>> stretch 3.4 g >>> stretch 2.8 a >>> rest 1
         a  =  setPart (Violin vs) $ openString I
-        g  =  setPart (Cello cs) $ openString IV
+        g  =  setPart (Cello cs)  $ openString IV
 
 outtroHarm' :: Int -> Int -> Score Dur Cue
 outtroHarm' vs cs = stretch 2.4 $ loop x
     where
         x  =  stretch 2.2 a >>> stretch 3.4 g >>> stretch 2.8 a >>> rest 1
-        a  =  setPart (Violin vs) $ openString I
-        g  =  setPart (Cello cs) $ openString IV
-
-
-dbFs  = setPart DoubleBass . stretch 4 $ naturalHarmonic III 4
-dbB   = setPart DoubleBass . stretch 4 $ naturalHarmonic IV 4
-
-dbE   = setPart DoubleBass . stretch 4 $ openString I
-dbA   = setPart DoubleBass . stretch 4 $ openString II
-dbD   = setPart DoubleBass . stretch 4 $ openString III
-dbG   = setPart DoubleBass . stretch 4 $ openString IV
-
-dbE'  = setPart DoubleBass . stretch 4 $ naturalHarmonic I  1
-dbA'  = setPart DoubleBass . stretch 4 $ naturalHarmonic II 1
-dbD'  = setPart DoubleBass . stretch 4 $ naturalHarmonic III 1
-dbG'  = setPart DoubleBass . stretch 4 $ naturalHarmonic IV 1
-
-dbE'' = setPart DoubleBass . stretch 4 $ naturalHarmonic I  3
-dbA'' = setPart DoubleBass . stretch 4 $ naturalHarmonic II 3
-dbD'' = setPart DoubleBass . stretch 4 $ naturalHarmonic III 3
-dbG'' = setPart DoubleBass . stretch 4 $ naturalHarmonic IV 3
-
+        a  =  setPart (Violin vs) $ openString II
+        g  =  setPart (Viola cs)  $ openString III
 
 
 intro1 =                     setDynamics pp $ instant
@@ -1972,38 +1975,38 @@ midtro2 = addRehearsalMark . setDynamics pp $ instant
     ||| (delay 20 . before 40 $ midtroHarm2 2)
 
 outro1 = addRehearsalMark . setDynamics p $ stretch 1.5 $ instant
-    ||| (           before 40 $ outtroHarm 1 1)
-    ||| (delay 15 . before 40 $ outtroHarm' 2 2)
-    ||| (delay 35 . before 35 $ outtroHarm 3 1)
-    ||| (delay 50 . before 35 $ outtroHarm' 4 2)
+    ||| (          before 40 $ outtroHarm  1 1)
+    ||| (delay 0 . before 35 $ outtroHarm  3 2)
+    ||| (delay 0 . before 40 $ outtroHarm' 2 1)
+    ||| (delay 0 . before 35 $ outtroHarm' 4 2)
 
 
 
--- Middle section and canons
+-- Presentation and canons
 
-middle1 = addRehearsalMark $ instant
-    ||| (          concatSeq . List.intersperse (rest 10) . map octaveUp $ map (middle' Viola) [0,1,2])
-    ||| (delay 15 . concatSeq . List.intersperse (rest 10) . map id       $ map (middle' Cello) [0,1])
+present1 = addRehearsalMark $ instant
+    ||| (          concatSeq . List.intersperse (rest 10) . map octaveUp $ map (present' Viola) [0,1,2])
+    ||| (delay 15 . concatSeq . List.intersperse (rest 10) . map id       $ map (present' Cello) [0,1])
 
 
-middle' instr pattern = setDynamics pp . stretch 2.2 $ b ||| delay 5 a
+present' instr pattern = setDynamics pp . stretch 2.2 $ b ||| delay 5 a
     where
         a = (id          . tonality . setPart (instr 1)  $ patternMelodyFrom pattern)
         b = (stretch 1.1 . tonality . setPart (instr 2)  $ patternMelodyFrom pattern)
 
 
-middle2 = addRehearsalMark . setDynamics pp . stretch 2.2 . setDynamics mf $ instant
+present2 = addRehearsalMark . setDynamics pp . stretch 2.2 . setDynamics mf $ instant
     ||| (          stretch 1   . id . tonality . setPart (Cello 2) $ patternSequenceFrom 0 $ [0,1,0,1,0])
     ||| (delay 6 . stretch 1.3 . id . tonality . setPart (Cello 1) $ patternSequenceFrom 0 $ [1,0,1,0,1])
 
-middle3 = setDynamics p . stretch 1.6 . reverse $
+present3 = setDynamics p . stretch 1.6 . reverse $
     canon rand 8 0 (zip ps (ss `compose` ts))
     where
         ps = ([Violin 3, Violin 4, Viola 1, Viola 2])
         ss = map delay [0,3..] `compose` map stretch [1,1.16..]
         ts = map transposeUp [7,7,0,0]
 
-middle3high = addRehearsalMark . setDynamics p . stretch 1.6 . reverse $
+present3high = addRehearsalMark . setDynamics p . stretch 1.6 . reverse $
     canon rand 7 0 (zip ps (ss `compose` ts))
     where
         ps = ([Violin 1, Violin 2])
@@ -2159,16 +2162,6 @@ opens8 = setDynamics mf . stretch 1 $ instant
     ||| (delay 0  . stretch 1    . setPart (Cello 2)  $ opens 4 (Cello 1))
     ||| (delay 11 . stretch 1.2  . setPart (Cello 1)  $ opens 5 (Cello 1))
 
-
-
--- Final score
-
-score :: Score Dur Cue
-score = score'
-
-score' = stretch 0.8{-0.8-} $ harmScore ||| mainScore
-
-
 bassHarmMid = stretch 0.82 $ instant
     ||| (delay 0   . stretch 4 . setDynamics mf) dbE'
     ||| (delay 25  . stretch 4 . setDynamics mf) dbA'
@@ -2176,11 +2169,19 @@ bassHarmMid = stretch 0.82 $ instant
     ||| (delay 85  . stretch 4 . setDynamics mf) dbA'
     ||| (delay 120 . stretch 4 . setDynamics mf) dbG
     ||| (delay 150 . stretch 4 . setDynamics mf) dbE''
-    
+
+
+
+-- Final score
+
+score :: Score Dur Cue
+score = score'
+
+score' = stretch 0.8 (harmScore ||| mainScore)
 
 harmScore = instant
     ||| (delay 80    . before 50) harms1
-    ||| (delay 143.4 . stretch 4 . setDynamics pp) dbB
+    ||| (delay 143.4 . stretch 4 . setDynamics pp) dbA''
     ||| (delay 150   . reverse . before 50) harms1
 
     ||| (delay 180 . stretch 4 . setDynamics p) dbA''
@@ -2191,13 +2192,15 @@ harmScore = instant
 
     ||| delay 450 bassHarmMid
 
+    ||| (delay 733.9 . stretch 5 . setDynamics pp) dbE
+
 mainScore = instant
     >>> intro1
 
     >>> rest 10
-    >>> middle1
+    >>> present1
     >>> rest 10
-    >>> anticipate 30 middle2 (anticipate 40 middle3 middle3high)
+    >>> anticipate 30 present2 (anticipate 40 present3 present3high)
     >>> rest 5
 
     >>> midtro1
@@ -2206,7 +2209,7 @@ mainScore = instant
 
     >>> rest 5
     >>> anticipate 40 canon2upper canon2lower
-    >>> anticipate 10 (finalCanon ||| finalCanonBass) outro1
+    >>> anticipate 15 (finalCanon ||| finalCanonBass) outro1
 
 \end{code}
 
