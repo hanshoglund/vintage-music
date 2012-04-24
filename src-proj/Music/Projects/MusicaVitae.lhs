@@ -2026,6 +2026,10 @@ midCanon' = setDynamics mf . compress 1.1 $ instant
     ||| (stretch 2.9 . fifthUp  . tonality . setPart (Violin 4) . patternSequenceFrom 0 $ [0,2,1,1,1,2])
     ||| (stretch 3.5 . id       . tonality . setPart (Viola  1) . patternSequenceFrom 0 $ [2,2,1,2,1,0])
 
+midCanonCellos = setDynamics mf $ instant
+    ||| (delay 0  . stretch 12 . tonality  . setPart (Cello 1) . concatSeq . List.intersperse (rest 0.3) $ map stoppedString [0,4,4,0,4,0,0,4,0,4,0,4])
+    ||| (delay 10 . stretch 14 . tonality . setPart (Cello 2) . concatSeq . List.intersperse (rest 0.3) $ map stoppedString [-3,0,0,-3,0,-3,-3,0,-3,0])
+
 canon2upper = addRehearsalMark . setDynamics pp . reverse $ instant
     ||| (delay 25  . stretch 2.4  . duodecUp . tonality . setPart (Violin 1) . invert . patternSequenceFrom 0 $ [2,0,0,1,1,2])
     ||| (delay 20  . stretch 2.3  . duodecUp . tonality . setPart (Violin 2) . invert . patternSequenceFrom 0 $ [0,0,1,1,2,2])
@@ -2163,6 +2167,15 @@ score = score'
 score' = stretch 0.8{-0.8-} $ harmScore ||| mainScore
 
 
+bassHarmMid = stretch 0.82 $ instant
+    ||| (delay 0   . stretch 4 . setDynamics mf) dbE'
+    ||| (delay 25  . stretch 4 . setDynamics mf) dbA'
+    ||| (delay 50  . stretch 4 . setDynamics mf) dbG
+    ||| (delay 85  . stretch 4 . setDynamics mf) dbA'
+    ||| (delay 120 . stretch 4 . setDynamics mf) dbG
+    ||| (delay 150 . stretch 4 . setDynamics mf) dbE'
+    
+
 harmScore = instant
     ||| (delay 80    . before 50) harms1
     ||| (delay 143.4 . stretch 4 . setDynamics pp) dbB
@@ -2174,14 +2187,7 @@ harmScore = instant
     ||| (delay 270 . stretch 4 . setDynamics p) dbA''
     ||| (delay 300 . stretch 4 . setDynamics p) dbG'
 
-    ||| (delay 420 . stretch 4 . setDynamics mf) dbE'
-    ||| (delay 445 . stretch 4 . setDynamics mf) dbE'
-    ||| (delay 470 . stretch 4 . setDynamics mf) dbA'
-    ||| (delay 505 . stretch 4 . setDynamics mf) dbG
-    ||| (delay 540 . stretch 4 . setDynamics mf) dbA'
-    ||| (delay 570 . stretch 4 . setDynamics mf) dbG
-    --  ||| (delay 375 . stretch 4) dbA
-
+    ||| delay 450 bassHarmMid
 
 mainScore = instant
     >>> intro1
@@ -2193,7 +2199,7 @@ mainScore = instant
     >>> rest 5
 
     >>> midtro1
-    >>> midCanon
+    >>> (midCanon ||| midCanonCellos)
     >>> midtro2
 
     >>> rest 5
