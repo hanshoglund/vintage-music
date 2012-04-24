@@ -1948,14 +1948,28 @@ introHarm sect = stretch 3 $ loop x
         g  =  setPart (Viola sect) $ naturalHarmonic II 1
         a  =  setPart (Cello sect) $ naturalHarmonic IV 1
 
-midtroHarm1 :: Int -> Score Dur Cue
-midtroHarm1 sect = stretch 2.2 $ loop x
+
+midtro1Harm :: Int -> Score Dur Cue
+midtro1Harm sect = stretch 3 $ loop x
     where
         x  =  stretch 2.5 a >>> rest 1 >>> stretch 3.1 a >>> rest 1
         a  =  setPart (Cello sect) $ naturalHarmonic IV 1
 
-midtroHarm2 :: Int -> Score Dur Cue
-midtroHarm2 sect = stretch 3 $ loop x
+midtro1Harm' :: Int -> Score Dur Cue
+midtro1Harm' sect = stretch 3 $ loop x
+    where
+        x  =  stretch 2 a >>> rest 1 >>> stretch 3 g
+        a  =  setPart (Viola sect)         $ naturalHarmonic IV 3
+        g  =  setPart (Violin (sect + 2)) $ naturalHarmonic I 3
+
+midtro1Harm'' :: Int -> Score Dur Cue
+midtro1Harm'' sect = stretch 3 $ loop x
+    where
+        x  =  stretch 2.5 a >>> rest 1 >>> stretch 3.1 a >>> rest 1
+        a  =  setPart (Violin sect)        $ naturalHarmonic III 1
+
+midtro2Harm :: Int -> Score Dur Cue
+midtro2Harm sect = stretch 3 $ loop x
     where
         x = stretch 2.4 a >>> stretch 2.2 g >>> stretch 3.4 a >>> rest 1
         a  = setPart (Violin $ sect + 2) $ naturalHarmonic III 1
@@ -1985,19 +1999,30 @@ outtroHarm'' vs cs = stretch 2 $ loop x
 
 intro1 =                     setDynamics pp $ instant
     ||| (           before 30 $ introHarm 1)
-    ||| (delay 15 . before 30 $ introHarm 2) ||| (delay 25 . stretch 5 $ dbFs)
+    ||| (delay 15 . before 30 $ introHarm 2) 
+    ||| (delay 25 . stretch 5 $ dbFs)
     ||| (delay 35 . before 35 $ introHarm 1)
-    ||| (delay 50 . before 35 $ introHarm 2) ||| (delay 60 . stretch 5 $ dbB)
+    ||| (delay 50 . before 35 $ introHarm 2) 
+    ||| (delay 60 . stretch 5 $ dbB)
 
 midtro1 = addRehearsalMark . setDynamics mf $ instant
-    ||| (           before 30 $ midtroHarm1 1)
-    ||| (delay 15 . before 30 $ midtroHarm1 2)
-    ||| (delay 6  . stretch 3 $ dbA'')
-    ||| (delay 24 . stretch 3 $ dbA'')
+    ||| (delay 0 . before 40 $ midtro1Harm 1)
+    ||| (delay 5 . before 40 $ midtro1Harm 2)
+
+    ||| (delay 0 . before 30 $ midtro1Harm' 1)
+    ||| (delay 5 . before 30 $ midtro1Harm' 2)
+
+    ||| (delay 15  . before 20 $ midtro1Harm'' 1)
+    ||| (delay 10  . before 20 $ midtro1Harm'' 2)
+
+    ||| (delay 10 . stretch 2.6 $ dbA'')
+    ||| (delay 28 . stretch 2.6 $ dbA'')
 
 midtro2 = addRehearsalMark . setDynamics pp $ instant
-    ||| (          before 40 $ midtroHarm2 1)
-    ||| (delay 4 . before 40 $ midtroHarm2 2)
+    ||| (          before 40 $ midtro2Harm 1)
+    ||| (delay 4 . before 40 $ midtro2Harm 2)
+    ||| (delay 15 . stretch 10 . setPart (Viola 1) $ naturalHarmonic II 4)
+    ||| (delay 25 . stretch 10 . setPart (Viola 2) $ naturalHarmonic II 4)
 
 outro1 = outro1' `prolong` outro1bass
 
@@ -2210,7 +2235,7 @@ bassHarmMid = stretch 0.82 $ instant
 
 score :: Score Dur Cue
 score = score'
--- score = outro1
+-- score = midtro1
 
 score' = stretch 0.8 (harmScore ||| mainScore)
 
@@ -2236,7 +2261,6 @@ mainScore = instant
     >>> present1
     >>> rest 10
     >>> anticipate 30 present2 (anticipate 40 present3 present3high)
-    >>> rest 5
 
     >>> midtro1
     >>> (midCanon ||| midCanonCellos)
