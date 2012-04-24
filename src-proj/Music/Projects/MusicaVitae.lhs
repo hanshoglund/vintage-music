@@ -1965,7 +1965,7 @@ midtro1 = addRehearsalMark . setDynamics mf $ instant
     ||| (           before 30 $ midtroHarm1 1)
     ||| (delay 15 . before 30 $ midtroHarm1 2)
     ||| (delay 6  . stretch 3 $ dbA'')
-    ||| (delay 24 . stretch 3 $ dbD'')
+    ||| (delay 24 . stretch 3 $ dbA'')
 
 midtro2 = addRehearsalMark . setDynamics pp $ instant
     ||| (           before 40 $ midtroHarm2 1)
@@ -2043,17 +2043,19 @@ canon2lower = addRehearsalMark . setDynamics pp $ instant
     ||| (delay 13 . stretch 2.3 . id  . tonality . setPart (Cello 2) . invert . patternSequenceFrom 1 $ [2,1,2,2,1])
 
 finalCanon = addRehearsalMark . setDynamics f . compress 1.1 $ instant
-    ||| (stretch 2    . duodecUp . tonality . setPart (Violin 1) $ patternSequenceFrom 1 $ [0,2,2,2,1,1])
-    ||| (stretch 2.2  . duodecUp . tonality . setPart (Violin 2) $ patternSequenceFrom 1 $ [1,2,2,1,0,0])
-    ||| (stretch 2.35 . octaveUp . tonality . setPart (Violin 3) $ patternSequenceFrom 1 $ [1,2,0,2,1,1])
-    ||| (stretch 2.5  . octaveUp . tonality . setPart (Violin 4) $ patternSequenceFrom 1 $ [1,2,2,1,1,1])
-    ||| (stretch 2.7  . fifthUp  . tonality . setPart (Viola 1)  $ patternSequenceFrom 1 $ [2,1,2,1,0,1])
-    ||| (stretch 3.1  . fifthUp  . tonality . setPart (Viola 2)  $ patternSequenceFrom 1 $ [1,2,1,2,0,1])
+    ||| (stretch 2    . duodecUp . tonality . setPart (Violin 1) $ upDownSequence 1 $ [0,2,2,2,1])
+    ||| (stretch 2.2  . duodecUp . tonality . setPart (Violin 2) $ upDownSequence 1 $ [1,2,2,1,0])
+    ||| (stretch 2.35 . octaveUp . tonality . setPart (Violin 3) $ upDownSequence 1 $ [1,2,0,2,1])
+    ||| (stretch 2.5  . octaveUp . tonality . setPart (Violin 4) $ upDownSequence 1 $ [1,2,2,1,1])
+    ||| (stretch 2.7  . fifthUp  . tonality . setPart (Viola 1)  $ upDownSequence 1 $ [2,1,2,1,0])
+    ||| (stretch 3.1  . fifthUp  . tonality . setPart (Viola 2)  $ upDownSequence 1 $ [1,2,1,2,0])
+
+upDownSequence x ps = patternSequenceFrom 1 ps >>> (mapPitch (+ 3) $ patternSequenceFrom (-1) ps)
 
 finalCanonBass = setDynamics f . compress 1.1 $ instant
     --  ||| (concatSeq $ map (\x -> stretch 20 . setPart (Cello 1)  $ stoppedString x) $ take 3 [57,55,54,52,50])
     --  ||| (concatSeq $ map (\x -> stretch 30 . setPart (Cello 2)  $ stoppedString x) $ take 2 [54,52,50,49,48])
-    --  ||| (concatSeq $ map (\x -> stretch 40 . setPart DoubleBass $ openString x)    $ [IV{-,III-}])
+    ||| (concatSeq $ map (\x -> stretch 40 . setPart DoubleBass $ openString x)    $ [IV{-,III-}])
 
 
 -- Harmonics
@@ -2173,7 +2175,7 @@ bassHarmMid = stretch 0.82 $ instant
     ||| (delay 50  . stretch 4 . setDynamics mf) dbG
     ||| (delay 85  . stretch 4 . setDynamics mf) dbA'
     ||| (delay 120 . stretch 4 . setDynamics mf) dbG
-    ||| (delay 150 . stretch 4 . setDynamics mf) dbE'
+    ||| (delay 150 . stretch 4 . setDynamics mf) dbE''
     
 
 harmScore = instant
