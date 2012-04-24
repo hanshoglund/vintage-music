@@ -1372,8 +1372,25 @@ notateLeftHand r nv ( StoppedString        x s ) =  notateStoppedString r nv s x
 -- TODO pizz, jete
 notateRightHand :: Part -> Technique -> ([(Spaces, Chord)], [NonSpacedObject])
 notateRightHand r ( Single _ x )   =  ([(0, ch)], maybeToList nsp) where (ch, nsp) = notateLeftHand r 1 x
-notateRightHand r ( Phrase _ xs )  =  moveMaybe . snd $ List.mapAccumL (\t (d, x) -> (t + timeToSpace d, (t, notateLeftHand r (d/2) x))) 0 xs
+notateRightHand r ( Phrase _ xs )  =  accidentals . moveMaybe . snd $ List.mapAccumL (\t (d, x) -> (t + timeToSpace d, (t, notateLeftHand r (d/2) x))) 0 xs
+    where
+        accidentals = mapFirst (mapSeconds removeRedundantAccidentals)
 
+-- FIXME only works for single note chords
+removeRedundantAccidentals :: [Chord] -> [Chord]
+removeRedundantAccidentals cs = map (uncurry setNotes) (zip ns' cs)
+    where                         
+        setNotes ns ch = ch { notes = ns }
+        ns = map notes cs
+        ns' = map return . removeRedundantAccidentals' . map head $ ns
+
+removeRedundantAccidentals' :: [Note] -> [Note]
+removeRedundantAccidentals' = snd . List.mapAccumL checkNote never
+    where
+        checkNote prev (Note p nh a) = 
+            let { a' = if prev p then Nothing else a } 
+             in (\x -> prev x || x == p, Note p nh a')
+        never = const False
 
 
 
@@ -1935,7 +1952,7 @@ midtroHarm1 :: Int -> Score Dur Cue
 midtroHarm1 sect = stretch 2.2 $ loop x
     where
         x  =  stretch 2.5 a >>> rest 1 >>> stretch 3.1 a >>> rest 1
-        a  =  setPart (Cello sect) $ openString IV
+        a  =  setPart (Cello sect) $ naturalHarmonic IV 1
 
 midtroHarm2 :: Int -> Score Dur Cue
 midtroHarm2 sect = stretch 3 $ loop x
@@ -2312,8 +2329,12 @@ assoc (x, (y, z)) = ((x, y), z)
 moveMaybe :: [(a, (b, Maybe c))] -> ([(a, b)], [c])
 moveMaybe xs = (ys, catMaybes zs)
     where 
-        (ys, zs) = unzip $ map assoc xs
-
+        (ys, zs) = unzip $ map assoc xs 
+        
+mapSeconds :: ([a] -> [b]) -> [(c, a)] -> [(c, b)]
+mapSeconds f xs = zip as (f bs)
+    where
+        (as, bs) = unzip xs
 \end{code}
 
 As the Cairo backend insists on outputting one file for each page, we add these utility functions to
