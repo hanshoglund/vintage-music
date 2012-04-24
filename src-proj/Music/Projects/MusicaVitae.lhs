@@ -994,7 +994,16 @@ midiBendJust' 8  =  0.0391
 Velocity
 --------
 
-\begin{code}
+\begin{code} 
+partDynamic :: Part -> Dynamics -> Dynamics    
+partDynamic (Violin _)      =  mapLevel (* 1)
+partDynamic (Viola _)       =  mapLevel (* 0.9)
+partDynamic (Cello _)       =  mapLevel (* 0.8)
+partDynamic DoubleBass      =  mapLevel (* 0.7)
+
+renderDynamic' :: Part -> Dynamics -> Dur -> MidiDynamic
+renderDynamic' r = renderDynamic . partDynamic r
+    
 renderDynamic :: Dynamics -> Dur -> MidiDynamic
 renderDynamic n t = round . d $ n `levelAt` t
     where
@@ -1077,6 +1086,11 @@ setMidiDynamic :: Dynamics -> TremoloScore Dur MidiNote -> TremoloScore Dur Midi
 setMidiDynamic n = tmapEither f g
     where f = (\t (MidiNote c i p b _) -> MidiNote c i p b (renderDynamic n t))
           g = (\t x -> tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (renderDynamic n t)) x)
+
+setMidiDynamic' :: Part -> Dynamics -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
+setMidiDynamic' r n = tmapEither f g
+    where f = (\t (MidiNote c i p b _) -> MidiNote c i p b (renderDynamic' r n t))
+          g = (\t x -> tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (renderDynamic' r n t)) x)
 \end{code}
 
 
@@ -1109,7 +1123,7 @@ renderCueToMidi cue =
         renderRest  =  setMidiChannel channel
                     .  setMidiInstrument instr
                     .  setMidiBend bend
-                    .  setMidiDynamic (cueDynamics cue)
+                    .  setMidiDynamic' (cuePart cue) (cueDynamics cue)
 \end{code}
 
 This instance makes it possible to use the `play` function on scores of cues:
@@ -1921,27 +1935,37 @@ outtroHarm' vs cs = stretch 2.4 $ loop x
         g  =  setPart (Cello cs) $ openString IV
 
 
-db  = setPart DoubleBass . setDynamics pp . stretch 4 $ naturalHarmonic III 4
-db2 = setPart DoubleBass . setDynamics pp . stretch 4 $ naturalHarmonic IV 4
-db3 = setPart DoubleBass . setDynamics p . stretch 4 $ naturalHarmonic II 3
-db4 = setPart DoubleBass . setDynamics p . stretch 4 $ naturalHarmonic III 3
+dbFs  = setPart DoubleBass . stretch 4 $ naturalHarmonic III 4
+dbB   = setPart DoubleBass . stretch 4 $ naturalHarmonic IV 4
 
-dbA = setPart DoubleBass . stretch 4 $ openString II
-dbD = setPart DoubleBass . stretch 4 $ openString III
-dbG = setPart DoubleBass . stretch 4 $ openString IV
+dbE   = setPart DoubleBass . stretch 4 $ openString I
+dbA   = setPart DoubleBass . stretch 4 $ openString II
+dbD   = setPart DoubleBass . stretch 4 $ openString III
+dbG   = setPart DoubleBass . stretch 4 $ openString IV
+
+dbE'  = setPart DoubleBass . stretch 4 $ naturalHarmonic I  1
+dbA'  = setPart DoubleBass . stretch 4 $ naturalHarmonic II 1
+dbD'  = setPart DoubleBass . stretch 4 $ naturalHarmonic III 1
+dbG'  = setPart DoubleBass . stretch 4 $ naturalHarmonic IV 1
+
+dbE'' = setPart DoubleBass . stretch 4 $ naturalHarmonic I  3
+dbA'' = setPart DoubleBass . stretch 4 $ naturalHarmonic II 3
+dbD'' = setPart DoubleBass . stretch 4 $ naturalHarmonic III 3
+dbG'' = setPart DoubleBass . stretch 4 $ naturalHarmonic IV 3
+
 
 
 intro1 =                     setDynamics pp $ instant
     ||| (           before 30 $ introHarm 1)
-    ||| (delay 15 . before 30 $ introHarm 2) ||| (delay 25 . stretch 5 $ db)
+    ||| (delay 15 . before 30 $ introHarm 2) ||| (delay 25 . stretch 5 $ dbFs)
     ||| (delay 35 . before 35 $ introHarm 1)
-    ||| (delay 50 . before 35 $ introHarm 2) ||| (delay 60 . stretch 5 $ db2)
+    ||| (delay 50 . before 35 $ introHarm 2) ||| (delay 60 . stretch 5 $ dbB)
 
 midtro1 = addRehearsalMark . setDynamics mf $ instant
     ||| (           before 30 $ midtroHarm1 1)
     ||| (delay 15 . before 30 $ midtroHarm1 2)
-    ||| (delay 6  . stretch 3 $ db3)
-    ||| (delay 24 . stretch 3 $ db4)
+    ||| (delay 6  . stretch 3 $ dbA'')
+    ||| (delay 24 . stretch 3 $ dbD'')
 
 midtro2 = addRehearsalMark . setDynamics pp $ instant
     ||| (           before 40 $ midtroHarm2 1)
@@ -2029,25 +2053,6 @@ finalCanonBass = setDynamics f . compress 1.1 $ instant
 
 
 -- Harmonics
-
-
--- harmsS :: Score Dur Cue
--- harmsS = stretch (1/3) . concatSeq $ do
---     part <- List.reverse cellos
---     str <- enumFrom I
---     pos <- [0..4]
---     return $ setPart part $ naturalHarmonic str pos
---
---
--- niceHarms =
---     putStr . concat . List.intersperse  "\n" . toList  . fmap showPitch  . fmap midiNotePitch .
---         renderTremoloEvents $ harmsS >>= renderCueToMidi
---
--- harms =
---     toList . fmap toDiatonic  . fmap midiNotePitch .
---         renderTremoloEvents $ harmsS >>= renderCueToMidi
-
-
 
 harmPatterns :: [[Int]]
 harmPatterns = harmPatterns' 3
@@ -2160,15 +2165,21 @@ score' = stretch 0.8{-0.8-} $ harmScore ||| mainScore
 
 harmScore = instant
     ||| (delay 80    . before 50) harms1
-    ||| (delay 143.4 . stretch 4) db2
+    ||| (delay 143.4 . stretch 4 . setDynamics pp) dbB
     ||| (delay 150   . reverse . before 50) harms1
 
-    ||| (delay 180 . stretch 4) db3
-    ||| (delay 210 . stretch 4) db3
-    ||| (delay 240 . stretch 4) db2
-    --  ||| (delay 310 . stretch 4) dbG
-    --  ||| (delay 335 . stretch 4) dbA
-    --  ||| (delay 360 . stretch 4) dbG
+    ||| (delay 180 . stretch 4 . setDynamics p) dbA''
+    ||| (delay 210 . stretch 4 . setDynamics p) dbA''
+    ||| (delay 240 . stretch 4 . setDynamics p) dbG'
+    ||| (delay 270 . stretch 4 . setDynamics p) dbA''
+    ||| (delay 300 . stretch 4 . setDynamics p) dbG'
+
+    ||| (delay 420 . stretch 4 . setDynamics mf) dbE'
+    ||| (delay 445 . stretch 4 . setDynamics mf) dbE'
+    ||| (delay 470 . stretch 4 . setDynamics mf) dbA'
+    ||| (delay 505 . stretch 4 . setDynamics mf) dbG
+    ||| (delay 540 . stretch 4 . setDynamics mf) dbA'
+    ||| (delay 570 . stretch 4 . setDynamics mf) dbG
     --  ||| (delay 375 . stretch 4) dbA
 
 
