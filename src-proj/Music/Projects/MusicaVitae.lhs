@@ -1801,6 +1801,7 @@ fifthDown   =  mapPitch (+ (-7))
 fifthUp     =  mapPitch (+ 7)
 octaveUp    =  mapPitch (+ 12)
 duodecUp    =  mapPitch (+ 19)
+twoOctUp    =  mapPitch (+ 24)
 
 transposeUp x   = mapPitch (+ x)
 transposeDown x = mapPitch (+ (-x))
@@ -1979,7 +1980,7 @@ midtro1 = addRehearsalMark . setDynamics mf $ instant
 
 midtro2 = addRehearsalMark . setDynamics pp $ instant
     ||| (          before 40 $ midtroHarm2 1)
-    ||| (delay 0 . before 40 $ midtroHarm2 2)
+    ||| (delay 4 . before 40 $ midtroHarm2 2)
 
 outro1 = outro1' `prolong` outro1bass
 
@@ -2045,15 +2046,15 @@ midCanonCellos = setDynamics mf $ instant
     ||| (delay 0  . stretch 12 . tonality  . setPart (Cello 1) . concatSeq . List.intersperse (rest 0.3) $ map stoppedString [0,4,4,0,4,0,0,4,0,4,0,4])
     ||| (delay 10 . stretch 14 . tonality . setPart (Cello 2) . concatSeq . List.intersperse (rest 0.3) $ map stoppedString [-3,0,0,-3,0,-3,-3,0,-3,0])
 
-canon2upper = addRehearsalMark . setDynamics pp . reverse $ instant
-    ||| (delay 25  . stretch 2.4  . duodecUp . tonality . setPart (Violin 1) . invert . patternSequenceFrom 0 $ [2,0,0,1,1,2])
-    ||| (delay 20  . stretch 2.3  . duodecUp . tonality . setPart (Violin 2) . invert . patternSequenceFrom 0 $ [0,0,1,1,2,2])
+canon2upper = addRehearsalMark . setDynamics ppp . reverse $ instant
+    ||| (delay 25  . stretch 2.4  . twoOctUp . tonality . setPart (Violin 1) . invert . patternSequenceFrom 0 $ [2,0,0,1,1,2])
+    ||| (delay 20  . stretch 2.3  . twoOctUp . tonality . setPart (Violin 2) . invert . patternSequenceFrom 0 $ [0,0,1,1,2,2])
     ||| (delay 15  . stretch 2.2  . duodecUp . tonality . setPart (Violin 3) . invert . patternSequenceFrom 0 $ [0,1,1,0,2,1])
     ||| (delay 10  . stretch 2.1  . duodecUp . tonality . setPart (Violin 4) . invert . patternSequenceFrom 0 $ [1,0,2,2,1,0])
     ||| (delay 5   . stretch 2.0  . octaveUp . tonality . setPart (Viola  1) . invert . patternSequenceFrom 0 $ [1,2,1,1,0,1])
     ||| (delay 0   . stretch 1.8  . octaveUp . tonality . setPart (Viola  2) . invert . patternSequenceFrom 0 $ [0,1,1,2,2,0])
 
-canon2lower = addRehearsalMark . setDynamics pp $ instant
+canon2lower = addRehearsalMark . setDynamics ppp $ instant
     ||| (           stretch 2.4 . id  . tonality . setPart (Cello 1) . invert . patternSequenceFrom 1 $ [2,1,2,1,0])
     ||| (delay 13 . stretch 2.3 . id  . tonality . setPart (Cello 2) . invert . patternSequenceFrom 1 $ [2,1,2,2,1])
 
