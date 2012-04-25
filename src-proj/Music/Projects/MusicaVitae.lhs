@@ -56,8 +56,9 @@ import qualified Music.Util.List as List
 import qualified Music.Util.Either as Either
 
 import Music.Notable.Core
-import Music.Notable.Core.Diagrams hiding (Time, stretch, stretchTo, duration, during, after)
-import Music.Notable.Engraving hiding (rest, Articulation, fff, ff, f, mf, mp, p, pp, ppp)
+import Music.Notable.Core.Symbols ( textFont )
+import Music.Notable.Core.Diagrams hiding ( Time, stretch, stretchTo, duration, during, after )
+import Music.Notable.Engraving hiding ( rest, Articulation, fff, ff, f, mf, mp, p, pp, ppp )
 import qualified Music.Notable.Engraving as Notable
 
 import Music.Projects.MusicaVitae.Random
@@ -1303,7 +1304,7 @@ staffHead clef = trivial { spacedObjects = s }
         s = [(kStaffSpaceBeforeClef, StaffClef clef)]
 
 prependStaffHead :: Clef -> Staff -> Staff
-prependStaffHead clef staff = staffHead clef `mappend` moveObjectsRight kStaffHeadWidth staff
+prependStaffHead clef staff = staffHead clef `mappend` moveObjectsRight kStaffHeadExtraSpace staff
 
 kStaffHeadWidth       = 5   :: Spaces              
 kStaffSpaceBeforeClef = 0.5 :: Spaces
@@ -1528,8 +1529,14 @@ engravePartLines score = engravePartLines' clef score
         clef = scoreClef score
         
 engravePartLines' :: Clef -> Score Dur Cue -> [Engraving]
-engravePartLines' clef = fmap engraveStaff . fmap addStaffHead . divideStaff kPartPageWidth . addRehearsals . notatePart
-    where   
+engravePartLines' clef = id
+    . fmap engraveStaff 
+    . fmap addStaffHead 
+    . divideStaff kPartPageWidth 
+    . addRehearsals 
+    . notatePart
+    where           
+        addStaffHead :: Staff -> Staff
         addStaffHead x = prependStaffHead clef x
                                          
         addRehearsals :: Staff -> Staff    
@@ -1541,24 +1548,35 @@ engravePartPages score = engravePartPages' name score
         name = scorePartName score
 
 engravePartPages' :: String -> Score Dur Cue -> [Engraving]
-engravePartPages' partName = addPageHeaders . map partPage . map catDown . map (map addSystemSpacer) . List.divide kPartSystemsPerPage . engravePartLines
+engravePartPages' partName = id
+    . addPageHeaders 
+    . map partPage 
+    . map catDown 
+    . map (map addSystemSpacer) 
+    . List.divide kPartSystemsPerPage 
+    . engravePartLines
     where              
         addSystemSpacer :: Engraving -> Engraving
         addSystemSpacer   = (<> spaceY (kPartSpaceBetweenSystems / 2))  
         
         addPageHeaders :: [Engraving] -> [Engraving]
-        addPageHeaders xs = map (uncurry $ addPageHeader "Passager" partName) $ zip [1..] xs
-
-        addPageHeader :: String -> String -> Int -> Engraving -> Engraving
-        addPageHeader name partName pageNum = (pageHeader name partName pageNum <>)
-
-        pageHeader :: String -> String -> Int -> Engraving
-        pageHeader name partName pageNum = moveSpacesUp 5 $ mempty
-            <> (                        alignR  . scale 4 $ engraveText partName)
-            <> (moveSpacesRight w     . alignL  . scale 4 $ engraveText name)
-            <> (moveSpacesRight (w/2) . centerX . scale 3 $ engraveText (show pageNum))
+        addPageHeaders xs = mapFirstThen f g $ zip [1..] xs
             where
-                w = kPartPageWidth * kPartPageScaling
+                f = snd
+                g = uncurry $ addPartPageHeader "Passager" partName
+
+addPartPageHeader :: String -> String -> Int -> Engraving -> Engraving
+addPartPageHeader name partName pageNum = (pageHeader width name partName pageNum <>)
+    where
+        width = kPartPageWidth * kPartPageScaling
+
+
+
+pageHeader :: Spaces -> String -> String -> Int -> Engraving
+pageHeader width name partName pageNum = moveSpacesUp 60 $ mempty
+    <> (                            alignR  . scale 3.5 $ engraveText partName)
+    <> (moveSpacesRight width     . alignL  . scale 3.5 $ engraveText name)
+    <> (moveSpacesRight (width/2) . centerX . scale 3   $ engraveText (show pageNum))
         
 partPage :: Engraving -> Engraving
 partPage = (<> page) . alignTL . scale kPartPageScaling . freeze
@@ -1566,8 +1584,7 @@ partPage = (<> page) . alignTL . scale kPartPageScaling . freeze
         page = st . moveOriginBy kPartPageMarigins . alignTL $ r (getX kPartPageDimensions) (getY kPartPageDimensions)
         r    = spaceRect   
         st   = id
-        -- r    = rect
-        -- st   = fillColor lightyellow
+
 
 data PartBook =
     PartBook
@@ -1624,35 +1641,65 @@ engraveLeftLine numParts = p $ vrule (kScoreSpaceBetweenSystems * fromIntegral (
         p = translateY (convert $ Spaces 2) . alignT
 
 engraveScorePages :: [Part] -> Score Dur Cue -> [Engraving]
-engraveScorePages parts score = 
-          map scorePage
-        . map (<> leftLineE)
-        . map catDown 
-        . map (map addSystemSpacer) 
-        . map (map engraveStaff) 
-        . List.transpose 
-        . fmap (divideStaff kScorePageWidth)            
-        . addRehearsals 
-        . equalizeStaffWidth
-        $ partsN
+engraveScorePages parts score = id
+    . addPageHeaders
+    . map scorePage
+    . map (<> leftLineE)
+    . map catDown 
+    . map (map addSystemSpacer) 
+    . map (map engraveStaff)
+    . map (addStaffHeads parts) 
+    -- page/part
+    . List.transpose 
+    -- part/page
+    . fmap (divideStaff kScorePageWidth)            
+    . addRehearsals 
+    . equalizeStaffWidth
+    $ partsN
     where      
         leftLineE = engraveLeftLine (length parts)
 
-        addSystemSpacer :: Engraving -> Engraving
-        addSystemSpacer   = (<> spaceY (kScoreSpaceBetweenSystems / 2))  
-             
         partsN :: [Staff]
         partsN       =  fmap notatePart $ extractParts parts score
         
         rehearsalsN :: Staff
         rehearsalsN  =  notateRehearsalMarks score 
 
-        addStaffHead :: [[Staff]] -> [[Staff]]
-        addStaffHead = id                                  
+        addSystemSpacer :: Engraving -> Engraving
+        addSystemSpacer   = (<> spaceY (kScoreSpaceBetweenSystems / 2))  
+             
+        addStaffHeads :: [Part] -> [Staff] -> [Staff]
+        addStaffHeads parts staves = map (uncurry addStaffHead) $ zip parts staves
+
+        addStaffHead :: Part -> Staff -> Staff
+        addStaffHead part = prependStaffHead (standardClef part)
                 
         addRehearsals :: [Staff] -> [Staff]
         addRehearsals (x:xs) = (rehearsalsN `mappend` x):xs
 
+        addPageHeaders :: [Engraving] -> [Engraving]
+        addPageHeaders xs = mapFirstThen f g $ zip [1..] xs
+            where
+                f = uncurry $ addScoreFirstPageHeader "Passager" "Hans Höglund" "Partitur"
+                g = uncurry $ addScorePageHeader      "" ""
+
+
+firstPageHeader :: Spaces -> String -> String -> String -> Engraving
+firstPageHeader width title composer partName = moveSpacesUp 80 $ mempty
+    <> (                            scale 4.5 . id   . showOrigin $ font textFont $ alignedText 0   0.5 partName)
+    <> (moveSpacesRight (width/2) . scale 7   . bold . showOrigin $ font textFont $ alignedText 0.5 0.5 title)
+    <> (moveSpacesRight width     . scale 5   . id   . showOrigin $ font textFont $ alignedText 1   0.5 composer)
+
+
+addScoreFirstPageHeader :: String -> String -> String -> Int -> Engraving -> Engraving
+addScoreFirstPageHeader name composer partName _ = (firstPageHeader width name composer partName <>)
+    where
+        width = kScorePageWidth * kScorePageScaling * 1.01 -- FIXME
+
+addScorePageHeader :: String -> String -> Int -> Engraving -> Engraving
+addScorePageHeader name partName pageNum = (pageHeader width name partName pageNum <>)
+    where
+        width = kScorePageWidth * kScorePageScaling
 
         
 scorePage :: Engraving -> Engraving
@@ -2358,7 +2405,11 @@ moveMaybe xs = (ys, catMaybes zs)
 mapSeconds :: ([a] -> [b]) -> [(c, a)] -> [(c, b)]
 mapSeconds f xs = zip as (f bs)
     where
-        (as, bs) = unzip xs
+        (as, bs) = unzip xs   
+        
+mapFirstThen :: (a -> b) -> (a -> b) -> [a] -> [b]
+mapFirstThen f g (x:xs) = (f x) : map g xs
+    
 \end{code}
 
 As the Cairo backend insists on outputting one file for each page, we add these utility functions to

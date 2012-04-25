@@ -34,8 +34,8 @@ specialTextFont :: Font
 specialTextFont = "Helsinki Text"
 
 textFont :: Font
-textFont = "Palatino"
---textFont = "MgOpen Canonica"
+-- textFont = "Palatino"
+textFont = "Times New Roman"
 
 -- symbol WholeNoteHeadNoteRest  =  (baseMusicFont, "\xd3")
 -- symbol HalfNoteRest           =  (baseMusicFont, "\x2211") 
