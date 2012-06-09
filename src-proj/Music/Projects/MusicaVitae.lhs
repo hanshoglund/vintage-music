@@ -13,9 +13,13 @@ To convert into a readable Pdf file, install Pandoc and use
     markdown2pdf -o MusicaVitae.pdf MusicaVitae.lhs
 
 To run the program, install the Haskell platform and the `Music.Time` module. For correct
-playback of intonation, use a sampler that support Midi Tuning Standard, such as
+playback of intonation, use a sampler that support MIDI Tuning Standard, such as
 [Timidity](http://timidity.sourceforge.net/).
 
+Dependencies
+----------
+
+This section contains the language options and dependencies needed by the program.
 
 \begin{code}
 
@@ -57,8 +61,15 @@ import qualified Music.Util.Either as Either
 
 import Music.Notable.Core
 import Music.Notable.Core.Symbols ( textFont )
-import Music.Notable.Core.Diagrams hiding ( Time, stretch, stretchTo, duration, during, after )
-import Music.Notable.Engraving hiding ( rest, Articulation, fff, ff, f, mf, mp, p, pp, ppp )
+import Music.Notable.Core.Diagrams 
+    hiding ( Time, 
+             stretch, stretchTo, 
+             duration, during, 
+             after )
+import Music.Notable.Engraving 
+    hiding ( rest, 
+            Articulation, 
+            fff, ff, f, mf, mp, p, pp, ppp )
 import qualified Music.Notable.Engraving as Notable
 
 import Music.Projects.MusicaVitae.Random
@@ -104,7 +115,7 @@ data Part
     deriving ( Eq, Show )
 
 instance Enum Part where
-    fromEnum x = fromJust $ List.findIndex (== x) ensemble
+    fromEnum x = fromJust $ List.findIndex (== x) ensemble
     toEnum x = ensemble !! x
 
 instance Bounded Part where
@@ -510,9 +521,6 @@ class Stopped a where
 class HasDur a where
     getDur :: a -> Dur
 
--- class HasPitch a where
-    -- getPitch :: Part -> a -> Pitch
-
 instance Stopped (LeftHand p s) where
     stopping ( OpenString           s     ) = Open
     stopping ( NaturalHarmonic      x s   ) = Open
@@ -532,25 +540,8 @@ instance Stopped a => Stopped (RightHand t r p a) where
 instance Time t => HasDur (RightHand t r p a) where
     getDur ( Pizz   c x )   =  1
     getDur ( Single c x )   =  1
-    getDur ( Phrase r xs )  =  timeToDouble . sum . fst . unzip $ xs
+    getDur ( Phrase r xs )  =  timeToDouble . sum . fst . unzip $ xs
     getDur ( Jete   r xs )  =  1
-
--- instance HasPitch (LeftHand Pitch Str) where
---     getPitch r ( OpenString           s     ) = openStringPitch r s
---     getPitch r ( NaturalHarmonic      x s   ) = 0
---     getPitch r ( NaturalHarmonicTrem  x y s ) = 0
---     getPitch r ( NaturalHarmonicGliss x y s ) = 0
---     getPitch r ( QuarterStoppedString s     ) = 0
---     getPitch r ( StoppedString        x s   ) = 0
---     getPitch r ( StoppedStringTrem    x y s ) = 0
---     getPitch r ( StoppedStringGliss   x y s ) = 0
---
--- instance HasPitch a => HasPitch (RightHand t r Pitch a) where
---     getPitch r ( Pizz   c x )       =  getPitch r x
---     getPitch r ( Single c x )       =  getPitch r x
---     getPitch r ( Phrase a (x:xs) )  =  getPitch r (snd x)
---     getPitch r ( Jete   a (x:xs) )  =  getPitch r x
-
 
 instance PitchFunctor (LeftHand Pitch s) where
     mapPitch f ( StoppedString        x s   ) = StoppedString      (f x) s
@@ -648,7 +639,7 @@ data Cue
     {
         cuePart      :: Part,
         cueDoubling  :: Doubling,
-        cueDynamics  :: Dynamics,  -- time is 0 to 1 for the duration of the cue
+        cueDynamics  :: Dynamics,
         cueTempo     :: Tempo,
         cueMarks     :: [Mark],
         cueTechnique :: Technique
@@ -1017,20 +1008,27 @@ Left hand
 ----------
 The `renderLeftHand` function returns a score of duration one, possibly containing tremolos.
 This property is formalized by the use of a `TremoloScore`, i.e. a score containing either
-notes or tremolos.
-
-TODO gliss
+notes or tremolos.^[Glissandos are not supported yet.]
 
 \begin{code}
 renderLeftHand :: Part -> LeftHand Pitch Str -> TremoloScore Dur MidiNote
-renderLeftHand part ( OpenString           s )      =  renderLeftHandSingle (openStringPitch part s)
-renderLeftHand part ( NaturalHarmonic      x s )    =  renderLeftHandSingle (naturalHarmonicPitch part s x)
-renderLeftHand part ( NaturalHarmonicTrem  x y s )  =  renderLeftHandTrem (naturalHarmonicPitch part s x) (naturalHarmonicPitch part s y)
-renderLeftHand part ( NaturalHarmonicGliss x y s )  =  renderLeftHandGliss
-renderLeftHand part ( QuarterStoppedString s )      =  renderLeftHandSingle (openStringPitch part s)
-renderLeftHand part ( StoppedString        x s )    =  renderLeftHandSingle x
-renderLeftHand part ( StoppedStringTrem    x y s )  =  renderLeftHandTrem x y
-renderLeftHand part ( StoppedStringGliss   x y s )  =  renderLeftHandGliss
+
+renderLeftHand part ( OpenString           s )      =  
+    renderLeftHandSingle (openStringPitch part s)
+renderLeftHand part ( NaturalHarmonic      x s )    =  
+    renderLeftHandSingle (naturalHarmonicPitch part s x)
+renderLeftHand part ( NaturalHarmonicTrem  x y s )  =  
+    renderLeftHandTrem (naturalHarmonicPitch part s x) (naturalHarmonicPitch part s y)
+renderLeftHand part ( NaturalHarmonicGliss x y s )  =  
+    renderLeftHandGliss
+renderLeftHand part ( QuarterStoppedString s )      =  
+    renderLeftHandSingle (openStringPitch part s)
+renderLeftHand part ( StoppedString        x s )    =  
+    renderLeftHandSingle x
+renderLeftHand part ( StoppedStringTrem    x y s )  =  
+    renderLeftHandTrem x y
+renderLeftHand part ( StoppedStringGliss   x y s )  =  
+    renderLeftHandGliss
 
 renderLeftHandSingle x    =  note . Left  $ renderMidiNote x
 renderLeftHandTrem   x y  =  note . Right $ tremoloBetween kTremoloInterval (renderMidiNote x) (renderMidiNote y)
@@ -1039,6 +1037,7 @@ renderLeftHandGliss       =  error "Gliss not implemented"
 renderMidiNote x = MidiNote 0 Nothing x 0 60
 
 kTremoloInterval = 0.08
+
 \end{code}
 
 
@@ -1051,7 +1050,7 @@ renderRightHand :: Part -> Technique -> TremoloScore Dur MidiNote
 renderRightHand part ( Pizz   articulation leftHand )  = renderLeftHand part leftHand
 renderRightHand part ( Single articulation leftHand )  = renderLeftHand part leftHand
 renderRightHand part ( Phrase phrasing leftHand )      = renderLeftHands part leftHand
-renderRightHand part ( Jete   phrasing leftHand )      = renderLeftHands part (zip bounceDur leftHand)
+renderRightHand part ( Jete   phrasing leftHand )      = renderLeftHands part (zip kBounceDur leftHand)
 
 renderLeftHands :: Part -> [(Dur, LeftHand Pitch Str)] -> TremoloScore Dur MidiNote
 renderLeftHands part  =  stretchTo 1 . concatSeq . map leftHands
@@ -1065,45 +1064,45 @@ renderLeftHands part  =  stretchTo 1 . concatSeq . map leftHands
 Cues
 ------
 
-TODO cleanup
+These functions may be used to update all information in a midi note, except pitch.
+^[They work allthough the definitions are a bit ugly.]
 
 \begin{code}
-setMidiChannel :: MidiChannel -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
 setMidiChannel c = Either.fmapEither f g
     where f = (\(MidiNote _ i p b n) -> MidiNote c i p b n)
           g = fmap (\(MidiNote _ i p b n) -> MidiNote c i p b n)
 
-setMidiInstrument :: MidiInstrument -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
 setMidiInstrument i = Either.fmapEither f g
     where f = (\(MidiNote c _ p b n) -> MidiNote c i p b n)
           g = fmap (\(MidiNote c _ p b n) -> MidiNote c i p b n)
 
-setMidiBend :: MidiBend -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
 setMidiBend b = Either.fmapEither f g
     where f = (\(MidiNote c i p _ n) -> MidiNote c i p b n)
           g = fmap (\(MidiNote c i p _ n) -> MidiNote c i p b n)
 
-setMidiDynamic :: Dynamics -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
 setMidiDynamic n = tmapEither f g
-    where f = (\t (MidiNote c i p b _) -> MidiNote c i p b (renderDynamic n t))
-          g = (\t x -> tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (renderDynamic n t)) x)
+    where f = (\t (MidiNote c i p b _) 
+            -> MidiNote c i p b (renderDynamic n t))
+          g = (\t x -> tmap (\t (MidiNote c i p b _) 
+            -> MidiNote c i p b (renderDynamic n t)) x)
 
-setMidiDynamic' :: Part -> Dynamics -> TremoloScore Dur MidiNote -> TremoloScore Dur MidiNote
 setMidiDynamic' r n = tmapEither f g
-    where f = (\t (MidiNote c i p b _) -> MidiNote c i p b (renderDynamic' r n t))
-          g = (\t x -> tmap (\t (MidiNote c i p b _) -> MidiNote c i p b (renderDynamic' r n t)) x)
+    where f = (\t (MidiNote c i p b _) 
+            -> MidiNote c i p b (renderDynamic' r n t))
+          g = (\t x -> tmap (\t (MidiNote c i p b _) 
+            -> MidiNote c i p b (renderDynamic' r n t)) x)
 \end{code}
 
 
 
-Some constants used for the rendering of jeté strokes.
+Thse constants may be used for the rendering of jeté strokes.
 
 \begin{code}
-bounceDur :: [Dur]
-bounceDur  =  [ (2 ** (-0.9 * x)) / 6 | x <- [0, 0.1..1.2] ]
+kBounceDur :: [Dur]
+kBounceDur  =  [ (2 ** (-0.9 * x)) / 6 | x <- [0, 0.1..1.2] ]
 
-bounceVel :: [Double]
-bounceVel  =  [ abs (1 - x) | x <- [0, 0.08..]]
+kBounceVel :: [Double]
+kBounceVel  =  [ abs (1 - x) | x <- [0, 0.08..]]
 \end{code}
 
 
@@ -1155,12 +1154,12 @@ instance Plottable (Score Dur Cue) where
 
 
 plotPitches :: Score Dur (Int, Int, Double) -> Engraving
-plotPitches = pad . mconcat . map (\(Event t d (x,y,b)) -> p t x b . s y $ l d) . toEvents
+plotPitches = pad . mconcat . map (\(Event t d (x,y,b)) -> p t x b . s y $ l d) . toEvents
     where
         pad x = strutY 1 `above` x `above` strutY 1
         p t x b = moveSpacesRight (Spaces t) . moveHalfSpacesUp (HalfSpaces $ (fromIntegral x) + b)
         s v   = lineWidth 0 . fillColor black . opacity ((fromIntegral v + 40) / 127)
-        l d   = alignL $ rect (convert space * d) (convert $ space/4)
+        l d   = alignL $ rect (convert space * d) (convert $ space/4)
 
 
 \end{code}
@@ -1214,13 +1213,13 @@ Dynamics
 \begin{code}
 notateDynamic :: Dynamics -> NonSpacedObject
 notateDynamic x
-    | x `levelAt` 0 <= -0.8  =  StaffDynamic $ Notable.ppp
-    | x `levelAt` 0 <= -0.6  =  StaffDynamic $ Notable.pp
-    | x `levelAt` 0 <= -0.3  =  StaffDynamic $ Notable.p
-    | x `levelAt` 0 <= 0.0   =  StaffDynamic $ Notable.mf
-    | x `levelAt` 0 <= 0.25  =  StaffDynamic $ Notable.f
-    | x `levelAt` 0 <= 0.5   =  StaffDynamic $ Notable.ff
-    | otherwise              =  StaffDynamic $ Notable.fff
+    | x `levelAt` 0 <= -0.8  =  StaffDynamic $ Notable.ppp
+    | x `levelAt` 0 <= -0.6  =  StaffDynamic $ Notable.pp
+    | x `levelAt` 0 <= -0.3  =  StaffDynamic $ Notable.p
+    | x `levelAt` 0 <= 0.0   =  StaffDynamic $ Notable.mf
+    | x `levelAt` 0 <= 0.25  =  StaffDynamic $ Notable.f
+    | x `levelAt` 0 <= 0.5   =  StaffDynamic $ Notable.ff
+    | otherwise              =  StaffDynamic $ Notable.fff
 \end{code}
 
 
@@ -1304,7 +1303,10 @@ staffHead clef = trivial { spacedObjects = s }
         s = [(kStaffSpaceBeforeClef, StaffClef clef)]
 
 prependStaffHead :: Clef -> Staff -> Staff
-prependStaffHead clef staff = staffHead clef `mappend` moveObjectsRight kStaffHeadExtraSpace staff
+prependStaffHead clef staff = 
+    staffHead clef 
+    `mappend` 
+    moveObjectsRight kStaffHeadExtraSpace staff
 
 kStaffHeadWidth       = 5   :: Spaces              
 kStaffSpaceBeforeClef = 0.5 :: Spaces
@@ -1364,20 +1366,23 @@ notateStoppedString r nv s x = (ch, Nothing)
         nh = noteHeadFromNoteValue nv
         (p,a) = notateStoppedStringPitch r x
 
--- TODO trem, gliss
 notateLeftHand :: Part -> NoteValue -> LeftHand Pitch Str -> (Chord, Maybe NonSpacedObject)
 notateLeftHand r nv ( OpenString           s )   =  notateOpenString r nv s
 notateLeftHand r nv ( NaturalHarmonic      x s ) =  notateNaturalHarmonic r nv s x
 notateLeftHand r nv ( StoppedString        x s ) =  notateStoppedString r nv s x
 
--- TODO pizz, jete
 notateRightHand :: Part -> Technique -> ([(Spaces, Chord)], [NonSpacedObject])
 notateRightHand r ( Single _ x )   =  ([(0, ch)], maybeToList nsp) where (ch, nsp) = notateLeftHand r 1 x
 notateRightHand r ( Phrase _ xs )  =  accidentals . moveMaybe . snd $ List.mapAccumL (\t (d, x) -> (t + timeToSpace d, (t, notateLeftHand r (d/2) x))) 0 xs
     where
         accidentals = mapFirst (mapSeconds removeRedundantAccidentals)
 
--- FIXME only works for single note chords
+\end{code}
+
+This function removes redundant accidentals from a list of chords. ^[It only works for single note chords for now.]
+
+\begin{code}
+
 removeRedundantAccidentals :: [Chord] -> [Chord]
 removeRedundantAccidentals cs = map (uncurry setNotes) (zip ns' cs)
     where                         
@@ -1446,16 +1451,14 @@ Removing redundant information
 
 As we notated each cue separately, information such as dynamics and metronome marks are goin to be repeated each time
 a new cue starts. However, in standard notation, identical tempi marks are never repeated. We therefore define a
-function to remove reduncant marks from a staff.
-
-TODO cleanup
+function to remove reduncant marks from a staff. ^[This function needs some cleanup].
 
 \begin{code}
 removeRedundantMarks :: Staff -> Staff
 removeRedundantMarks = removeRedundantMarks'
 -- removeRedundantMarks = id
 
-removeRedundantMarks' (Staff o s ns) = Staff o s (snd $ List.concatMapAccumL f z ns)
+removeRedundantMarks' (Staff o s ns) = Staff o s (snd $ List.concatMapAccumL f z ns)
     where
         z :: (Maybe Notable.Dynamic, Maybe (NoteValue, BeatsPerMinute))
         z = (Nothing, Nothing)
@@ -1560,9 +1563,10 @@ engravePartPages' partName = id
         addSystemSpacer   = (<> spaceY (kPartSpaceBetweenSystems / 2))  
         
         addPageHeaders :: [Engraving] -> [Engraving]
-        addPageHeaders xs = mapFirstThen f g $ zip [1..] xs
+        addPageHeaders xs = map g $ zip [1..] xs
+        -- addPageHeaders xs = mapFirstThen f g $ zip [1..] xs
             where
-                f = snd
+                -- f = snd
                 g = uncurry $ addPartPageHeader "Passager" partName
 
 addPartPageHeader :: String -> String -> Int -> Engraving -> Engraving
@@ -1956,7 +1960,7 @@ Score
 
 \begin{code}
 
--- instant >>> ||| concatSeq, concatPar
+-- instant >>> ||| concatSeq, concatPar
 -- reverse loop
 -- duration stretch compress stretchTo
 -- note rest delay
@@ -2062,8 +2066,8 @@ midtro1 = addRehearsalMark . setDynamics mf $ instant
     ||| (delay 15  . before 20 $ midtro1Harm'' 1)
     ||| (delay 10  . before 20 $ midtro1Harm'' 2)
 
-    ||| (delay 10 . stretch 2.6 $ dbA'')
-    ||| (delay 28 . stretch 2.6 $ dbA'')
+    ||| (delay 10 . stretch 2.6 $ dbA'')
+    ||| (delay 28 . stretch 2.6 $ dbA'')
 
 midtro2 = addRehearsalMark . setDynamics pp $ instant
     ||| (          before 40 $ midtro2Harm 1)
@@ -2071,9 +2075,9 @@ midtro2 = addRehearsalMark . setDynamics pp $ instant
     ||| (delay 15 . stretch 10 . setPart (Viola 1) $ naturalHarmonic II 4)
     ||| (delay 25 . stretch 10 . setPart (Viola 2) $ naturalHarmonic II 4)
 
-outro1 = outro1' `prolong` outro1bass
+outro1 = outro1' `prolong` outro1bass
 
-outro1' = addRehearsalMark . setDynamics p $ stretch 1.5 $ instant
+outro1' = addRehearsalMark . setDynamics p $ stretch 1.5 $ instant
     ||| (           stretch 1   . before 40 $ outtroHarm  1 1)
     ||| (delay 2  . stretch 1.2 . before 40 $ outtroHarm  2 2)
     ||| (delay 10 . stretch 1.3 . before 30 $ outtroHarm' 3 1)
@@ -2126,7 +2130,7 @@ midCanon' = setDynamics mf . compress 1.1 $ instant
     ||| (stretch 2.9 . fifthUp  . tonality . setPart (Violin 4) . patternSequenceFrom 0 $ [0,2,1,1,1,2])
     ||| (stretch 3.5 . id       . tonality . setPart (Viola  1) . patternSequenceFrom 0 $ [2,2,1,2,1,0])
 
-midCanonCellos = setDynamics mf $ instant
+midCanonCellos = setDynamics mf $ instant
     ||| (delay 0  . stretch 12 . tonality  . setPart (Cello 1) . concatSeq . List.intersperse (rest 0.3) $ map stoppedString [0,4,4,0,4,0,0,4,0,4,0,4])
     ||| (delay 10 . stretch 14 . tonality . setPart (Cello 2) . concatSeq . List.intersperse (rest 0.3) $ map stoppedString [-3,0,0,-3,0,-3,-3,0,-3,0])
 
@@ -2164,7 +2168,7 @@ finalCanonCellos = setDynamics f $ instant
         s2 = [-4,-1,-1,-3, 0,-3, 0]
         
 finalCanonBass = setDynamics f $ instant
-    >>> stretch 10 dbG >>> rest 10 >>> stretch 10 dbA'
+    >>> stretch 10 dbG >>> rest 10 >>> stretch 10 dbA'
 
 
 -- Harmonics
@@ -2243,28 +2247,28 @@ harms3 = setDynamics pp . stretch 1 . reverse $ instant
     ||| (delay 11 . stretch 1.2  . setPart (Cello 1)  $ harms 3 (Cello 1))
 
 
-harms5 = setDynamics mf . stretch 1 $ instant
+harms5 = setDynamics mf . stretch 1 $ instant
     ||| (delay 0  . stretch 1    . setPart (Viola 2)  $ harms 0 (Viola 1))
     ||| (delay 3 . stretch 1.2  . setPart (Viola 1)  $ harms 0 (Viola 1))
 
-harms6 = setDynamics mf . stretch 1 $ instant
+harms6 = setDynamics mf . stretch 1 $ instant
     ||| (delay 0  . stretch 1   . setPart (Violin 3)  $ harms 0 (Violin 1))
     ||| (delay 3 . stretch 1.2  . setPart (Violin 4)  $ harms 0 (Violin 1))
 
 
-opens5 = setDynamics mf . stretch 1 $ instant
+opens5 = setDynamics mf . stretch 1 $ instant
     ||| (delay 0  . stretch 1    . setPart (Viola 2)  $ opens 0 (Viola 1))
     ||| (delay 3 . stretch 1.2  . setPart (Viola 1)  $ opens 0 (Viola 1))
 
-opens6 = setDynamics mf . stretch 1 $ instant
+opens6 = setDynamics mf . stretch 1 $ instant
     ||| (delay 0  . stretch 1   . setPart (Violin 3)  $ opens 0 (Violin 1))
     ||| (delay 3 . stretch 1.2  . setPart (Violin 4)  $ opens 0 (Violin 1))
 
-opens7 = setDynamics mf . stretch 1 $ instant
+opens7 = setDynamics mf . stretch 1 $ instant
     ||| (delay 0  . stretch 1    . setPart (Cello 2)  $ opens 0 (Cello 1))
     ||| (delay 11 . stretch 1.2  . setPart (Cello 1)  $ opens 0 (Cello 1))
 
-opens8 = setDynamics mf . stretch 1 $ instant
+opens8 = setDynamics mf . stretch 1 $ instant
     ||| (delay 0  . stretch 1    . setPart (Cello 2)  $ opens 4 (Cello 1))
     ||| (delay 11 . stretch 1.2  . setPart (Cello 1)  $ opens 5 (Cello 1))
 
@@ -2316,7 +2320,7 @@ mainScore = instant
 
     >>> rest 5
     >>> anticipate 40 canon2upper canon2lower
-    >>> anticipate 15 (finalCanon ||| finalCanonCellos ||| finalCanonBass) outro1
+    >>> anticipate 15 (finalCanon ||| finalCanonCellos ||| finalCanonBass) outro1
 
 \end{code}
 
@@ -2412,9 +2416,9 @@ mapFirstThen f g (x:xs) = (f x) : map g xs
     
 \end{code}
 
-As the Cairo backend insists on outputting one file for each page, we add these utility functions to
-join the generated "page" files into a single "book" file, as well as removing the intermediate page
-files. These depend on Posix functions and the PDF toolkit being installed.
+As the Cairo backend (for Diagrams) insists on outputting one file for each page, we add these utility
+functions to join the generated "page" files into a single "book" file, as well as removing the intermediate 
+page files. These depend on POSIX functionality and the PDF Toolkit available from [pdflabs.com](pdflabs.com).
 
 \begin{code}
 joinPdfs :: [FilePath] -> FilePath -> IO ()
@@ -2427,7 +2431,7 @@ removeFiles :: [FilePath] -> IO ()
 removeFiles fs = execute "rm" fs
 \end{code}   
 
-Useful to fix the type of a score.
+This function does nothing but may be used to fix the type of a score.
 
 \begin{code}
 sc :: Score Dur a -> Score Dur a
@@ -2445,10 +2449,14 @@ scoreEvents = numberOfEvents . renderTremoloEvents $ score >>= renderCueToMidi
 \end{code}
 
 
-The main function allow us to compile this module into a standalone program (which simply generates the piece when run).
+The main function allow us to compile this module into a standalone program (which generates the piece in 
+Midi and musical notation).
 
 \begin{code}
-main = writeMidi "Passager.mid" (render score)
+main = do
+    writeMidi "Passager.mid" (render score)
+    writeScoreBook
+    writePartBooks
 \end{code}
 
 
