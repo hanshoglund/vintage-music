@@ -29,7 +29,7 @@ the reference documentation, however.
     * Unit values and binary operations are heavily used in this style.
   * Emphasis on *continous values*, postponing sampling to the final rendering phase
     * This is similar to the approach taken in vector graphics, but dissimilar
-      to traditional computer music systems.  
+      to traditional computer music systems.
   * Emphasis on *time* as the central musical parameter               
     * The library is organized around the *Temporal* type class and its subclasses *Timed* and *Delayed*
     * Other properties are treated *Temporal* transformers

@@ -16,6 +16,9 @@ To run the program, install the Haskell platform and the `Music.Time` module. Fo
 playback of intonation, use a sampler that support MIDI Tuning Standard, such as
 [Timidity](http://timidity.sourceforge.net/).
 
+\pagebreak
+
+<!--
 Dependencies
 ----------
 
@@ -78,6 +81,7 @@ import Music.Projects.MusicaVitae.Random
 \end{code}
 
 \pagebreak
+-->
 
 
 
@@ -434,38 +438,38 @@ instance LevelFunctor Dynamics where
 
 
 
-
-Articulation
-----------
-
-\begin{code}
-data Articulation
-    = Straight
-    | Accent   Double Articulation
-    | Duration Double Articulation
-    deriving ( Eq, Show )
-
-data Phrasing
-    = Phrasing
-    | Binding Double Phrasing
-    | Begin Articulation Phrasing
-    | End Articulation Phrasing
-    deriving ( Eq, Show )
-
-staccato :: Articulation -> Articulation
-staccato = Duration 0.8
-
-tenuto :: Articulation -> Articulation
-tenuto = Duration 1.2
-
-legato :: Phrasing -> Phrasing
-legato = Binding 1.2
-
-portato :: Phrasing -> Phrasing
-portato = Binding 0.8
-\end{code}
-
-
+<!--
+% Articulation
+% ----------
+% 
+% \begin{code}
+% data Articulation
+%     = Straight
+%     | Accent   Double Articulation
+%     | Duration Double Articulation
+%     deriving ( Eq, Show )
+% 
+% data Phrasing
+%     = Phrasing
+%     | Binding Double Phrasing
+%     | Begin Articulation Phrasing
+%     | End Articulation Phrasing
+%     deriving ( Eq, Show )
+% 
+% staccato :: Articulation -> Articulation
+% staccato = Duration 0.8
+% 
+% tenuto :: Articulation -> Articulation
+% tenuto = Duration 1.2
+% 
+% legato :: Phrasing -> Phrasing
+% legato = Binding 1.2
+% 
+% portato :: Phrasing -> Phrasing
+% portato = Binding 0.8
+% \end{code}
+%                                   
+-->
 
 
 
@@ -672,6 +676,8 @@ instance (Time t, PitchFunctor a) => PitchFunctor (Score t a) where
     mapPitch f = fmap (mapPitch f)
 
 \end{code}
+
+\pagebreak
 
 
 Cue generation
@@ -1065,7 +1071,7 @@ Cues
 ------
 
 These functions may be used to update all information in a midi note, except pitch.
-^[They work allthough the definitions are a bit ugly.]
+^[They work allthough the definitions are a bit verbose.]
 
 \begin{code}
 setMidiChannel c = Either.fmapEither f g
@@ -1137,6 +1143,7 @@ instance Render (Score Dur Cue) Midi where
 
 \end{code}
 
+<!--
 We can exploit the `renderCueToMidi` function to get a piano-roll style graphical
 representation of the piece.
 
@@ -1163,7 +1170,7 @@ plotPitches = pad . mconcat . map (\(Event t d (x,y,b)) -> p t x b . s y $ l d) 
 
 
 \end{code}
-
+-->
 \pagebreak
 
 
@@ -1283,10 +1290,16 @@ notateRehearsal :: String -> NonSpacedObject
 notateRehearsal = StaffRehearsal
 
 extractRehearsalMarks :: Score Dur Cue -> [(Dur, Mark)]
-extractRehearsalMarks = List.nubBy (testing fst) . concatMap (\(Event t d xs) -> zip (repeat t) xs) . toEvents . fmap cueMarks
+extractRehearsalMarks = List.nubBy (testing fst) 
+    . concatMap (\(Event t d xs) 
+                    -> zip (repeat t) xs) 
+                        . toEvents 
+                        . fmap cueMarks
 
 addRehearsalMark :: Score Dur Cue -> Score Dur Cue
-addRehearsalMark = mapFirstEvent (\(Cue p d n e m t) -> Cue p d n e (m ++ [RehearsalMark]) t)
+addRehearsalMark = 
+    mapFirstEvent (\(Cue p d n e m t) 
+                    -> Cue p d n e (m ++ [RehearsalMark]) t)
 
 testing f x y = f x == f y
 \end{code}
@@ -1366,14 +1379,25 @@ notateStoppedString r nv s x = (ch, Nothing)
         nh = noteHeadFromNoteValue nv
         (p,a) = notateStoppedStringPitch r x
 
-notateLeftHand :: Part -> NoteValue -> LeftHand Pitch Str -> (Chord, Maybe NonSpacedObject)
+notateLeftHand 
+    :: Part 
+    -> NoteValue 
+    -> LeftHand Pitch Str 
+    -> (Chord, Maybe NonSpacedObject)
 notateLeftHand r nv ( OpenString           s )   =  notateOpenString r nv s
 notateLeftHand r nv ( NaturalHarmonic      x s ) =  notateNaturalHarmonic r nv s x
 notateLeftHand r nv ( StoppedString        x s ) =  notateStoppedString r nv s x
 
-notateRightHand :: Part -> Technique -> ([(Spaces, Chord)], [NonSpacedObject])
-notateRightHand r ( Single _ x )   =  ([(0, ch)], maybeToList nsp) where (ch, nsp) = notateLeftHand r 1 x
-notateRightHand r ( Phrase _ xs )  =  accidentals . moveMaybe . snd $ List.mapAccumL (\t (d, x) -> (t + timeToSpace d, (t, notateLeftHand r (d/2) x))) 0 xs
+notateRightHand 
+    :: Part 
+    -> Technique 
+    -> ([(Spaces, Chord)], [NonSpacedObject])
+notateRightHand r ( Single _ x )   
+    =  ([(0, ch)], maybeToList nsp) 
+    where 
+        (ch, nsp) = notateLeftHand r 1 x
+notateRightHand r ( Phrase _ xs )  
+    =  accidentals . moveMaybe . snd $ List.mapAccumL (\t (d, x) -> (t + timeToSpace d, (t, notateLeftHand r (d/2) x))) 0 xs
     where
         accidentals = mapFirst (mapSeconds removeRedundantAccidentals)
 
@@ -1415,7 +1439,8 @@ notateCue cue = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
         barLineN = if phr then [(0, StaffBarLine)]
                           else [(0, StaffNothing)]
 
-        chordsN            =  fmap (\(t,x) -> (t * scale + kNoteHeadOffset, StaffChord x)) chordsN'
+        chordsN            =  fmap (\(t,x) 
+                                -> (t * scale + kNoteHeadOffset, StaffChord x)) chordsN'
         (chordsN', nspN )  =  notateRightHand (cuePart cue) (cueTechnique cue)
 
         sustainLineN  =  x `emptyWhen` phr
@@ -1423,12 +1448,12 @@ notateCue cue = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
                 x    =  [(pos, obj)]
                 pos  =  kNoteHeadOffset + kSustainLineOffset
                 yPos =  pitchPosition (cuePart cue) (cueTechnique cue)
-                obj  =  StaffSustainLine (yPos, scale * kHorizontalSpace - (kNoteHeadOffset + 4.4))
+                obj  =  StaffSustainLine (yPos, scale * kHorizontalSpace 
+                            - (kNoteHeadOffset + 4.4))
 
 
-        nsN = {-rehearsalN ++ -}tempoN ++ dynamicN ++ map (\x -> ([0], x)) nspN
+        nsN = tempoN ++ dynamicN ++ map (\x -> ([0], x)) nspN
 
-        -- rehearsalN = [([1], notateRehearsal $ "A")] `nonEmptyWhen` True
         tempoN     = [([1], notateTempo . cueTempo $ cue)] `nonEmptyWhen` phr
         dynamicN   = [([1], notateDynamic . cueDynamics $ cue)]
 
@@ -1439,13 +1464,16 @@ notateCue cue = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
 notateRehearsalMarks :: Score Dur Cue -> Staff
 notateRehearsalMarks score = trivial { spacedObjects = sN, nonSpacedObjects = nsN }
     where
-        (sN, nsN) = unzip . concatMap (\((t, _), i) -> [((timeToSpace t, StaffNothing), ([i], notateRehearsal $ mark i))]) $ zip marks [0..]
+        (sN, nsN) = unzip . concatMap (\((t, _), i) 
+            -> [((timeToSpace t, StaffNothing), ([i], notateRehearsal $ mark i))]) 
+                $ zip marks [0..]
         marks = extractRehearsalMarks score
         mark i = [chr (i + 65)]
 
 
 \end{code}
 
+<!--
 Removing redundant information
 --------
 
@@ -1472,9 +1500,11 @@ removeRedundantMarks' (Staff o s ns) = Staff o s (snd $ List.concatMapAccumL f z
 
         f z x = (z, [x])
 
-\end{code}
+\end{code}        
+-->
 
 
+<!--
 Notating parts
 ----------
 
@@ -1797,7 +1827,7 @@ writeAll = do
     writeScoreBook
     writePartBooks
 \end{code}
-
+-->
 
 Finally, we add instances to let us use the `draw` function on chords, staves and engravings.
 
@@ -1812,6 +1842,7 @@ instance Render Engraving Graphic where
     render = Graphic
 \end{code}
 
+\pagebreak
 
 
 
@@ -1934,6 +1965,9 @@ patternSequenceFrom p = patternSequence p . fmap pattern
 Imitation
 ----------
 
+These functions let us write simple canons using varying tempo and pitch offsets.
+We will use them together with written-out polyphony:
+
 \begin{code}
 type Sc = Score Dur Cue
 type Tr = Sc -> Sc
@@ -1955,22 +1989,12 @@ canon' inv r len step tr =
 \end{code}
 
 
-Score
+Sections
 ----------
 
+### Long bass notes
+
 \begin{code}
-
--- instant >>> ||| concatSeq, concatPar
--- reverse loop
--- duration stretch compress stretchTo
--- note rest delay
--- split before after
-
--- sustain prolong anticipate
-
-
--- Misc notes
-
 dbFs  = setPart DoubleBass . stretch 4 $ naturalHarmonic III 4
 dbB   = setPart DoubleBass . stretch 4 $ naturalHarmonic IV 4
 
@@ -1988,9 +2012,12 @@ dbE'' = setPart DoubleBass . stretch 4 $ naturalHarmonic I  3
 dbA'' = setPart DoubleBass . stretch 4 $ naturalHarmonic II 3
 dbD'' = setPart DoubleBass . stretch 4 $ naturalHarmonic III 3
 dbG'' = setPart DoubleBass . stretch 4 $ naturalHarmonic IV 3
+\end{code}
 
 
--- Intro/midtro/outro
+### Middle sections
+
+\begin{code}
 
 introHarm :: Int -> Score Dur Cue
 introHarm sect = stretch 3 $ loop x
@@ -2087,9 +2114,12 @@ outro1' = addRehearsalMark . setDynamics p $ stretch 1.5 $ instant
 
 outro1bass = setDynamics p . loop $
     rest 20 >>> stretch 3 dbA'' >>> rest 10 >>> stretch 3 dbG'
+\end{code}
 
 
--- Presentation and canons
+### Main presentation and canons
+
+\begin{code}
 
 present1 = addRehearsalMark $ instant
     ||| (          concatSeq . List.intersperse (rest 10) . map octaveUp $ map (present' Viola) [0,1,2])
@@ -2169,10 +2199,12 @@ finalCanonCellos = setDynamics f $ instant
         
 finalCanonBass = setDynamics f $ instant
     >>> stretch 10 dbG >>> rest 10 >>> stretch 10 dbA'
+\end{code}
 
 
--- Harmonics
+### Harmonics and open strings
 
+\begin{code}
 harmPatterns :: [[Int]]
 harmPatterns = harmPatterns' 3
     where
@@ -2279,16 +2311,24 @@ bassHarmMid = stretch 0.82 $ instant
     ||| (delay 85  . stretch 4 . setDynamics mf) dbA'
     ||| (delay 120 . stretch 4 . setDynamics mf) dbG
     ||| (delay 150 . stretch 4 . setDynamics mf) dbE''
+\end{code}
 
 
+Final score
+--------
 
--- Final score
+The final score is composed from the previosly defined sections in two steps: first the
+`mainScore` is composed from the presentations (canons) and middle sections (long harmonic
+and open strings). Then auxillary harmonics, open strings and bass notes are added in
+`harmScore`. The two are then simply composed together in parallel and stretched by a factor
+that allow us to change the duration of the piece by any factor (originally about 15 minutes).
 
+\begin{code}                 
+
+kStretchPiece = 0.8
+    
 score :: Score Dur Cue
-score = score'
--- score = midtro1
-
-score' = stretch 0.8 (harmScore ||| mainScore)
+score = stretch kStretchPiece (harmScore ||| mainScore)
 
 harmScore = instant
     ||| (delay 80    . before 50) harms1
@@ -2324,6 +2364,7 @@ mainScore = instant
 
 \end{code}
 
+\pagebreak
 
 
 
@@ -2448,6 +2489,9 @@ This variable contains number of events in the main score.
 scoreEvents = numberOfEvents . renderTremoloEvents $ score >>= renderCueToMidi
 \end{code}
 
+
+Main function
+--------
 
 The main function allow us to compile this module into a standalone program (which generates the piece in 
 Midi and musical notation).
