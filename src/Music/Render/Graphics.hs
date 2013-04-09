@@ -23,7 +23,7 @@ where
 
 import Prelude hiding ( reverse )
 
-import Data.Monoid
+import Data.Monoid hiding ( (<>) )
 import Data.Colour ( withOpacity )
 import Data.Colour.SRGB ( sRGB24read )
 import Data.Convert

@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, OverlappingInstances #-}
+{-# LANGUAGE TypeSynonymInstances, OverlappingInstances, FlexibleInstances #-}
 
 -- TODO Take out {TypeSynonymInstances, OverlappingInstances} from cabal file (?)
 

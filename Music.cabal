@@ -24,11 +24,11 @@ Library
                         vector-space,
                         colour >= 2.3.1,
 
-                        diagrams        == 0.5,
-                        diagrams-core   == 0.5,
-                        diagrams-lib    == 0.5,
-                        diagrams-cairo  == 0.5,
-                        diagrams-svg    == 0.3.2,
+                        diagrams        >= 0.5,
+                        diagrams-core   >= 0.5,
+                        diagrams-lib    >= 0.5,
+                        diagrams-cairo  >= 0.5,
+                        diagrams-svg    >= 0.3.2,
 
                         HCodecs >= 0.2.2,
                         binary >= 0.5.0.2

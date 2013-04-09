@@ -1,6 +1,7 @@
 
 {-# LANGUAGE
-    TypeSynonymInstances #-}
+    TypeSynonymInstances,
+    FlexibleInstances #-}
 
 
 -- ------------------------------------------------------------
@@ -30,7 +31,8 @@ module Music.Model.MusicXML.Score
 -- * Root elements
       Score(..)
     , Part(..)
-    , Measure(..)
+    , Measure(..)  
+    , MeasureContents(..)
 
 -- * Basic Attributes
     , MeasureAttributes(..)
@@ -102,8 +104,9 @@ instance WriteXml Score where
                                          [writeXml a]
                                          [writeXml h <+> writeXml p]
 
-type Part    = [(MeasureAttributes, [MusicData])]
-type Measure = (MeasureAttributes, [[MusicData]])
+type Part    = [(MeasureAttributes, MeasureContents)]
+type Measure = (MeasureAttributes, [MeasureContents])
+type MeasureContents = [MusicData]
 
 instance WriteXml Part where
     writeXml = undefined

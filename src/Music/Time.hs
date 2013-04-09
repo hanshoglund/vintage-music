@@ -21,6 +21,7 @@
 {-# LANGUAGE               
     TypeSynonymInstances,
     MultiParamTypeClasses,
+    FlexibleInstances,
     FunctionalDependencies #-}
 
 module Music.Time

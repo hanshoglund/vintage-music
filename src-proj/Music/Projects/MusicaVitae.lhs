@@ -438,38 +438,36 @@ instance LevelFunctor Dynamics where
 
 
 
-<!--
-% Articulation
-% ----------
-% 
-% \begin{code}
-% data Articulation
-%     = Straight
-%     | Accent   Double Articulation
-%     | Duration Double Articulation
-%     deriving ( Eq, Show )
-% 
-% data Phrasing
-%     = Phrasing
-%     | Binding Double Phrasing
-%     | Begin Articulation Phrasing
-%     | End Articulation Phrasing
-%     deriving ( Eq, Show )
-% 
-% staccato :: Articulation -> Articulation
-% staccato = Duration 0.8
-% 
-% tenuto :: Articulation -> Articulation
-% tenuto = Duration 1.2
-% 
-% legato :: Phrasing -> Phrasing
-% legato = Binding 1.2
-% 
-% portato :: Phrasing -> Phrasing
-% portato = Binding 0.8
-% \end{code}
-%                                   
--->
+Articulation
+----------
+
+\begin{code}
+data Articulation
+    = Straight
+    | Accent   Double Articulation
+    | Duration Double Articulation
+    deriving ( Eq, Show )
+
+data Phrasing
+    = Phrasing
+    | Binding Double Phrasing
+    | Begin Articulation Phrasing
+    | End Articulation Phrasing
+    deriving ( Eq, Show )
+
+staccato :: Articulation -> Articulation
+staccato = Duration 0.8
+
+tenuto :: Articulation -> Articulation
+tenuto = Duration 1.2
+
+legato :: Phrasing -> Phrasing
+legato = Binding 1.2
+
+portato :: Phrasing -> Phrasing
+portato = Binding 0.8
+\end{code}
+                                  
 
 
 
@@ -1504,7 +1502,7 @@ removeRedundantMarks' (Staff o s ns) = Staff o s (snd $ List.concatMapAccumL f z
 -->
 
 
-<!--
+
 Notating parts
 ----------
 
@@ -1827,7 +1825,6 @@ writeAll = do
     writeScoreBook
     writePartBooks
 \end{code}
--->
 
 Finally, we add instances to let us use the `draw` function on chords, staves and engravings.
 
@@ -1992,7 +1989,7 @@ canon' inv r len step tr =
 Sections
 ----------
 
-### Long bass notes
+Long bass notes:
 
 \begin{code}
 dbFs  = setPart DoubleBass . stretch 4 $ naturalHarmonic III 4
@@ -2015,7 +2012,7 @@ dbG'' = setPart DoubleBass . stretch 4 $ naturalHarmonic IV 3
 \end{code}
 
 
-### Middle sections
+Middle sections:
 
 \begin{code}
 
@@ -2117,7 +2114,7 @@ outro1bass = setDynamics p . loop $
 \end{code}
 
 
-### Main presentation and canons
+Main presentation and canons:
 
 \begin{code}
 
@@ -2202,7 +2199,7 @@ finalCanonBass = setDynamics f $ instant
 \end{code}
 
 
-### Harmonics and open strings
+Harmonics and open strings:
 
 \begin{code}
 harmPatterns :: [[Int]]
@@ -2317,9 +2314,9 @@ bassHarmMid = stretch 0.82 $ instant
 Final score
 --------
 
-The final score is composed from the previosly defined sections in two steps: first the
+The final score is composed from the previously defined sections in two steps: first the
 `mainScore` is composed from the presentations (canons) and middle sections (long harmonic
-and open strings). Then auxillary harmonics, open strings and bass notes are added in
+and open strings). Then auxiliary harmonics, open strings and bass notes are added in
 `harmScore`. The two are then simply composed together in parallel and stretched by a factor
 that allow us to change the duration of the piece by any factor (originally about 15 minutes).
 
