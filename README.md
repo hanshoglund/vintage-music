@@ -1,6 +1,5 @@
-
 ## music
 
 *Depracated*
 
-This library has been superseded by the [Music Suite](http://musicsuite.github.io/). 
+See the [Music Suite](http://music-suite.github.io/). 
